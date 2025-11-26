@@ -1,0 +1,1648 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Poker Tournament Manager&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="utf-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://telegram.org/js/telegram-web-app.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>/* Стили остаются без изменений */</p>
+<p class="p1"><span class="Apple-converted-space">        </span>* {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-sizing: border-box;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0 16px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: 100vh;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: 100dvh;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background-color: #f2f2f7;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #000000;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>overflow-y: auto;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>:root {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--bg-color: #f2f2f7;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--card-bg: #ffffff;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--text-color: #000000;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--secondary-text: #8e8e93;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--border-color: #c6c6c8;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--green: #1e7e34;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--red: #ff3b30;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--blue: #007aff;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--yellow: #ffcc00;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--gray: #8e8e93;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--gold: #ffd700;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--silver: #c0c0c0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--bronze: #cd7f32;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--dark-blue: #0056b3;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>--dark-red: #d32f2f;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>@media (prefers-color-scheme: dark) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>:root {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--bg-color: #000000;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--card-bg: #1c1c1e;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--text-color: #ffffff;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--secondary-text: #8e8e93;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--border-color: #38383a;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--green: #28a745;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--red: #ff453a;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--blue: #0a84ff;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--yellow: #ffd60a;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--gray: #8e8e93;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--gold: #ffd700;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--silver: #c0c0c0;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--bronze: #cd7f32;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--dark-blue: #0a84ff;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>--dark-red: #c62828;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background-color: var(--bg-color);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: var(--text-color);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><span class="Apple-converted-space">        </span></p>
+<p class="p1"><span class="Apple-converted-space">        </span>.screen {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex: 1;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 20px 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: min-content;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.header-content {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-shrink: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 24px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0 8px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.players-list-container {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex: 1;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: min-content;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 8px 0;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.players-list {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 1px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background-color: transparent;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>overflow: hidden;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 16px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.players-list .player-button:first-child {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-top-left-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-top-right-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.players-list .player-button:last-child {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-bottom-left-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-bottom-right-radius: 12px;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.player-button {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 17px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background-color: var(--card-bg);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: var(--text-color);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: none;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>cursor: pointer;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: 56px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0 12px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>transition: background-color 0.2s;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>position: relative;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.player-button:active {</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poker Tournament Manager</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Стили остаются без изменений */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 0 16px;
+            margin: 0;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f2f2f7;
+            color: #000000;
+            overflow-y: auto;
+        }
+        
+        :root {
+            --bg-color: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-color: #000000;
+            --secondary-text: #8e8e93;
+            --border-color: #c6c6c8;
+            --green: #1e7e34;
+            --red: #ff3b30;
+            --blue: #007aff;
+            --yellow: #ffcc00;
+            --gray: #8e8e93;
+            --gold: #ffd700;
+            --silver: #c0c0c0;
+            --bronze: #cd7f32;
+            --dark-blue: #0056b3;
+            --dark-red: #d32f2f;
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --card-bg: #1c1c1e;
+                --text-color: #ffffff;
+                --secondary-text: #8e8e93;
+                --border-color: #38383a;
+                --green: #28a745;
+                --red: #ff453a;
+                --blue: #0a84ff;
+                --yellow: #ffd60a;
+                --gray: #8e8e93;
+                --gold: #ffd700;
+                --silver: #c0c0c0;
+                --bronze: #cd7f32;
+                --dark-blue: #0a84ff;
+                --dark-red: #c62828;
+            }
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            min-height: min-content;
+        }
+        .header-content {
+            flex-shrink: 0;
+            margin-bottom: 24px;
+            padding: 0 8px;
+        }
+        .players-list-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: min-content;
+            padding: 8px 0;
+        }
+        .players-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background-color: transparent;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .players-list .player-button:first-child {
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+        .players-list .player-button:last-child {
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+        .player-button {
+            font-size: 17px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            min-height: 56px;
+            padding: 0 12px;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .player-button:active {
+            background-color: var(--border-color);
+        }
+        .player-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .player-button.finished {
+            opacity: 0.6;
+        }
+        .player-button.gold {
+            background-color: rgba(255, 215, 0, 0.15);
+        }
+        .player-button.silver {
+            background-color: rgba(192, 192, 192, 0.15);
+        }
+        .player-button.bronze {
+            background-color: rgba(205, 127, 50, 0.15);
+        }
+        .player-button.empty {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .position-indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 12px;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .position-indicator.playing {
+            background-color: var(--green);
+            color: white;
+        }
+        .position-indicator.playing::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--green);
+        }
+        .position-indicator.finished {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+        .position-indicator.finished::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+        }
+        .position-indicator.empty {
+            background-color: var(--border-color);
+            color: var(--secondary-text);
+        }
+        .position-indicator.empty::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--border-color);
+        }
+        .position-indicator.gold {
+            background-color: var(--gold);
+            color: black;
+        }
+        .position-indicator.gold::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--gold);
+        }
+        .position-indicator.silver {
+            background-color: var(--silver);
+            color: black;
+        }
+        .position-indicator.silver::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--silver);
+        }
+        .position-indicator.bronze {
+            background-color: var(--bronze);
+            color: white;
+        }
+        .position-indicator.bronze::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 18px;
+            border: 1px solid var(--bronze);
+        }
+        .position-indicator.medal {
+            font-size: 18px;
+        }
+        .player-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            min-width: 0;
+        }
+        .player-name {
+            font-size: 15px;
+            font-weight: 400;
+            text-align: left;
+            line-height: 1.2;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            color: var(--secondary-text);
+        }
+        .player-nickname {
+            font-size: 17px;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+        .player-rebuys {
+            display: flex;
+            gap: 4px;
+            margin-right: 4px;
+        }
+        .rebuy-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--green);
+        }
+        .rebuy-dot.used {
+            background-color: var(--gray);
+        }
+        .player-finish-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: 2px;
+            text-align: right;
+        }
+        .player-position {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        .finish-time {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-top: 2px;
+        }
+        .chevron {
+            width: 24px;
+            height: 24px;
+            margin-left: 2px;
+            flex-shrink: 0;
+            opacity: 0.3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chevron::after {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-right: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(-45deg);
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 0;
+            padding: 20px 0;
+        }
+        .action-button {
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 56px;
+            padding: 16px;
+            font-weight: 400;
+            position: relative;
+            background-color: var(--card-bg);
+            color: var(--blue);
+            transition: background-color 0.2s;
+        }
+        .action-button:active {
+            background-color: var(--border-color);
+        }
+        .action-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: var(--secondary-text);
+        }
+        .action-button.destructive {
+            color: var(--red);
+        }
+        .action-button.rebuy {
+            color: var(--blue);
+        }
+        .action-button.rebuy:disabled {
+            color: var(--secondary-text);
+        }
+        .back-button {
+            background-color: var(--card-bg);
+            color: var(--blue);
+            min-height: 56px;
+            flex-shrink: 0;
+            font-size: 17px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .back-button:active {
+            background-color: var(--border-color);
+        }
+        .back-button::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-left: 2px solid currentColor;
+            border-bottom: 2px solid currentColor;
+            transform: rotate(45deg);
+        }
+        .action-info {
+            font-size: 14px;
+            margin-top: 4px;
+            color: var(--secondary-text);
+            font-weight: 400;
+        }
+        .cancel-timer {
+            font-size: 14px;
+            margin-top: 4px;
+            color: var(--yellow);
+            font-weight: 400;
+        }
+        .hidden {
+            display: none;
+        }
+        .tournament-title {
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            color: var(--text-color);
+        }
+        .table-info {
+            font-size: 17px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            color: var(--text-color);
+        }
+        .table-badge {
+            display: inline-block;
+            background-color: var(--blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 4px;
+        }
+        .table-label {
+            color: var(--secondary-text);
+            font-weight: 600;
+        }
+        .game-time {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 4px;
+            color: var(--secondary-text);
+            line-height: 1.3;
+        }
+        .game-finished {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 8px;
+            color: var(--green);
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .tournament-date {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 4px;
+            color: var(--secondary-text);
+            line-height: 1.3;
+        }
+        .current-time {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 4px;
+            color: var(--secondary-text);
+            line-height: 1.3;
+        }
+        .player-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 0 16px;
+        }
+        .player-photo {
+            width: 180px;
+            height: 180px;
+            border-radius: 90px;
+            margin: 0 auto 16px;
+            background-color: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 4px solid var(--card-bg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-size: 80px;
+        }
+        .player-title {
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            color: var(--text-color);
+        }
+        .player-subtitle {
+            font-size: 17px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--secondary-text);
+            line-height: 1.3;
+        }
+        .time-info {
+            font-size: 15px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--secondary-text);
+            line-height: 1.3;
+        }
+        .admin-button {
+            font-size: 17px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 56px;
+            padding: 16px;
+            font-weight: 400;
+            background-color: var(--dark-red);
+            color: white;
+            transition: background-color 0.2s;
+            margin-top: 16px;
+        }
+        .admin-button:active {
+            background-color: #b71c1c;
+        }
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            font-size: 17px;
+            color: var(--secondary-text);
+        }
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+        }
+        .error-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--red);
+        }
+        .error-text {
+            font-size: 16px;
+            color: var(--secondary-text);
+            margin-bottom: 16px;
+        }
+        .retry-button {
+            background-color: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-size: 17px;
+            cursor: pointer;
+        }
+        .debug-info {
+            background: rgba(255, 255, 0, 0.1);
+            border: 1px solid #ffcc00;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                background-color: #f2f2f7 !important;
+            }
+            
+            .player-button,
+            .action-button,
+            .back-button {
+                background-color: #ffffff !important;
+            }
+            
+            @media (prefers-color-scheme: dark) {
+                body {
+                    background-color: #000000 !important;
+                }
+                
+                .player-button,
+                .action-button,
+                .back-button {
+                    background-color: #1c1c1e !important;
+                }
+            }
+        }
+
+        @media (max-height: 700px) {
+            .screen {
+                padding: 16px 0;
+            }
+            .player-button {
+                min-height: 52px;
+            }
+            .action-button {
+                min-height: 52px;
+                padding: 14px;
+            }
+            .back-button {
+                min-height: 52px;
+            }
+            .admin-button {
+                min-height: 52px;
+                padding: 14px;
+            }
+            .player-photo {
+                width: 150px;
+                height: 150px;
+                border-radius: 75px;
+                font-size: 70px;
+            }
+            .tournament-title {
+                font-size: 24px;
+            }
+            .player-title {
+                font-size: 24px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .screen {
+                padding: 12px 0;
+            }
+            .tournament-title {
+                font-size: 22px;
+            }
+            .player-title {
+                font-size: 22px;
+            }
+            .player-subtitle {
+                font-size: 16px;
+            }
+            .table-info {
+                font-size: 16px;
+            }
+            .table-badge {
+                font-size: 14px;
+            }
+            .game-time, .game-finished, .tournament-date, .current-time {
+                font-size: 14px;
+            }
+            .player-button {
+                min-height: 48px;
+            }
+            .player-name {
+                font-size: 14px;
+            }
+            .player-nickname {
+                font-size: 16px;
+            }
+            .action-button {
+                min-height: 48px;
+                padding: 12px;
+                font-size: 16px;
+            }
+            .back-button {
+                min-height: 48px;
+                font-size: 16px;
+            }
+            .admin-button {
+                min-height: 48px;
+                padding: 12px;
+                font-size: 16px;
+            }
+            .player-photo {
+                width: 120px;
+                height: 120px;
+                border-radius: 60px;
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div id="loadingScreen" class="screen">
+        <div class="loading">Загрузка данных...</div>
+    </div>
+
+    <!-- Экран ошибки -->
+    <div id="errorScreen" class="screen hidden">
+        <div class="error-message">
+            <div class="error-title">Ошибка загрузки</div>
+            <div class="error-text" id="errorText">Не удалось загрузить данные турнира</div>
+            <button class="retry-button" id="retryButton">Повторить попытку</button>
+        </div>
+    </div>
+
+    <!-- Экран выбора игрока -->
+    <div id="playerSelectionScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-title" id="tournamentTitle">King & Joker Tournament</div>
+            <div class="table-info">
+                <span class="table-label">Стол</span> 
+                <span class="table-badge" id="tableNumber">№1</span> 
+                <span class="table-label">Дилер</span> 
+                <span class="table-badge" id="dealerName">Максимус</span>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="playersList"></div>
+            <div class="tournament-date" id="dateTimeFooter">Дата 18.11.2025, время 00:00:00</div>
+            <div class="game-time" id="gameTime">Время начала 17:00, игра идёт 00:00:00</div>
+            <div class="game-finished hidden" id="gameFinished"></div>
+            
+            <!-- Отладочная информация -->
+            <div class="debug-info" id="debugInfo" style="display: none;">
+                <strong>Отладка:</strong>
+                <div id="debugContent"></div>
+            </div>
+            
+            <button class="admin-button" id="adminButton">Позвать администратора</button>
+        </div>
+    </div>
+
+    <!-- Экран действий игрока -->
+    <div id="actionScreen" class="screen hidden">
+        <div class="header-content">
+            <h1 class="player-title" id="selectedPlayerNickname"></h1>
+            <div class="player-subtitle" id="selectedPlayerName"></div>
+        </div>
+        <div class="player-photo">
+            <span id="playerEmoji">👤</span>
+        </div>
+        <div class="action-buttons">
+            <button class="action-button rebuy" id="rebuyButton">
+                <span>Игрок делает ребай</span>
+                <div class="action-info" id="rebuyInfo"></div>
+            </button>
+            <button class="action-button destructive" id="finishButton">
+                <span>Игрок закончил игру</span>
+                <div class="action-info" id="finishInfo"></div>
+            </button>
+            <button class="back-button" id="backButton">Назад к игрокам</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.enableClosingConfirmation();
+
+        // Конфигурация
+        const CONFIG = {
+            TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-data',
+            TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
+            REFRESH_INTERVAL: 30000,
+            REQUEST_TIMEOUT: 10000
+        };
+
+        // Типы событий турнира
+        const TOURNAMENT_EVENTS = {
+            PLAYER_REBUY: 'player_rebuy',
+            PLAYER_FINISH: 'player_finish',
+            ADMIN_CALL: 'admin_call'
+        };
+
+        // Глобальные переменные
+        let tournamentData = null;
+        let playerData = new Map();
+        let finishedPlayers = [];
+        let gameTimerInterval = null;
+        let refreshInterval = null;
+        let isGameFinished = false;
+        let gameStartTime = null;
+        let selectedPlayer = '';
+
+        // Элементы DOM
+        const loadingScreen = document.getElementById('loadingScreen');
+        const errorScreen = document.getElementById('errorScreen');
+        const playerSelectionScreen = document.getElementById('playerSelectionScreen');
+        const actionScreen = document.getElementById('actionScreen');
+        const tournamentTitle = document.getElementById('tournamentTitle');
+        const tableNumber = document.getElementById('tableNumber');
+        const dealerName = document.getElementById('dealerName');
+        const playersList = document.getElementById('playersList');
+        const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
+        const selectedPlayerName = document.getElementById('selectedPlayerName');
+        const dateTimeFooterElement = document.getElementById('dateTimeFooter');
+        const gameTimeElement = document.getElementById('gameTime');
+        const gameFinishedElement = document.getElementById('gameFinished');
+        const playerEmoji = document.getElementById('playerEmoji');
+        const rebuyButton = document.getElementById('rebuyButton');
+        const finishButton = document.getElementById('finishButton');
+        const backButton = document.getElementById('backButton');
+        const adminButton = document.getElementById('adminButton');
+        const rebuyInfo = document.getElementById('rebuyInfo');
+        const finishInfo = document.getElementById('finishInfo');
+        const errorText = document.getElementById('errorText');
+        const retryButton = document.getElementById('retryButton');
+        const debugInfo = document.getElementById('debugInfo');
+        const debugContent = document.getElementById('debugContent');
+
+        // Функция для отображения отладочной информации
+        function showDebugInfo(message) {
+            debugInfo.style.display = 'block';
+            debugContent.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+            console.log('🔧 DEBUG:', message);
+        }
+
+        // Сервис событий турнира
+        class TournamentEventService {
+            constructor() {
+                this.sessionId = this.generateSessionId();
+                showDebugInfo(`Сервис инициализирован. Session ID: ${this.sessionId}`);
+            }
+            
+            generateSessionId() {
+                return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            async sendEvent(eventType, eventData = {}) {
+                const event = {
+                    type: eventType,
+                    sessionId: this.sessionId,
+                    timestamp: new Date().toISOString(),
+                    source: 'tournament_app',
+                    userId: window.Telegram.WebApp.initDataUnsafe.user?.id,
+                    data: eventData
+                };
+                
+                showDebugInfo(`Отправка события: ${eventType}`);
+                showDebugInfo(`URL: ${CONFIG.TOURNAMENT_EVENTS_URL}`);
+                showDebugInfo(`Данные: ${JSON.stringify(event)}`);
+                
+                try {
+                    showDebugInfo(`Начинаем fetch запрос...`);
+                    
+                    const response = await fetch(CONFIG.TOURNAMENT_EVENTS_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(event)
+                    });
+                    
+                    showDebugInfo(`Получен ответ. Status: ${response.status}, OK: ${response.ok}`);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        showDebugInfo(`Ошибка HTTP: ${response.status}. Тело: ${errorText}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    showDebugInfo(`Успех! Ответ: ${JSON.stringify(result)}`);
+                    
+                    return result;
+                    
+                } catch (error) {
+                    showDebugInfo(`Ошибка fetch: ${error.message}`);
+                    console.error('❌ FETCH ERROR:', error);
+                    throw error;
+                }
+            }
+            
+            // События игроков
+            async playerRebuy(playerId, rebuysLeft) {
+                return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_REBUY, {
+                    playerId: playerId,
+                    rebuysLeft: rebuysLeft
+                });
+            }
+            
+            async playerFinish(playerId, finishTime, finishPosition) {
+                return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_FINISH, {
+                    playerId: playerId,
+                    finishTime: finishTime,
+                    finishPosition: finishPosition
+                });
+            }
+            
+            // Сервисные события
+            async callAdmin(reason, tableNumber, dealerName) {
+                return await this.sendEvent(TOURNAMENT_EVENTS.ADMIN_CALL, {
+                    reason: reason,
+                    tableNumber: tableNumber,
+                    dealerName: dealerName,
+                    userData: window.Telegram.WebApp.initDataUnsafe.user
+                });
+            }
+        }
+
+        // Менеджер звуков
+        class AudioManager {
+            constructor() {
+                this.enabled = true;
+            }
+            
+            play(soundName) {
+                if (!this.enabled) return;
+                console.log('🔊 Playing sound:', soundName);
+            }
+            
+            toggle(enabled) {
+                this.enabled = enabled;
+            }
+        }
+
+        // Инициализация сервисов
+        let eventService;
+        let audioManager;
+
+        // Функция загрузки данных турнира
+        async function loadTournamentData() {
+            try {
+                showLoading();
+                showDebugInfo('Начало загрузки данных турнира...');
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+                
+                const response = await fetch(CONFIG.TOURNAMENT_API_URL, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Валидация данных
+                if (!data.tournament || !data.players) {
+                    throw new Error('Invalid data format from server');
+                }
+                
+                showDebugInfo('Данные турнира успешно загружены');
+                processTournamentData(data);
+                showPlayerSelection();
+                
+            } catch (error) {
+                console.error('Error loading tournament data:', error);
+                showError(`Не удалось загрузить данные: ${error.message}`);
+            }
+        }
+
+        // Обработка данных турнира
+        function processTournamentData(data) {
+            tournamentData = data.tournament;
+            playerData.clear();
+            finishedPlayers = [];
+            
+            // Устанавливаем время начала игры
+            if (tournamentData.startTime) {
+                gameStartTime = new Date(tournamentData.startTime);
+            } else {
+                gameStartTime = new Date();
+            }
+            
+            // Обрабатываем игроков
+            data.players.forEach(player => {
+                const fullName = `${player.firstName} ${player.lastName}`.trim();
+                playerData.set(fullName, {
+                    id: player.id,
+                    position: player.position,
+                    emoji: player.emoji || '👤',
+                    nickname: player.nickname,
+                    firstName: player.firstName,
+                    lastName: player.lastName,
+                    rebuysLeft: player.rebuysLeft || 0,
+                    isFinished: player.isFinished || false,
+                    finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
+                    finishPosition: player.finishPosition || null,
+                    isEmpty: player.isEmpty || false
+                });
+                
+                // Добавляем в список завершивших, если игрок закончил и не пустой
+                if (player.isFinished && player.finishTime && !player.isEmpty) {
+                    finishedPlayers.push({
+                        finishTime: new Date(player.finishTime),
+                        timeDiff: new Date(player.finishTime) - gameStartTime
+                    });
+                }
+            });
+            
+            // Обновляем UI без перезагрузки
+            updateTournamentUI();
+            updatePlayersList();
+            checkGameFinished();
+        }
+
+        // Обновление UI турнира (без перезагрузки)
+        function updateTournamentUI() {
+            if (tournamentData) {
+                tournamentTitle.textContent = tournamentData.title || 'King & Joker Tournament';
+                tableNumber.textContent = tournamentData.table || '№1';
+                dealerName.textContent = tournamentData.dealer || 'Максимус';
+            }
+        }
+
+        // Обновление списка игроков (без перезагрузки)
+        function updatePlayersList() {
+            playersList.innerHTML = '';
+            
+            // Создаем массив для всех 9 позиций
+            const allPositions = Array.from({ length: 9 }, (_, i) => i + 1);
+            
+            allPositions.forEach(position => {
+                // Ищем игрока на этой позиции
+                const playerEntry = Array.from(playerData.entries()).find(([name, data]) => data.position === position);
+                
+                if (playerEntry) {
+                    // Если есть игрок на этой позиции
+                    const [playerName, data] = playerEntry;
+                    const button = document.createElement('button');
+                    button.setAttribute('data-player', playerName);
+                    button.classList.add('player-button');
+                    
+                    // Проверяем, является ли игрок пустым местом
+                    if (data.isEmpty) {
+                        button.classList.add('empty');
+                        button.disabled = true;
+                    }
+                    
+                    button.innerHTML = `
+                        <div class="position-indicator ${data.isFinished ? 'finished' : data.isEmpty ? 'empty' : 'playing'}">
+                            ${data.position}
+                        </div>
+                        <div class="player-info">
+                            <div class="player-nickname">${data.nickname}</div>
+                            <div class="player-name">${playerName}</div>
+                        </div>
+                        <div class="player-rebuys"></div>
+                        <div class="chevron"></div>
+                    `;
+                    
+                    // Добавляем обработчик клика только для непустых игроков
+                    if (!data.isEmpty) {
+                        button.addEventListener('click', () => {
+                            selectPlayer(playerName);
+                        });
+                    } else {
+                        button.disabled = true;
+                    }
+                    
+                    playersList.appendChild(button);
+                    
+                    // Обновляем кнопку только для непустых игроков
+                    if (!data.isEmpty) {
+                        updatePlayerButton(playerName);
+                    }
+                } else {
+                    // Если нет игрока на этой позиции - создаем полностью пустое место
+                    const emptyButton = document.createElement('button');
+                    emptyButton.classList.add('player-button', 'empty');
+                    emptyButton.disabled = true;
+                    
+                    emptyButton.innerHTML = `
+                        <div class="position-indicator empty">${position}</div>
+                        <div class="player-info">
+                            <div class="player-nickname">Игрока нет</div>
+                            <div class="player-name">Место свободно</div>
+                        </div>
+                        <div class="player-rebuys"></div>
+                        <div class="chevron"></div>
+                    `;
+                    
+                    playersList.appendChild(emptyButton);
+                }
+            });
+        }
+
+        // Обновление отдельной кнопки игрока
+        function updatePlayerButton(playerName) {
+            const button = document.querySelector(`[data-player="${playerName}"]`);
+            if (!button) return;
+            
+            const data = playerData.get(playerName);
+            if (!data) return;
+            
+            // Если игрок пустой, делаем кнопку неактивной
+            if (data.isEmpty) {
+                button.classList.add('empty');
+                button.disabled = true;
+                return;
+            }
+            
+            const nicknameElement = button.querySelector('.player-nickname');
+            const nameElement = button.querySelector('.player-name');
+            const rebuysElement = button.querySelector('.player-rebuys');
+            const positionIndicator = button.querySelector('.position-indicator');
+            const finishInfoContainer = button.querySelector('.player-finish-info');
+            const chevron = button.querySelector('.chevron');
+            
+            if (nicknameElement) nicknameElement.textContent = data.nickname || 'Неизвестно';
+            if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
+            
+            button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
+            if (data.isFinished) {
+                const positionClass = getPositionClass(data.finishPosition);
+                button.classList.add(positionClass);
+                if (positionClass === 'finished') button.classList.add('finished');
+            }
+            
+            if (positionIndicator) {
+                positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty');
+                
+                if (data.isFinished) {
+                    positionIndicator.classList.add('finished');
+                    positionIndicator.textContent = data.position;
+                    
+                    if (data.finishPosition <= 3) {
+                        const positionClass = getPositionClass(data.finishPosition);
+                        positionIndicator.classList.add(positionClass, 'medal');
+                        positionIndicator.textContent = getPositionIcon(data.finishPosition);
+                    }
+                } else {
+                    positionIndicator.classList.add('playing');
+                    positionIndicator.textContent = data.position;
+                }
+            }
+            
+            if (rebuysElement) {
+                if (data.isFinished) {
+                    rebuysElement.style.display = 'none';
+                } else {
+                    rebuysElement.style.display = 'flex';
+                    rebuysElement.innerHTML = '';
+                    for (let i = 0; i < 2; i++) {
+                        const dot = document.createElement('div');
+                        dot.className = i < (2 - data.rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                        rebuysElement.appendChild(dot);
+                    }
+                }
+            }
+            
+            if (data.isFinished && data.finishTime) {
+                if (!finishInfoContainer) {
+                    const newFinishInfo = document.createElement('div');
+                    newFinishInfo.className = 'player-finish-info';
+                    newFinishInfo.innerHTML = `
+                        <div class="player-position">${data.finishPosition} место</div>
+                        <div class="finish-time">${formatFinishTime(new Date(data.finishTime))}</div>
+                    `;
+                    button.insertBefore(newFinishInfo, chevron);
+                } else {
+                    finishInfoContainer.innerHTML = `
+                        <div class="player-position">${data.finishPosition} место</div>
+                        <div class="finish-time">${formatFinishTime(new Date(data.finishTime))}</div>
+                    `;
+                }
+            } else if (finishInfoContainer) {
+                finishInfoContainer.remove();
+            }
+        }
+
+        // Функция для плавного обновления данных
+        async function refreshTournamentData() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+                
+                const response = await fetch(CONFIG.TOURNAMENT_API_URL, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.tournament || !data.players) {
+                    throw new Error('Invalid data format from server');
+                }
+                
+                // Обновляем данные без перезагрузки экрана
+                processTournamentData(data);
+                
+            } catch (error) {
+                console.error('Error refreshing tournament data:', error);
+            }
+        }
+
+        function selectPlayer(playerName) {
+            selectedPlayer = playerName;
+            const data = playerData.get(playerName);
+            
+            selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
+            selectedPlayerName.textContent = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
+            playerEmoji.textContent = data.emoji || '👤';
+            
+            updateRebuyButtonState(data);
+            updateFinishButtonState(data);
+            
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.remove('hidden');
+        }
+
+        function updateRebuyButtonState(data) {
+            if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
+                rebuyButton.disabled = true;
+                rebuyInfo.textContent = 'Ребаев больше нет';
+            } else {
+                rebuyButton.disabled = false;
+                rebuyInfo.textContent = `Осталось ребаев: ${data.rebuysLeft}`;
+            }
+        }
+
+        function updateFinishButtonState(data) {
+            if (data.isFinished || data.isEmpty) {
+                finishButton.disabled = true;
+                if (data.finishTime && !data.isEmpty) {
+                    finishInfo.textContent = formatFinishTimeInfo(data.finishTime);
+                } else if (data.isEmpty) {
+                    finishInfo.textContent = 'Пустое место';
+                }
+            } else {
+                finishButton.disabled = false;
+                finishInfo.textContent = '';
+            }
+        }
+
+        // Управление экранами
+        function showLoading() {
+            loadingScreen.classList.remove('hidden');
+            errorScreen.classList.add('hidden');
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            loadingScreen.classList.add('hidden');
+            errorScreen.classList.remove('hidden');
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+        }
+
+        function showPlayerSelection() {
+            loadingScreen.classList.add('hidden');
+            errorScreen.classList.add('hidden');
+            playerSelectionScreen.classList.remove('hidden');
+            actionScreen.classList.add('hidden');
+        }
+
+        // Вспомогательные функции
+        function formatFinishTimeInfo(finishTime) {
+            const finishDate = new Date(finishTime);
+            const calendarTime = finishDate.toLocaleTimeString('ru-RU', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            const timeDiff = finishDate - gameStartTime;
+            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            const relativeTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            return `Закончил в ${calendarTime} (${relativeTime})`;
+        }
+
+        function formatFinishTime(finishTime) {
+            const timeDiff = finishTime - gameStartTime;
+            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function getPositionClass(position) {
+            switch(position) {
+                case 1: return 'gold';
+                case 2: return 'silver';
+                case 3: return 'bronze';
+                default: return 'finished';
+            }
+        }
+
+        function getPositionIcon(position) {
+            switch(position) {
+                case 1: return '🥇';
+                case 2: return '🥈';
+                case 3: return '🥉';
+                default: return position;
+            }
+        }
+
+        function calculateFinishPosition(finishTime) {
+            finishedPlayers.push({
+                finishTime: finishTime,
+                timeDiff: finishTime - gameStartTime
+            });
+            finishedPlayers.sort((a, b) => a.timeDiff - b.timeDiff);
+            return 10 - finishedPlayers.length;
+        }
+
+        function checkAutoFinish() {
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.isFinished && !player.isEmpty);
+            if (activePlayers.length === 1) {
+                const lastPlayer = activePlayers[0];
+                const playerName = Array.from(playerData.entries()).find(([name, data]) => data === lastPlayer)[0];
+                
+                if (!lastPlayer.isFinished) {
+                    lastPlayer.isFinished = true;
+                    lastPlayer.finishTime = new Date().toISOString();
+                    lastPlayer.finishPosition = 1;
+                    
+                    finishedPlayers.push({
+                        finishTime: new Date(lastPlayer.finishTime),
+                        timeDiff: new Date(lastPlayer.finishTime) - gameStartTime
+                    });
+                    
+                    updatePlayerButton(playerName);
+                    checkGameFinished();
+                }
+            }
+        }
+
+        function checkGameFinished() {
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.isFinished && !player.isEmpty);
+            if (activePlayers.length === 0 && !isGameFinished) {
+                isGameFinished = true;
+                const totalTime = new Date() - gameStartTime;
+                const hours = Math.floor(totalTime / (1000 * 60 * 60));
+                const minutes = Math.floor((totalTime % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((totalTime % (1000 * 60)) / 1000);
+                
+                gameFinishedElement.textContent = `Игра завершена за ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                gameFinishedElement.classList.remove('hidden');
+                
+                if (gameTimerInterval) clearInterval(gameTimerInterval);
+                if (refreshInterval) clearInterval(refreshInterval);
+            }
+        }
+
+        function updateGameTime() {
+            if (isGameFinished) return;
+            
+            const now = new Date();
+            const timeDiff = now - gameStartTime;
+            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            
+            const startTimeString = gameStartTime.toLocaleTimeString('ru-RU', {
+                hour: '2-digit', minute: '2-digit'
+            });
+            
+            gameTimeElement.textContent = `Время начала ${startTimeString}, игра идёт ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('ru-RU', {
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            const dateString = now.toLocaleDateString('ru-RU', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+            dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
+        }
+
+        function backToPlayerList() {
+            actionScreen.classList.add('hidden');
+            playerSelectionScreen.classList.remove('hidden');
+            selectedPlayer = '';
+        }
+
+        // Обработчики событий
+        rebuyButton.addEventListener('click', async () => {
+            if (selectedPlayer) {
+                const data = playerData.get(selectedPlayer);
+                if (data.rebuysLeft > 0 && !data.isFinished && !data.isEmpty) {
+                    data.rebuysLeft--;
+                    
+                    try {
+                        // Отправляем событие в систему
+                        await eventService.playerRebuy(data.id, data.rebuysLeft);
+                        
+                        // Воспроизводим звук
+                        audioManager.play('CLICK');
+                        
+                        updatePlayerButton(selectedPlayer);
+                        backToPlayerList();
+                        
+                    } catch (error) {
+                        tg.showAlert('Ошибка при сохранении ребая');
+                        data.rebuysLeft++;
+                    }
+                }
+            }
+        });
+
+        finishButton.addEventListener('click', async () => {
+            if (selectedPlayer) {
+                const data = playerData.get(selectedPlayer);
+                
+                if (!data.isFinished && !data.isEmpty) {
+                    data.isFinished = true;
+                    data.finishTime = new Date().toISOString();
+                    data.finishPosition = calculateFinishPosition(new Date(data.finishTime));
+                    
+                    try {
+                        // Отправляем событие в систему
+                        await eventService.playerFinish(
+                            data.id, 
+                            data.finishTime, 
+                            data.finishPosition
+                        );
+                        
+                        // Воспроизводим звук
+                        audioManager.play('SUCCESS');
+                        
+                        checkAutoFinish();
+                        updatePlayerButton(selectedPlayer);
+                        checkGameFinished();
+                        backToPlayerList();
+                        
+                    } catch (error) {
+                        tg.showAlert('Ошибка при сохранении завершения игры');
+                        data.isFinished = false;
+                        data.finishTime = null;
+                        data.finishPosition = null;
+                    }
+                }
+            }
+        });
+
+        adminButton.addEventListener('click', async () => {
+            showDebugInfo('=== НАЧАЛО ВЫЗОВА АДМИНИСТРАТОРА ===');
+            try {
+                // Получаем актуальные данные о столе и дилере
+                const currentTableNumber = tableNumber.textContent;
+                const currentDealerName = dealerName.textContent;
+                
+                showDebugInfo(`Данные для вызова: Стол ${currentTableNumber}, Дилер ${currentDealerName}`);
+                showDebugInfo('Вызываем eventService.callAdmin...');
+                
+                await eventService.callAdmin(
+                    'user_requested_assistance', 
+                    currentTableNumber, 
+                    currentDealerName
+                );
+                
+                showDebugInfo('✅ Администратор успешно вызван');
+                audioManager.play('SUCCESS');
+                tg.showAlert("Администратор вызван");
+            } catch (error) {
+                showDebugInfo(`❌ Ошибка при вызове администратора: ${error.message}`);
+                tg.showAlert("Ошибка при вызове администратора");
+            }
+        });
+
+        backButton.addEventListener('click', backToPlayerList);
+        retryButton.addEventListener('click', loadTournamentData);
+
+        // Инициализация
+        function init() {
+            document.body.style.backgroundColor = tg.backgroundColor;
+            document.body.style.color = tg.textColor;
+            applyMobileColors();
+            
+            showDebugInfo('=== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===');
+            showDebugInfo(`Telegram User ID: ${window.Telegram.WebApp.initDataUnsafe.user?.id}`);
+            showDebugInfo(`Events URL: ${CONFIG.TOURNAMENT_EVENTS_URL}`);
+            
+            // Инициализируем сервисы
+            eventService = new TournamentEventService();
+            audioManager = new AudioManager();
+            
+            loadTournamentData();
+            
+            setInterval(updateCurrentTime, 1000);
+            gameTimerInterval = setInterval(updateGameTime, 1000);
+            
+            // Запускаем плавное обновление данных
+            refreshInterval = setInterval(refreshTournamentData, CONFIG.REFRESH_INTERVAL);
+            
+            tg.onEvent('themeChanged', applyMobileColors);
+        }
+
+        function applyMobileColors() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                const cardElements = document.querySelectorAll('.player-button, .action-button, .back-button');
+                
+                if (tg.colorScheme === 'light') {
+                    document.body.style.backgroundColor = '#f2f2f7';
+                    cardElements.forEach(el => {
+                        el.style.backgroundColor = '#ffffff';
+                    });
+                } else {
+                    document.body.style.backgroundColor = '#000000';
+                    cardElements.forEach(el => {
+                        el.style.backgroundColor = '#1c1c1e';
+                    });
+                }
+            }
+        }
+
+        // Запускаем приложение
+        init();
+    </script>
+</body>
+</html>
