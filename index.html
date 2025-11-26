@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Стили остаются без изменений */
         * {
             box-sizing: border-box;
         }
@@ -555,15 +554,6 @@
             font-size: 17px;
             cursor: pointer;
         }
-        .debug-info {
-            background: rgba(255, 255, 0, 0.1);
-            border: 1px solid #ffcc00;
-            border-radius: 8px;
-            padding: 12px;
-            margin: 10px 0;
-            font-size: 12px;
-            color: #666;
-        }
 
         @media (max-width: 768px) {
             body {
@@ -707,12 +697,6 @@
             <div class="game-time" id="gameTime">Время начала 17:00, игра идёт 00:00:00</div>
             <div class="game-finished hidden" id="gameFinished"></div>
             
-            <!-- Отладочная информация -->
-            <div class="debug-info" id="debugInfo" style="display: none;">
-                <strong>Отладка:</strong>
-                <div id="debugContent"></div>
-            </div>
-            
             <button class="admin-button" id="adminButton">Позвать администратора</button>
         </div>
     </div>
@@ -793,21 +777,11 @@
         const finishInfo = document.getElementById('finishInfo');
         const errorText = document.getElementById('errorText');
         const retryButton = document.getElementById('retryButton');
-        const debugInfo = document.getElementById('debugInfo');
-        const debugContent = document.getElementById('debugContent');
-
-        // Функция для отображения отладочной информации
-        function showDebugInfo(message) {
-            debugInfo.style.display = 'block';
-            debugContent.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-            console.log('🔧 DEBUG:', message);
-        }
 
         // Сервис событий турнира
         class TournamentEventService {
             constructor() {
                 this.sessionId = this.generateSessionId();
-                showDebugInfo(`Сервис инициализирован. Session ID: ${this.sessionId}`);
             }
             
             generateSessionId() {
@@ -824,13 +798,7 @@
                     data: eventData
                 };
                 
-                showDebugInfo(`Отправка события: ${eventType}`);
-                showDebugInfo(`URL: ${CONFIG.TOURNAMENT_EVENTS_URL}`);
-                showDebugInfo(`Данные: ${JSON.stringify(event)}`);
-                
                 try {
-                    showDebugInfo(`Начинаем fetch запрос...`);
-                    
                     const response = await fetch(CONFIG.TOURNAMENT_EVENTS_URL, {
                         method: 'POST',
                         headers: {
@@ -839,22 +807,14 @@
                         body: JSON.stringify(event)
                     });
                     
-                    showDebugInfo(`Получен ответ. Status: ${response.status}, OK: ${response.ok}`);
-                    
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        showDebugInfo(`Ошибка HTTP: ${response.status}. Тело: ${errorText}`);
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     
-                    const result = await response.json();
-                    showDebugInfo(`Успех! Ответ: ${JSON.stringify(result)}`);
-                    
-                    return result;
+                    return await response.json();
                     
                 } catch (error) {
-                    showDebugInfo(`Ошибка fetch: ${error.message}`);
-                    console.error('❌ FETCH ERROR:', error);
+                    console.error('Event sending error:', error);
                     throw error;
                 }
             }
@@ -894,7 +854,6 @@
             
             play(soundName) {
                 if (!this.enabled) return;
-                console.log('🔊 Playing sound:', soundName);
             }
             
             toggle(enabled) {
@@ -910,7 +869,6 @@
         async function loadTournamentData() {
             try {
                 showLoading();
-                showDebugInfo('Начало загрузки данных турнира...');
                 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
@@ -937,7 +895,6 @@
                     throw new Error('Invalid data format from server');
                 }
                 
-                showDebugInfo('Данные турнира успешно загружены');
                 processTournamentData(data);
                 showPlayerSelection();
                 
@@ -1436,14 +1393,10 @@
         });
 
         adminButton.addEventListener('click', async () => {
-            showDebugInfo('=== НАЧАЛО ВЫЗОВА АДМИНИСТРАТОРА ===');
             try {
                 // Получаем актуальные данные о столе и дилере
                 const currentTableNumber = tableNumber.textContent;
                 const currentDealerName = dealerName.textContent;
-                
-                showDebugInfo(`Данные для вызова: Стол ${currentTableNumber}, Дилер ${currentDealerName}`);
-                showDebugInfo('Вызываем eventService.callAdmin...');
                 
                 await eventService.callAdmin(
                     'user_requested_assistance', 
@@ -1451,11 +1404,9 @@
                     currentDealerName
                 );
                 
-                showDebugInfo('✅ Администратор успешно вызван');
                 audioManager.play('SUCCESS');
                 tg.showAlert("Администратор вызван");
             } catch (error) {
-                showDebugInfo(`❌ Ошибка при вызове администратора: ${error.message}`);
                 tg.showAlert("Ошибка при вызове администратора");
             }
         });
@@ -1468,10 +1419,6 @@
             document.body.style.backgroundColor = tg.backgroundColor;
             document.body.style.color = tg.textColor;
             applyMobileColors();
-            
-            showDebugInfo('=== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ===');
-            showDebugInfo(`Telegram User ID: ${window.Telegram.WebApp.initDataUnsafe.user?.id}`);
-            showDebugInfo(`Events URL: ${CONFIG.TOURNAMENT_EVENTS_URL}`);
             
             // Инициализируем сервисы
             eventService = new TournamentEventService();
