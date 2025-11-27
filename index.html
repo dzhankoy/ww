@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Стили остаются без изменений */
+        /* Все стили остаются без изменений */
         * {
             box-sizing: border-box;
         }
@@ -819,7 +819,6 @@
                     let actualResult;
                     if (Array.isArray(responseData) && responseData.length > 0) {
                         actualResult = responseData[0];
-                        console.log('🔍 Extracted first array element:', actualResult);
                     } else {
                         actualResult = responseData;
                     }
@@ -1344,48 +1343,38 @@
             selectedPlayer = '';
         }
 
-        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая БЕЗ всплывающих окон
+        // ✅ ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ обработчик ребая
         rebuyButton.addEventListener('click', async () => {
             if (!selectedPlayer) return;
             
             const data = playerData.get(selectedPlayer);
             
             if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
-                // Убрано tg.showAlert
                 return;
             }
 
-            try {
-                console.log('🔄 Starting rebuy for player:', data.id);
-                
-                // Отправляем запрос на сервер
-                const result = await eventService.playerRebuy(data.id);
-                console.log('📨 Server response:', result);
-                
-                // ✅ ИСПРАВЛЕНИЕ: Правильно проверяем успешный ответ
-                if (result && result.success === true) {
-                    console.log('✅ Rebuy successful');
-                    
-                    // Обновляем данные с сервера
-                    await refreshTournamentData();
-                    
-                    // Возвращаемся к списку игроков без сообщения
-                    backToPlayerList();
-                } else {
-                    console.log('❌ Rebuy failed:', result);
-                    // Убрано tg.showAlert
-                    
-                    // Обновляем данные для синхронизации
-                    await refreshTournamentData();
-                }
-                
-            } catch (error) {
-                console.error('💥 Rebuy error:', error);
-                // Убрано tg.showAlert
-                
-                // Обновляем данные для синхронизации
-                await refreshTournamentData();
-            }
+            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+            data.rebuysLeft = Math.max(0, data.rebuysLeft - 1);
+            
+            // Мгновенное обновление UI
+            updateRebuyButtonState(data);
+            updatePlayerButton(selectedPlayer);
+            
+            // Немедленный возврат к списку игроков БЕЗ ЗАДЕРЖКИ
+            backToPlayerList();
+
+            // ✅ ОТПРАВКА НА СЕРВЕР В ФОНЕ (без ожидания ответа)
+            eventService.playerRebuy(data.id)
+                .then(result => {
+                    console.log('✅ Rebuy successful on server');
+                    // Обновляем данные с сервера для синхронизации
+                    refreshTournamentData();
+                })
+                .catch(error => {
+                    console.error('💥 Rebuy error:', error);
+                    // В случае ошибки перезагружаем данные для восстановления состояния
+                    refreshTournamentData();
+                });
         });
 
         finishButton.addEventListener('click', async () => {
@@ -1398,7 +1387,6 @@
                     data.finishPosition = calculateFinishPosition(new Date(data.finishTime));
                     
                     try {
-                        // Отправляем событие в систему
                         await eventService.playerFinish(
                             data.id, 
                             data.finishTime, 
@@ -1411,7 +1399,6 @@
                         backToPlayerList();
                         
                     } catch (error) {
-                        // Убрано tg.showAlert
                         data.isFinished = false;
                         data.finishTime = null;
                         data.finishPosition = null;
@@ -1422,7 +1409,6 @@
 
         adminButton.addEventListener('click', async () => {
             try {
-                // Получаем актуальные данные о столе и дилере
                 const currentTableNumber = tableNumber.textContent;
                 const currentDealerName = dealerName.textContent;
                 
@@ -1431,10 +1417,8 @@
                     currentTableNumber, 
                     currentDealerName
                 );
-                
-                // Убрано tg.showAlert
             } catch (error) {
-                // Убрано tg.showAlert
+                console.error('Error calling admin:', error);
             }
         });
 
