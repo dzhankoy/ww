@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Стили остаются без изменений */
         * {
             box-sizing: border-box;
         }
@@ -1343,14 +1344,14 @@
             selectedPlayer = '';
         }
 
-        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая
+        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая БЕЗ всплывающих окон
         rebuyButton.addEventListener('click', async () => {
             if (!selectedPlayer) return;
             
             const data = playerData.get(selectedPlayer);
             
             if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
-                tg.showAlert('Ребаи невозможны');
+                // Убрано tg.showAlert
                 return;
             }
 
@@ -1364,22 +1365,23 @@
                 // ✅ ИСПРАВЛЕНИЕ: Правильно проверяем успешный ответ
                 if (result && result.success === true) {
                     console.log('✅ Rebuy successful');
-                    tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
                     
                     // Обновляем данные с сервера
                     await refreshTournamentData();
                     
-                    setTimeout(() => {
-                        backToPlayerList();
-                    }, 1000);
+                    // Возвращаемся к списку игроков без сообщения
+                    backToPlayerList();
                 } else {
                     console.log('❌ Rebuy failed:', result);
-                    throw new Error(result?.message || 'Ошибка ребая');
+                    // Убрано tg.showAlert
+                    
+                    // Обновляем данные для синхронизации
+                    await refreshTournamentData();
                 }
                 
             } catch (error) {
                 console.error('💥 Rebuy error:', error);
-                tg.showAlert(error.message || 'Ошибка при сохранении ребая');
+                // Убрано tg.showAlert
                 
                 // Обновляем данные для синхронизации
                 await refreshTournamentData();
@@ -1403,16 +1405,13 @@
                             data.finishPosition
                         );
                         
-                        // Воспроизводим звук
-                        audioManager.play('SUCCESS');
-                        
                         checkAutoFinish();
                         updatePlayerButton(selectedPlayer);
                         checkGameFinished();
                         backToPlayerList();
                         
                     } catch (error) {
-                        tg.showAlert('Ошибка при сохранении завершения игры');
+                        // Убрано tg.showAlert
                         data.isFinished = false;
                         data.finishTime = null;
                         data.finishPosition = null;
@@ -1433,10 +1432,9 @@
                     currentDealerName
                 );
                 
-                audioManager.play('SUCCESS');
-                tg.showAlert("Администратор вызван");
+                // Убрано tg.showAlert
             } catch (error) {
-                tg.showAlert("Ошибка при вызове администратора");
+                // Убрано tg.showAlert
             }
         });
 
