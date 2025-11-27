@@ -812,7 +812,18 @@
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     
-                    return await response.json();
+                    const responseData = await response.json();
+                    
+                    // ✅ ИСПРАВЛЕНИЕ: Обрабатываем ответ в формате массива от n8n
+                    let actualResult;
+                    if (Array.isArray(responseData) && responseData.length > 0) {
+                        actualResult = responseData[0];
+                        console.log('🔍 Extracted first array element:', actualResult);
+                    } else {
+                        actualResult = responseData;
+                    }
+                    
+                    return actualResult;
                     
                 } catch (error) {
                     console.error('Event sending error:', error);
@@ -1332,49 +1343,45 @@
             selectedPlayer = '';
         }
 
-        // Обработчики событий
+        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая
         rebuyButton.addEventListener('click', async () => {
             if (!selectedPlayer) return;
             
             const data = playerData.get(selectedPlayer);
             
-            // UI валидация
             if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
                 tg.showAlert('Ребаи невозможны');
                 return;
             }
 
             try {
-                // ✅ МГНОВЕННО обновляем локальное состояние
-                const currentPlayerData = playerData.get(selectedPlayer);
-                if (currentPlayerData) {
-                    // Уменьшаем количество ребаев
-                    currentPlayerData.rebuysLeft = Math.max(0, currentPlayerData.rebuysLeft - 1);
-                    
-                    // МГНОВЕННО обновляем UI
-                    updateRebuyButtonState(currentPlayerData);
-                    updatePlayerButton(selectedPlayer);
-                }
-
-                // ✅ Отправляем событие на сервер (после обновления UI)
-                const result = await eventService.playerRebuy(data.id);
+                console.log('🔄 Starting rebuy for player:', data.id);
                 
-                if (result.success) {
+                // Отправляем запрос на сервер
+                const result = await eventService.playerRebuy(data.id);
+                console.log('📨 Server response:', result);
+                
+                // ✅ ИСПРАВЛЕНИЕ: Правильно проверяем успешный ответ
+                if (result && result.success === true) {
+                    console.log('✅ Rebuy successful');
                     tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
                     
-                    // Возвращаем к списку игроков
+                    // Обновляем данные с сервера
+                    await refreshTournamentData();
+                    
                     setTimeout(() => {
                         backToPlayerList();
                     }, 1000);
                 } else {
-                    throw new Error(result.message || 'Ошибка ребая');
+                    console.log('❌ Rebuy failed:', result);
+                    throw new Error(result?.message || 'Ошибка ребая');
                 }
                 
             } catch (error) {
-                console.error('Rebuy error:', error);
+                console.error('💥 Rebuy error:', error);
                 tg.showAlert(error.message || 'Ошибка при сохранении ребая');
                 
-                // ✅ В случае ошибки - перезагружаем данные для синхронизации
+                // Обновляем данные для синхронизации
                 await refreshTournamentData();
             }
         });
