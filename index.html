@@ -1397,16 +1397,23 @@
                 const result = await eventService.playerRebuy(data.id);
                 
                 if (result.success) {
-                    // ✅ Мгновенно обновляем UI из ответа сервера
-                    if (result.updatedPlayer) {
-                        updatePlayerFromServer(result.updatedPlayer);
-                    } else {
-                        // Если сервер не вернул данные - обновляем всё
-                        await refreshTournamentData();
+                    // ✅ МГНОВЕННО обновляем локальное состояние из ответа сервера
+                    const currentPlayerData = playerData.get(selectedPlayer);
+                    if (currentPlayerData) {
+                        // Обновляем количество ребаев
+                        currentPlayerData.rebuysLeft = result.currentRebuy;
+                        
+                        // Обновляем UI
+                        updateRebuyButtonState(currentPlayerData);
+                        updatePlayerButton(selectedPlayer);
+                        
+                        tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
+                        
+                        // Показываем обновленное состояние 2 секунды, затем возвращаем
+                        setTimeout(() => {
+                            backToPlayerList();
+                        }, 2000);
                     }
-                    
-                    tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
-                    backToPlayerList();
                 } else {
                     throw new Error(result.message || 'Ошибка ребая');
                 }
@@ -1415,9 +1422,7 @@
                 console.error('Rebuy error:', error);
                 tg.showAlert(error.message || 'Ошибка при сохранении ребая');
                 
-                // ✅ Перезагружаем данные для синхронизации
-                await refreshTournamentData();
-            } finally {
+                // Возвращаем кнопку в нормальное состояние
                 setRebuyButtonState('normal', 'Игрок делает ребай');
             }
         });
