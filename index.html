@@ -554,11 +554,6 @@
             font-size: 17px;
             cursor: pointer;
         }
-        .sync-indicator {
-            font-size: 12px;
-            color: var(--yellow);
-            margin-top: 4px;
-        }
 
         @media (max-width: 768px) {
             body {
@@ -719,7 +714,6 @@
             <button class="action-button rebuy" id="rebuyButton">
                 <span id="rebuyText">Игрок делает ребай</span>
                 <div class="action-info" id="rebuyInfo"></div>
-                <div class="sync-indicator hidden" id="rebuySync">Синхронизация...</div>
             </button>
             <button class="action-button destructive" id="finishButton">
                 <span>Игрок закончил игру</span>
@@ -784,7 +778,6 @@
         const errorText = document.getElementById('errorText');
         const retryButton = document.getElementById('retryButton');
         const rebuyText = document.getElementById('rebuyText');
-        const rebuySync = document.getElementById('rebuySync');
 
         // Сервис событий турнира
         class TournamentEventService {
@@ -1195,44 +1188,6 @@
             }
         }
 
-        // Установка состояния кнопки ребая
-        function setRebuyButtonState(state, text = '') {
-            switch(state) {
-                case 'loading':
-                    rebuyButton.disabled = true;
-                    rebuyText.textContent = text || 'Обработка...';
-                    rebuySync.classList.remove('hidden');
-                    break;
-                case 'normal':
-                    rebuyButton.disabled = false;
-                    rebuyText.textContent = text || 'Игрок делает ребай';
-                    rebuySync.classList.add('hidden');
-                    break;
-                case 'disabled':
-                    rebuyButton.disabled = true;
-                    rebuyText.textContent = text || 'Игрок делает ребай';
-                    rebuySync.classList.add('hidden');
-                    break;
-            }
-        }
-
-        // Обновление данных игрока из ответа сервера
-        function updatePlayerFromServer(updatedData) {
-            const playerName = Array.from(playerData.entries())
-                .find(([name, data]) => data.id === updatedData.id)[0];
-            
-            if (playerName) {
-                // Обновляем только изменившиеся поля
-                Object.assign(playerData.get(playerName), updatedData);
-                updatePlayerButton(playerName);
-                
-                // Если это выбранный игрок - обновляем UI экрана действий
-                if (playerName === selectedPlayer) {
-                    updateRebuyButtonState(playerData.get(playerName));
-                }
-            }
-        }
-
         // Управление экранами
         function showLoading() {
             loadingScreen.classList.remove('hidden');
@@ -1389,31 +1344,28 @@
                 return;
             }
 
-            // Блокируем UI
-            setRebuyButtonState('loading', 'Обработка ребая...');
-
             try {
-                // ✅ Отправляем ТОЛЬКО playerId, сервер сам вычисляет состояние
+                // ✅ МГНОВЕННО обновляем локальное состояние
+                const currentPlayerData = playerData.get(selectedPlayer);
+                if (currentPlayerData) {
+                    // Уменьшаем количество ребаев
+                    currentPlayerData.rebuysLeft = Math.max(0, currentPlayerData.rebuysLeft - 1);
+                    
+                    // МГНОВЕННО обновляем UI
+                    updateRebuyButtonState(currentPlayerData);
+                    updatePlayerButton(selectedPlayer);
+                }
+
+                // ✅ Отправляем событие на сервер (после обновления UI)
                 const result = await eventService.playerRebuy(data.id);
                 
                 if (result.success) {
-                    // ✅ МГНОВЕННО обновляем локальное состояние из ответа сервера
-                    const currentPlayerData = playerData.get(selectedPlayer);
-                    if (currentPlayerData) {
-                        // Обновляем количество ребаев
-                        currentPlayerData.rebuysLeft = result.currentRebuy;
-                        
-                        // Обновляем UI
-                        updateRebuyButtonState(currentPlayerData);
-                        updatePlayerButton(selectedPlayer);
-                        
-                        tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
-                        
-                        // Показываем обновленное состояние 2 секунды, затем возвращаем
-                        setTimeout(() => {
-                            backToPlayerList();
-                        }, 2000);
-                    }
+                    tg.showAlert(result.message || 'Ребай успешно зарегистрирован');
+                    
+                    // Возвращаем к списку игроков
+                    setTimeout(() => {
+                        backToPlayerList();
+                    }, 1000);
                 } else {
                     throw new Error(result.message || 'Ошибка ребая');
                 }
@@ -1422,8 +1374,8 @@
                 console.error('Rebuy error:', error);
                 tg.showAlert(error.message || 'Ошибка при сохранении ребая');
                 
-                // Возвращаем кнопку в нормальное состояние
-                setRebuyButtonState('normal', 'Игрок делает ребай');
+                // ✅ В случае ошибки - перезагружаем данные для синхронизации
+                await refreshTournamentData();
             }
         });
 
