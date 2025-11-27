@@ -1343,8 +1343,8 @@
             selectedPlayer = '';
         }
 
-        // ✅ ПОЛНОСТЬЮ ПЕРЕПИСАННЫЙ обработчик ребая
-        rebuyButton.addEventListener('click', async () => {
+        // ✅ РЕШЕНИЕ ПРОБЛЕМЫ: Используем requestAnimationFrame для мгновенного перехода
+        rebuyButton.addEventListener('click', () => {
             if (!selectedPlayer) return;
             
             const data = playerData.get(selectedPlayer);
@@ -1353,17 +1353,19 @@
                 return;
             }
 
-            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ДАННЫХ
             data.rebuysLeft = Math.max(0, data.rebuysLeft - 1);
             
-            // Мгновенное обновление UI
-            updateRebuyButtonState(data);
-            updatePlayerButton(selectedPlayer);
-            
-            // Немедленный возврат к списку игроков БЕЗ ЗАДЕРЖКИ
+            // ✅ ПЕРВОЕ: Немедленный переход к списку игроков
             backToPlayerList();
+            
+            // ✅ ВТОРОЕ: Обновление интерфейса в следующем кадре анимации
+            requestAnimationFrame(() => {
+                updateRebuyButtonState(data);
+                updatePlayerButton(selectedPlayer);
+            });
 
-            // ✅ ОТПРАВКА НА СЕРВЕР В ФОНЕ (без ожидания ответа)
+            // ✅ ТРЕТЬЕ: Отправка на сервер в фоне (без ожидания)
             eventService.playerRebuy(data.id)
                 .then(result => {
                     console.log('✅ Rebuy successful on server');
@@ -1386,22 +1388,24 @@
                     data.finishTime = new Date().toISOString();
                     data.finishPosition = calculateFinishPosition(new Date(data.finishTime));
                     
+                    // ✅ Тот же подход для завершения игры
+                    backToPlayerList();
+                    
+                    requestAnimationFrame(() => {
+                        updatePlayerButton(selectedPlayer);
+                        checkAutoFinish();
+                        checkGameFinished();
+                    });
+
                     try {
                         await eventService.playerFinish(
                             data.id, 
                             data.finishTime, 
                             data.finishPosition
                         );
-                        
-                        checkAutoFinish();
-                        updatePlayerButton(selectedPlayer);
-                        checkGameFinished();
-                        backToPlayerList();
-                        
                     } catch (error) {
-                        data.isFinished = false;
-                        data.finishTime = null;
-                        data.finishPosition = null;
+                        console.error('Finish error:', error);
+                        refreshTournamentData();
                     }
                 }
             }
