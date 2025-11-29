@@ -947,7 +947,8 @@
                 if (player.isFinished && player.finishTime && !player.isEmpty) {
                     finishedPlayers.push({
                         finishTime: new Date(player.finishTime),
-                        timeDiff: new Date(player.finishTime) - gameStartTime
+                        timeDiff: new Date(player.finishTime) - gameStartTime,
+                        playerName: fullName
                     });
                 }
             });
@@ -1064,24 +1065,26 @@
             if (nicknameElement) nicknameElement.textContent = data.nickname || 'Неизвестно';
             if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
             
+            // ✅ ИСПРАВЛЕНИЕ: Правильно обрабатываем состояние завершенного игрока
             button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
             if (data.isFinished) {
+                button.classList.add('finished');
                 const positionClass = getPositionClass(data.finishPosition);
                 button.classList.add(positionClass);
-                if (positionClass === 'finished') button.classList.add('finished');
             }
             
             if (positionIndicator) {
                 positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty');
                 
                 if (data.isFinished) {
-                    positionIndicator.classList.add('finished');
-                    positionIndicator.textContent = data.position;
-                    
+                    // ✅ ИСПРАВЛЕНИЕ: Всегда показываем позицию для завершенных игроков
                     if (data.finishPosition <= 3) {
                         const positionClass = getPositionClass(data.finishPosition);
                         positionIndicator.classList.add(positionClass, 'medal');
                         positionIndicator.textContent = getPositionIcon(data.finishPosition);
+                    } else {
+                        positionIndicator.classList.add('finished');
+                        positionIndicator.textContent = data.finishPosition || '?';
                     }
                 } else {
                     positionIndicator.classList.add('playing');
@@ -1103,23 +1106,33 @@
                 }
             }
             
-            if (data.isFinished && data.finishTime) {
+            // ✅ ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков
+            if (data.isFinished) {
                 if (!finishInfoContainer) {
                     const newFinishInfo = document.createElement('div');
                     newFinishInfo.className = 'player-finish-info';
                     newFinishInfo.innerHTML = `
-                        <div class="player-position">${data.finishPosition} место</div>
-                        <div class="finish-time">${formatFinishTime(new Date(data.finishTime))}</div>
+                        <div class="player-position">${data.finishPosition || '?'} место</div>
+                        <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
                     `;
                     button.insertBefore(newFinishInfo, chevron);
                 } else {
                     finishInfoContainer.innerHTML = `
-                        <div class="player-position">${data.finishPosition} место</div>
-                        <div class="finish-time">${formatFinishTime(new Date(data.finishTime))}</div>
+                        <div class="player-position">${data.finishPosition || '?'} место</div>
+                        <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
                     `;
                 }
             } else if (finishInfoContainer) {
                 finishInfoContainer.remove();
+            }
+            
+            // ✅ ИСПРАВЛЕНИЕ: Делаем кнопку неактивной для завершенных игроков
+            if (data.isFinished) {
+                button.disabled = true;
+                button.style.opacity = '0.6';
+            } else {
+                button.disabled = false;
+                button.style.opacity = '1';
             }
         }
 
@@ -1190,6 +1203,8 @@
                     finishInfo.textContent = formatFinishTimeInfo(data.finishTime);
                 } else if (data.isEmpty) {
                     finishInfo.textContent = 'Пустое место';
+                } else {
+                    finishInfo.textContent = 'Игрок уже завершил';
                 }
             } else {
                 finishButton.disabled = false;
@@ -1388,11 +1403,29 @@
                         data.isFinished = true;
                         data.finishTime = new Date().toISOString();
                         
-                        // Временно устанавливаем позицию как "последний" (будет обновлено сервером)
-                        const activePlayersCount = Array.from(playerData.values()).filter(player => 
+                        // ✅ ИСПРАВЛЕНИЕ: Правильно рассчитываем позицию
+                        const activePlayers = Array.from(playerData.values()).filter(player => 
                             !player.isFinished && !player.isEmpty
-                        ).length;
-                        data.finishPosition = activePlayersCount;
+                        );
+                        data.finishPosition = activePlayers.length; // Позиция = количество оставшихся активных игроков
+                        
+                        // ✅ Обновляем список завершенных игроков
+                        finishedPlayers.push({
+                            finishTime: new Date(data.finishTime),
+                            timeDiff: new Date(data.finishTime) - gameStartTime,
+                            playerName: selectedPlayer
+                        });
+                        
+                        // Сортируем завершенных игроков по времени финиша
+                        finishedPlayers.sort((a, b) => a.timeDiff - b.timeDiff);
+                        
+                        // Обновляем позиции всех завершенных игроков
+                        finishedPlayers.forEach((player, index) => {
+                            const playerDataObj = playerData.get(player.playerName);
+                            if (playerDataObj) {
+                                playerDataObj.finishPosition = index + 1;
+                            }
+                        });
                         
                         // Мгновенно обновляем UI
                         updatePlayerButton(selectedPlayer);
@@ -1405,7 +1438,7 @@
                         eventService.playerFinish(data.id)
                             .then(result => {
                                 console.log('✅ Finish response:', result);
-                                // Обновляем данные с сервера для получения правильной позиции
+                                // Обновляем данные с сервера для синхронизации
                                 refreshTournamentData();
                             })
                             .catch(error => {
