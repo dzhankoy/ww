@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Все стили остаются без изменений */
         * {
             box-sizing: border-box;
         }
@@ -838,11 +837,9 @@
                 });
             }
             
-            async playerFinish(playerId, finishTime, finishPosition) {
+            async playerFinish(playerId) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_FINISH, {
-                    playerId: playerId,
-                    finishTime: finishTime,
-                    finishPosition: finishPosition
+                    playerId: playerId
                 });
             }
             
@@ -1343,8 +1340,8 @@
             selectedPlayer = '';
         }
 
-        // ✅ РЕШЕНИЕ ПРОБЛЕМЫ: Используем requestAnimationFrame для мгновенного перехода
-        rebuyButton.addEventListener('click', () => {
+        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая
+        rebuyButton.addEventListener('click', async () => {
             if (!selectedPlayer) return;
             
             const data = playerData.get(selectedPlayer);
@@ -1353,19 +1350,17 @@
                 return;
             }
 
-            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ДАННЫХ
+            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
             data.rebuysLeft = Math.max(0, data.rebuysLeft - 1);
             
-            // ✅ ПЕРВОЕ: Немедленный переход к списку игроков
-            backToPlayerList();
+            // Мгновенное обновление UI
+            updateRebuyButtonState(data);
+            updatePlayerButton(selectedPlayer);
             
-            // ✅ ВТОРОЕ: Обновление интерфейса в следующем кадре анимации
-            requestAnimationFrame(() => {
-                updateRebuyButtonState(data);
-                updatePlayerButton(selectedPlayer);
-            });
+            // Немедленный возврат к списку игроков БЕЗ ЗАДЕРЖКИ
+            backToPlayerList();
 
-            // ✅ ТРЕТЬЕ: Отправка на сервер в фоне (без ожидания)
+            // ✅ ОТПРАВКА НА СЕРВЕР В ФОНЕ (без ожидания ответа)
             eventService.playerRebuy(data.id)
                 .then(result => {
                     console.log('✅ Rebuy successful on server');
@@ -1379,33 +1374,31 @@
                 });
         });
 
+        // ✅ ИСПРАВЛЕННЫЙ обработчик завершения игры
         finishButton.addEventListener('click', async () => {
             if (selectedPlayer) {
                 const data = playerData.get(selectedPlayer);
                 
                 if (!data.isFinished && !data.isEmpty) {
-                    data.isFinished = true;
-                    data.finishTime = new Date().toISOString();
-                    data.finishPosition = calculateFinishPosition(new Date(data.finishTime));
-                    
-                    // ✅ Тот же подход для завершения игры
-                    backToPlayerList();
-                    
-                    requestAnimationFrame(() => {
+                    try {
+                        console.log('🎯 Finishing player:', selectedPlayer, 'ID:', data.id);
+                        
+                        // ✅ ОТПРАВЛЯЕМ ТОЛЬКО playerId
+                        const result = await eventService.playerFinish(data.id);
+                        
+                        console.log('✅ Finish response:', result);
+                        
+                        // Обновляем данные с сервера
+                        await refreshTournamentData();
+                        
+                        // Обновляем UI
                         updatePlayerButton(selectedPlayer);
                         checkAutoFinish();
                         checkGameFinished();
-                    });
-
-                    try {
-                        await eventService.playerFinish(
-                            data.id, 
-                            data.finishTime, 
-                            data.finishPosition
-                        );
+                        backToPlayerList();
+                        
                     } catch (error) {
-                        console.error('Finish error:', error);
-                        refreshTournamentData();
+                        console.error('❌ Finish error:', error);
                     }
                 }
             }
