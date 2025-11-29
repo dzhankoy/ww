@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Все стили остаются без изменений */
         * {
             box-sizing: border-box;
         }
@@ -1159,7 +1160,7 @@
 
         function selectPlayer(playerName) {
             selectedPlayer = playerName;
-            const data = playerData.get(playerName);
+            const data = playerData.get(selectedPlayer);
             
             selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
             selectedPlayerName.textContent = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
@@ -1374,7 +1375,7 @@
                 });
         });
 
-        // ✅ ИСПРАВЛЕННЫЙ обработчик завершения игры
+        // ✅ ИСПРАВЛЕННЫЙ обработчик завершения игры с ОПТИМИСТИЧНЫМ ОБНОВЛЕНИЕМ
         finishButton.addEventListener('click', async () => {
             if (selectedPlayer) {
                 const data = playerData.get(selectedPlayer);
@@ -1383,22 +1384,44 @@
                     try {
                         console.log('🎯 Finishing player:', selectedPlayer, 'ID:', data.id);
                         
-                        // ✅ ОТПРАВЛЯЕМ ТОЛЬКО playerId
-                        const result = await eventService.playerFinish(data.id);
+                        // ✅ ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ: сразу помечаем игрока как закончившего
+                        data.isFinished = true;
+                        data.finishTime = new Date().toISOString();
                         
-                        console.log('✅ Finish response:', result);
+                        // Временно устанавливаем позицию как "последний" (будет обновлено сервером)
+                        const activePlayersCount = Array.from(playerData.values()).filter(player => 
+                            !player.isFinished && !player.isEmpty
+                        ).length;
+                        data.finishPosition = activePlayersCount;
                         
-                        // Обновляем данные с сервера
-                        await refreshTournamentData();
-                        
-                        // Обновляем UI
+                        // Мгновенно обновляем UI
                         updatePlayerButton(selectedPlayer);
-                        checkAutoFinish();
-                        checkGameFinished();
+                        updateFinishButtonState(data);
+                        
+                        // Немедленный возврат к списку игроков
                         backToPlayerList();
+                        
+                        // ✅ ОТПРАВЛЯЕМ ТОЛЬКО playerId НА СЕРВЕР
+                        eventService.playerFinish(data.id)
+                            .then(result => {
+                                console.log('✅ Finish response:', result);
+                                // Обновляем данные с сервера для получения правильной позиции
+                                refreshTournamentData();
+                            })
+                            .catch(error => {
+                                console.error('❌ Finish error:', error);
+                                // В случае ошибки все равно обновляем данные для синхронизации
+                                refreshTournamentData();
+                            });
                         
                     } catch (error) {
                         console.error('❌ Finish error:', error);
+                        // В случае ошибки откатываем изменения
+                        data.isFinished = false;
+                        data.finishTime = null;
+                        data.finishPosition = null;
+                        updatePlayerButton(selectedPlayer);
+                        updateFinishButtonState(data);
                     }
                 }
             }
