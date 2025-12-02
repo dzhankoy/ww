@@ -7,21 +7,21 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #f2f2f7;
-            --card-bg: #ffffff;
-            --text-color: #000000;
+            --bg-color: #000000;
+            --card-bg: #1c1c1e;
+            --text-color: #ffffff;
             --secondary-text: #8e8e93;
-            --border-color: #c6c6c8;
-            --green: #1e7e34;
-            --red: #ff3b30;
-            --blue: #007aff;
-            --yellow: #ffcc00;
+            --border-color: #38383a;
+            --green: #28a745;
+            --red: #ff453a;
+            --blue: #0a84ff;
+            --yellow: #ffd60a;
             --gray: #8e8e93;
             --gold: #ffd700;
             --silver: #c0c0c0;
             --bronze: #cd7f32;
-            --dark-blue: #0056b3;
-            --dark-red: #d32f2f;
+            --dark-blue: #0a84ff;
+            --dark-red: #c62828;
             
             --spacing-xs: 4px;
             --spacing-sm: 8px;
@@ -38,26 +38,6 @@
             --photo-size-sm: 120px;
             --border-radius: 12px;
             --position-size: 32px;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #000000;
-                --card-bg: #1c1c1e;
-                --text-color: #ffffff;
-                --secondary-text: #8e8e93;
-                --border-color: #38383a;
-                --green: #28a745;
-                --red: #ff453a;
-                --blue: #0a84ff;
-                --yellow: #ffd60a;
-                --gray: #8e8e93;
-                --gold: #ffd700;
-                --silver: #c0c0c0;
-                --bronze: #cd7f32;
-                --dark-blue: #0a84ff;
-                --dark-red: #c62828;
-            }
         }
 
         * {
@@ -171,6 +151,7 @@
             justify-content: flex-start;
             color: var(--text-color);
             position: relative;
+            border-radius: 0;
         }
         
         .player-button:active, .action-button:active, .back-button:active {
@@ -487,25 +468,13 @@
 
         @media (max-width: 768px) {
             body {
-                background-color: #f2f2f7 !important;
+                background-color: #000000 !important;
             }
             
             .player-button,
             .action-button,
             .back-button {
-                background-color: #ffffff !important;
-            }
-            
-            @media (prefers-color-scheme: dark) {
-                body {
-                    background-color: #000000 !important;
-                }
-                
-                .player-button,
-                .action-button,
-                .back-button {
-                    background-color: #1c1c1e !important;
-                }
+                background-color: #1c1c1e !important;
             }
         }
 
