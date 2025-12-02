@@ -23,6 +23,7 @@
             --dark-blue: #0a84ff;
             --dark-red: #c62828;
             
+            --spacing-xxs: 2px;
             --spacing-xs: 4px;
             --spacing-sm: 8px;
             --spacing-md: 12px;
@@ -116,9 +117,7 @@
         .player-subtitle,
         .game-time,
         .game-finished,
-        .tournament-date,
-        .current-time,
-        .time-info {
+        .tournament-date {
             font-size: 15px;
             text-align: center;
             margin-bottom: var(--spacing-lg);
@@ -303,7 +302,7 @@
             font-weight: 400;
             text-align: left;
             line-height: 1.2;
-            margin-bottom: 2px;
+            margin-bottom: var(--spacing-xxs);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -351,13 +350,13 @@
         .finish-time {
             font-size: 14px;
             color: var(--secondary-text);
-            margin-top: 2px;
+            margin-top: var(--spacing-xxs);
         }
         
         .chevron {
             width: 24px;
             height: 24px;
-            margin-left: 2px;
+            margin-left: var(--spacing-xxs);
             flex-shrink: 0;
             opacity: 0.3;
             display: flex;
@@ -529,8 +528,7 @@
             
             .game-time,
             .game-finished,
-            .tournament-date,
-            .current-time {
+            .tournament-date {
                 font-size: 14px;
             }
             
