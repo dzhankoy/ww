@@ -815,6 +815,7 @@
                     nickname: player.nickname,
                     firstName: player.firstName,
                     lastName: player.lastName,
+                    rating: player.rating || null,
                     rebuysLeft: player.rebuysLeft || 0,
                     isFinished: player.isFinished || false,
                     finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
@@ -1047,7 +1048,14 @@
             const data = playerData.get(selectedPlayer);
             
             selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
-            selectedPlayerName.textContent = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
+            const baseName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
+            const ratingText = data.rating ? `Рейтинг ${data.rating}` : '';
+
+            if (ratingText) {
+                selectedPlayerName.innerHTML = `${baseName}<br>${ratingText}`;
+            } else {
+                selectedPlayerName.textContent = baseName;
+            }
             playerEmoji.textContent = data.emoji || '👤';
             
             updateRebuyButtonState(data);
