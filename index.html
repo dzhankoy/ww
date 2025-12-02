@@ -337,6 +337,7 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
+            justify-content: center;
             text-align: right;
         }
         
@@ -349,7 +350,7 @@
         .finish-time {
             font-size: 14px;
             color: var(--secondary-text);
-            margin-top: var(--spacing-xxs);
+            margin-top: 0;
         }
         
         .chevron {
@@ -749,24 +750,8 @@
             }
         }
 
-        // Менеджер звуков
-        class AudioManager {
-            constructor() {
-                this.enabled = true;
-            }
-            
-            play(soundName) {
-                if (!this.enabled) return;
-            }
-            
-            toggle(enabled) {
-                this.enabled = enabled;
-            }
-        }
-
         // Инициализация сервисов
         let eventService;
-        let audioManager;
 
         // Функция загрузки данных турнира
         async function loadTournamentData() {
@@ -1368,7 +1353,6 @@
         function init() {
             // Инициализируем сервисы
             eventService = new TournamentEventService();
-            audioManager = new AudioManager();
             
             loadTournamentData();
             
