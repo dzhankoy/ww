@@ -256,8 +256,8 @@
         }
         
         .position-indicator.finished {
-            background-color: var(--card-bg);
-            color: var(--text-color);
+            background-color: var(--border-color);
+            color: var(--secondary-text);
             border-color: var(--border-color);
         }
         
@@ -959,27 +959,19 @@
             if (nicknameElement) nicknameElement.textContent = data.nickname || 'Неизвестно';
             if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
             
-            // ✅ ИСПРАВЛЕНИЕ: Правильно обрабатываем состояние завершенного игрока
+            // ✅ Обрабатываем состояние завершенного игрока
             button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
             if (data.isFinished) {
                 button.classList.add('finished');
-                const positionClass = getPositionClass(data.finishPosition);
-                button.classList.add(positionClass);
             }
             
             if (positionIndicator) {
                 positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty');
                 
                 if (data.isFinished) {
-                    // ✅ ИСПРАВЛЕНИЕ: Всегда показываем позицию для завершенных игроков
-                    if (data.finishPosition <= 3) {
-                        const positionClass = getPositionClass(data.finishPosition);
-                        positionIndicator.classList.add(positionClass, 'medal');
-                        positionIndicator.textContent = getPositionIcon(data.finishPosition);
-                    } else {
-                        positionIndicator.classList.add('finished');
-                        positionIndicator.textContent = data.finishPosition || '?';
-                    }
+                    // Для завершенных игроков оставляем номер места за столом
+                    positionIndicator.classList.add('finished');
+                    positionIndicator.textContent = data.position;
                 } else {
                     positionIndicator.classList.add('playing');
                     positionIndicator.textContent = data.position;
