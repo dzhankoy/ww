@@ -1121,7 +1121,15 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
                 
-                const response = await fetch(CONFIG.TOURNAMENT_API_URL, {
+                // Добавляем chat_id (chat.id или user.id) как query-параметр к запросу турнира при обновлении
+                const initData = window.Telegram.WebApp.initDataUnsafe || {};
+                const chatId = initData.chat?.id || initData.user?.id || null;
+                const url = new URL(CONFIG.TOURNAMENT_API_URL);
+                if (chatId) {
+                    url.searchParams.set('chat_id', chatId);
+                }
+
+                const response = await fetch(url.toString(), {
                     method: 'GET',
                     signal: controller.signal,
                     headers: {
