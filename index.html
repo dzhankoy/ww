@@ -681,6 +681,11 @@
         let gameStartTime = null;
         let selectedPlayer = '';
 
+        // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
+        const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
+        const viewerUserId = tgInitData.user?.id || null;
+        const viewerChatId = tgInitData.chat?.id || viewerUserId || null;
+
         // Элементы DOM
         const loadingScreen = document.getElementById('loadingScreen');
         const errorScreen = document.getElementById('errorScreen');
@@ -929,12 +934,17 @@
                         button.disabled = true;
                     }
                     
+                    const isCurrentViewerPlayer = !!(viewerChatId && data.id === viewerChatId);
+                    const nicknameDisplay = isCurrentViewerPlayer
+                        ? `${data.nickname} (${viewerChatId})`
+                        : data.nickname;
+
                     button.innerHTML = `
                         <div class="position-indicator ${data.isFinished ? 'finished' : data.isEmpty ? 'empty' : 'playing'}">
                             ${data.position}
                         </div>
                         <div class="player-info">
-                            <div class="player-nickname">${data.nickname}</div>
+                            <div class="player-nickname">${nicknameDisplay}</div>
                             <div class="player-name">${playerName}</div>
                         </div>
                         <div class="player-rebuys"></div>
@@ -999,7 +1009,13 @@
             const finishInfoContainer = button.querySelector('.player-finish-info');
             const chevron = button.querySelector('.chevron');
             
-            if (nicknameElement) nicknameElement.textContent = data.nickname || 'Неизвестно';
+            if (nicknameElement) {
+                const isCurrentViewerPlayer = !!(viewerChatId && data.id === viewerChatId);
+                const baseNickname = data.nickname || 'Неизвестно';
+                nicknameElement.textContent = isCurrentViewerPlayer
+                    ? `${baseNickname} (${viewerChatId})`
+                    : baseNickname;
+            }
             if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
             
             // ✅ Обрабатываем состояние завершенного игрока
