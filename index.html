@@ -259,6 +259,12 @@
             border-color: var(--green);
         }
         
+        .position-indicator.dealer {
+            background-color: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+        
         .position-indicator.finished {
             background-color: var(--border-color);
             color: var(--secondary-text);
@@ -939,8 +945,17 @@
                         ? `${data.nickname} (${viewerChatId})`
                         : data.nickname;
 
+                    // Выбираем класс индикатора позиции с учетом активного дилера
+                    const positionClass = data.isFinished
+                        ? 'finished'
+                        : data.isEmpty
+                            ? 'empty'
+                            : data.dealer
+                                ? 'dealer'
+                                : 'playing';
+
                     button.innerHTML = `
-                        <div class="position-indicator ${data.isFinished ? 'finished' : data.isEmpty ? 'empty' : 'playing'}">
+                        <div class="position-indicator ${positionClass}">
                             ${data.position}
                         </div>
                         <div class="player-info">
@@ -1025,11 +1040,18 @@
             }
             
             if (positionIndicator) {
-                positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty');
-                
+                positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
+
                 if (data.isFinished) {
                     // Для завершенных игроков оставляем номер места за столом
                     positionIndicator.classList.add('finished');
+                    positionIndicator.textContent = data.position;
+                } else if (data.isEmpty) {
+                    positionIndicator.classList.add('empty');
+                    positionIndicator.textContent = data.position;
+                } else if (data.dealer) {
+                    // Активный дилер - синий индикатор
+                    positionIndicator.classList.add('dealer');
                     positionIndicator.textContent = data.position;
                 } else {
                     positionIndicator.classList.add('playing');
