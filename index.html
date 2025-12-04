@@ -41,6 +41,27 @@
             --position-size: 32px;
         }
 
+        /* Блок с никнеймом и рейтингом на странице игрока */
+        .player-header-row {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .player-rating-badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--secondary-text);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--secondary-text);
+        }
+
+        /* Имя/фамилия крупнее на странице игрока */
+        #selectedPlayerName {
+            font-size: 17px;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -637,7 +658,12 @@
     <!-- Экран действий игрока -->
     <div id="actionScreen" class="screen hidden">
         <div class="header-content">
-            <h1 class="player-title" id="selectedPlayerNickname"></h1>
+            <h1 class="player-title">
+                <span class="player-header-row">
+                    <span id="selectedPlayerNickname"></span>
+                    <span class="player-rating-badge" id="selectedPlayerRating"></span>
+                </span>
+            </h1>
             <div class="player-subtitle" id="selectedPlayerName"></div>
         </div>
         <div class="player-photo">
@@ -702,6 +728,7 @@
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
+        const selectedPlayerRating = document.getElementById('selectedPlayerRating');
         const selectedPlayerName = document.getElementById('selectedPlayerName');
         const dateTimeFooterElement = document.getElementById('dateTimeFooter');
         const gameTimeElement = document.getElementById('gameTime');
@@ -1164,12 +1191,19 @@
             
             selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
             const baseName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
-            const ratingText = data.rating ? `Рейтинг ${data.rating}` : '';
+            const ratingText = data.rating ? `${data.rating}` : '';
 
-            if (ratingText) {
-                selectedPlayerName.innerHTML = `${baseName}<br>${ratingText}`;
-            } else {
-                selectedPlayerName.textContent = baseName;
+            // Имя/фамилия отдельной строкой (крупнее), рейтинг в бейдже рядом с никнеймом
+            selectedPlayerName.textContent = baseName;
+
+            if (selectedPlayerRating) {
+                if (ratingText) {
+                    selectedPlayerRating.textContent = ratingText;
+                    selectedPlayerRating.style.display = 'inline-flex';
+                } else {
+                    selectedPlayerRating.textContent = '';
+                    selectedPlayerRating.style.display = 'none';
+                }
             }
             playerEmoji.textContent = data.emoji || '👤';
             
