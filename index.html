@@ -902,14 +902,13 @@
                     rating: player.rating || null,
                     dealer: player.dealer || false,
                     rebuysLeft: player.rebuysLeft || 0,
-                    isFinished: player.isFinished || false,
                     finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
                     finishPosition: player.finishPosition || null,
                     isEmpty: player.isEmpty || false
                 });
                 
-                // Добавляем в список завершивших, если игрок закончил и не пустой
-                if (player.isFinished && player.finishTime && !player.isEmpty) {
+                // Добавляем в список завершивших, если есть время финиша и это не пустое место
+                if (player.finishTime && !player.isEmpty) {
                     finishedPlayers.push({
                         finishTime: new Date(player.finishTime),
                         timeDiff: new Date(player.finishTime) - gameStartTime,
@@ -972,8 +971,9 @@
                         ? `${data.nickname} (${viewerChatId})`
                         : data.nickname;
 
-                    // Выбираем класс индикатора позиции с учетом активного дилера
-                    const positionClass = data.isFinished
+                    // Выбираем класс индикатора позиции с учетом активного дилера и завершенности по finishTime
+                    const isFinished = !!data.finishTime;
+                    const positionClass = isFinished
                         ? 'finished'
                         : data.isEmpty
                             ? 'empty'
@@ -1060,16 +1060,17 @@
             }
             if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
             
-            // ✅ Обрабатываем состояние завершенного игрока
+            // ✅ Обрабатываем состояние завершенного игрока на основе finishTime
+            const isFinished = !!data.finishTime;
             button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
-            if (data.isFinished) {
+            if (isFinished) {
                 button.classList.add('finished');
             }
             
             if (positionIndicator) {
                 positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
 
-                if (data.isFinished) {
+                if (isFinished) {
                     // Для завершенных игроков оставляем номер места за столом
                     positionIndicator.classList.add('finished');
                     positionIndicator.textContent = data.position;
@@ -1087,7 +1088,7 @@
             }
             
             if (rebuysElement) {
-                if (data.isFinished) {
+                if (isFinished) {
                     rebuysElement.style.display = 'none';
                 } else {
                     rebuysElement.style.display = 'flex';
@@ -1100,8 +1101,8 @@
                 }
             }
             
-            // ✅ ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков
-            if (data.isFinished) {
+            // ✅ ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков (по finishTime)
+            if (isFinished) {
                 if (!finishInfoContainer) {
                     const newFinishInfo = document.createElement('div');
                     newFinishInfo.className = 'player-finish-info';
@@ -1132,8 +1133,8 @@
                 finishInfoContainer.remove();
             }
             
-            // ✅ ИСПРАВЛЕНИЕ: Делаем кнопку неактивной для завершенных игроков
-            if (data.isFinished) {
+            // ✅ ИСПРАВЛЕНИЕ: Делаем кнопку неактивной для завершенных игроков (по finishTime)
+            if (isFinished) {
                 button.disabled = true;
                 button.style.opacity = '0.5';
             } else {
@@ -1215,7 +1216,8 @@
         }
 
         function updateRebuyButtonState(data) {
-            if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
+            const isFinished = !!data.finishTime;
+            if (data.rebuysLeft <= 0 || isFinished || data.isEmpty) {
                 rebuyButton.disabled = true;
                 rebuyInfo.textContent = 'Ребаев больше нет';
             } else {
@@ -1225,7 +1227,8 @@
         }
 
         function updateFinishButtonState(data) {
-            if (data.isFinished || data.isEmpty) {
+            const isFinished = !!data.finishTime;
+            if (isFinished || data.isEmpty) {
                 finishButton.disabled = true;
                 if (data.finishTime && !data.isEmpty) {
                     finishInfo.textContent = formatFinishTimeInfo(data.finishTime);
@@ -1313,13 +1316,12 @@
         }
 
         function checkAutoFinish() {
-            const activePlayers = Array.from(playerData.values()).filter(player => !player.isFinished && !player.isEmpty);
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.finishTime && !player.isEmpty);
             if (activePlayers.length === 1) {
                 const lastPlayer = activePlayers[0];
                 const playerName = Array.from(playerData.entries()).find(([name, data]) => data === lastPlayer)[0];
                 
-                if (!lastPlayer.isFinished) {
-                    lastPlayer.isFinished = true;
+                if (!lastPlayer.finishTime) {
                     lastPlayer.finishTime = new Date().toISOString();
                     lastPlayer.finishPosition = 1;
                     
@@ -1335,7 +1337,7 @@
         }
 
         function checkGameFinished() {
-            const activePlayers = Array.from(playerData.values()).filter(player => !player.isFinished && !player.isEmpty);
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.finishTime && !player.isEmpty);
             if (activePlayers.length === 0 && !isGameFinished) {
                 isGameFinished = true;
                 const totalTime = new Date() - gameStartTime;
@@ -1390,7 +1392,8 @@
             
             const data = playerData.get(selectedPlayer);
             
-            if (data.rebuysLeft <= 0 || data.isFinished || data.isEmpty) {
+            const isFinished = !!data.finishTime;
+            if (data.rebuysLeft <= 0 || isFinished || data.isEmpty) {
                 return;
             }
 
@@ -1423,17 +1426,17 @@
             if (selectedPlayer) {
                 const data = playerData.get(selectedPlayer);
                 
-                if (!data.isFinished && !data.isEmpty) {
+                const isFinished = !!data.finishTime;
+                if (!isFinished && !data.isEmpty) {
                     try {
                         console.log('🎯 Finishing player:', selectedPlayer, 'ID:', data.id);
                         
-                        // ✅ ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ: сразу помечаем игрока как закончившего
-                        data.isFinished = true;
+                        // ✅ ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ: сразу устанавливаем время финиша
                         data.finishTime = new Date().toISOString();
                         
                         // ✅ ИСПРАВЛЕНИЕ: Правильно рассчитываем позицию
                         const activePlayers = Array.from(playerData.values()).filter(player => 
-                            !player.isFinished && !player.isEmpty
+                            !player.finishTime && !player.isEmpty
                         );
                         data.finishPosition = activePlayers.length; // Позиция = количество оставшихся активных игроков
                         
@@ -1478,7 +1481,6 @@
                     } catch (error) {
                         console.error('❌ Finish error:', error);
                         // В случае ошибки откатываем изменения
-                        data.isFinished = false;
                         data.finishTime = null;
                         data.finishPosition = null;
                         updatePlayerButton(selectedPlayer);
