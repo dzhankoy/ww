@@ -742,7 +742,6 @@
                 <div class="action-info" id="finishInfo"></div>
             </button>
             <button class="back-button" id="backButton">Назад к игрокам</button>
-            <button class="admin-button" id="adminButtonAction">Позвать администратора</button>
         </div>
     </div>
 
@@ -776,8 +775,6 @@
         let isGameFinished = false;
         let gameStartTime = null;
         let selectedPlayer = '';
-        let viewerPlayerName = null;
-        let viewerIsPrivileged = false;
 
         // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -807,7 +804,6 @@
         const finishButton = document.getElementById('finishButton');
         const backButton = document.getElementById('backButton');
         const adminButton = document.getElementById('adminButton');
-        const adminButtonAction = document.getElementById('adminButtonAction');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
         const errorText = document.getElementById('errorText');
@@ -935,15 +931,7 @@
                 }
                 
                 processTournamentData(data);
-
-                // Определяем, какой режим показать после загрузки данных
-                if (viewerPlayerName && !viewerIsPrivileged) {
-                    // Обычный игрок: сразу показываем его карточку
-                    selectPlayer(viewerPlayerName);
-                } else {
-                    // Дилер / админ / неизвестный пользователь: показываем список игроков
-                    showPlayerSelection();
-                }
+                showPlayerSelection();
                 
             } catch (error) {
                 console.error('Error loading tournament data:', error);
@@ -956,8 +944,6 @@
             tournamentData = data.tournament;
             playerData.clear();
             finishedPlayers = [];
-            viewerPlayerName = null;
-            viewerIsPrivileged = false;
             
             // Устанавливаем время начала игры
             if (tournamentData.startTime) {
@@ -1148,42 +1134,6 @@
                 positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
 
                 if (isFinished) {
-                    // Для завершенных игроков оставляем номер места за столом
-                    positionIndicator.classList.add('finished');
-                    positionIndicator.textContent = data.position;
-                } else if (data.isEmpty) {
-                    positionIndicator.classList.add('empty');
-                    positionIndicator.textContent = data.position;
-                } else if (data.dealer) {
-                    // Активный дилер - синий индикатор
-                    positionIndicator.classList.add('dealer');
-                    positionIndicator.textContent = data.position;
-                } else {
-                    positionIndicator.classList.add('playing');
-                    positionIndicator.textContent = data.position;
-                }
-            }
-            
-            if (rebuysElement) {
-                if (isFinished) {
-                    rebuysElement.style.display = 'none';
-                } else {
-                    rebuysElement.style.display = 'flex';
-                    rebuysElement.innerHTML = '';
-                    for (let i = 0; i < 2; i++) {
-                        const dot = document.createElement('div');
-                        dot.className = i < (2 - data.rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
-                        rebuysElement.appendChild(dot);
-                    }
-                }
-            }
-            
-            // ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков (по finishTime)
-            if (isFinished) {
-                if (!finishInfoContainer) {
-                    const newFinishInfo = document.createElement('div');
-                    newFinishInfo.className = 'player-finish-info';
-                    const place = Number(data.finishPosition);
                     let badgeClass = 'player-position-badge';
                     if (place === 1) badgeClass += ' gold';
                     else if (place === 2) badgeClass += ' silver';
@@ -1649,23 +1599,6 @@
                 console.error('Error calling admin:', error);
             }
         });
-
-        if (adminButtonAction) {
-            adminButtonAction.addEventListener('click', async () => {
-                try {
-                    const currentTableNumber = tableNumber.textContent;
-                    const currentDealerName = dealerName.textContent;
-                    
-                    await eventService.callAdmin(
-                        'user_requested_assistance', 
-                        currentTableNumber, 
-                        currentDealerName
-                    );
-                } catch (error) {
-                    console.error('Error calling admin from action screen:', error);
-                }
-            });
-        }
 
         backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
