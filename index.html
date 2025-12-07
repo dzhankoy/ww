@@ -126,6 +126,15 @@
             margin-bottom: var(--spacing-sm);
             line-height: 1.3;
         }
+
+        .club-logo {
+            display: block;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 auto var(--spacing-sm);
+        }
         
         .table-info {
             font-size: 17px;
@@ -639,6 +648,7 @@
     <!-- Экран выбора игрока -->
     <div id="playerSelectionScreen" class="screen hidden">
         <div class="header-content">
+            <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
             <div class="tournament-title" id="tournamentTitle">King & Joker Tournament</div>
             <div class="table-info">
                 <span class="table-label">Стол</span> 
