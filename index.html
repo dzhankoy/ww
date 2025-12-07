@@ -1209,15 +1209,28 @@
                 }
             }
             
-            // Фото игрока (пока используем тестовую картинку для всех)
-            const testPhotoUrl = 'https://via.placeholder.com/300x300.png?text=Player';
+            // Фото игрока (пока используем тестовую картинку с твоего домена)
+            const testPhotoUrl = 'https://5970995-zo35356.twc1.net/icons/n8n-nodes-base/dist/nodes/Telegram/telegram.svg';
             if (playerPhotoImage) {
+                // Сначала скрываем, покажем только если загрузка прошла успешно
+                playerPhotoImage.style.display = 'none';
+
+                playerPhotoImage.onload = () => {
+                    playerPhotoImage.style.display = 'block';
+                };
+
+                playerPhotoImage.onerror = () => {
+                    // Если не загрузилось, прячем фото
+                    playerPhotoImage.style.display = 'none';
+                };
+
                 playerPhotoImage.src = testPhotoUrl;
-                playerPhotoImage.style.display = 'block';
             }
 
-            // Эмодзи как fallback / поверх фото
-            playerEmoji.textContent = data.emoji || '👤';
+            // Эмодзи пока скрываем, чтобы в профиле был только аватар
+            if (playerEmoji) {
+                playerEmoji.style.display = 'none';
+            }
             
             updateRebuyButtonState(data);
             updateFinishButtonState(data);
