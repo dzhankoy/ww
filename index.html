@@ -122,20 +122,34 @@
         .tournament-title, .player-title {
             font-size: 26px;
             font-weight: 700;
-            text-align: center;
             margin-bottom: var(--spacing-sm);
             line-height: 1.3;
         }
 
         .club-logo {
             display: block;
-            width: 56px;
-            height: 56px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             object-fit: cover;
-            margin: 0 auto var(--spacing-sm);
+            flex-shrink: 0;
         }
-        
+
+        .tournament-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .tournament-header-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
         .table-info {
             font-size: 17px;
             font-weight: 600;
@@ -648,13 +662,17 @@
     <!-- Экран выбора игрока -->
     <div id="playerSelectionScreen" class="screen hidden">
         <div class="header-content">
-            <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
-            <div class="tournament-title" id="tournamentTitle">King & Joker Tournament</div>
-            <div class="table-info">
-                <span class="table-label">Стол</span> 
-                <span class="table-badge" id="tableNumber">1</span> 
-                <span class="table-label">Дилер</span> 
-                <span class="table-badge" id="dealerName">Максимус</span>
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="tournamentTitle">King & Joker Tournament</div>
+                    <div class="table-info">
+                        <span class="table-label">Стол</span> 
+                        <span class="table-badge" id="tableNumber">1</span> 
+                        <span class="table-label">Дилер</span> 
+                        <span class="table-badge" id="dealerName">Максимус</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="players-list-container">
