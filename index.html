@@ -868,21 +868,6 @@
                     throw error;
                 }
             }
-
-            // Управление доступностью кнопок для обычного игрока
-            const isViewerSelf = viewerPlayerName && data.id === viewerChatId;
-            const isPrivileged = viewerIsPrivileged;
-
-            if (isViewerSelf && !isPrivileged) {
-                // Обычный игрок: прячем действия, оставляем только вызов администратора
-                if (rebuyButton) rebuyButton.style.display = 'none';
-                if (finishButton) finishButton.style.display = 'none';
-                if (backButton) backButton.style.display = 'none';
-            } else {
-                if (rebuyButton) rebuyButton.style.display = '';
-                if (finishButton) finishButton.style.display = '';
-                if (backButton) backButton.style.display = '';
-            }
             
             // События игроков - отправляем ТОЛЬКО playerId
             async playerRebuy(playerId) {
