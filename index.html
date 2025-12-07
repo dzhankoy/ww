@@ -961,13 +961,13 @@
                     const button = document.createElement('button');
                     button.setAttribute('data-player', playerName);
                     button.classList.add('player-button');
-                    
+
                     // Проверяем, является ли игрок пустым местом
                     if (data.isEmpty) {
                         button.classList.add('empty');
                         button.disabled = true;
                     }
-                    
+
                     const isCurrentViewerPlayer = !!(viewerChatId && data.id === viewerChatId);
                     const nicknameDisplay = isCurrentViewerPlayer
                         ? `${data.nickname} (${viewerChatId})`
@@ -975,84 +975,40 @@
 
                     // Выбираем класс индикатора позиции с учетом активного дилера и завершенности по finishTime
                     const isFinished = !!data.finishTime;
-                    button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
-                    if (isFinished) {
-                        button.classList.add('finished');
-                    }
-                    
-                    if (positionIndicator) {
-                        positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
+                    const positionClass = isFinished
+                        ? 'finished'
+                        : data.isEmpty
+                            ? 'empty'
+                            : data.dealer
+                                ? 'dealer'
+                                : 'playing';
 
-                        if (isFinished) {
-                            // Для завершенных игроков оставляем номер места за столом
-                            positionIndicator.classList.add('finished');
-                            positionIndicator.textContent = data.position;
-                        } else if (data.isEmpty) {
-                            positionIndicator.classList.add('empty');
-                            positionIndicator.textContent = data.position;
-                        } else if (data.dealer) {
-                            // Активный дилер - синий индикатор
-                            positionIndicator.classList.add('dealer');
-                            positionIndicator.textContent = data.position;
-                        } else {
-                            positionIndicator.classList.add('playing');
-                            positionIndicator.textContent = data.position;
-                        }
-                    }
-                    
-                    if (rebuysElement) {
-                        if (isFinished) {
-                            rebuysElement.style.display = 'none';
-                        } else {
-                            rebuysElement.style.display = 'flex';
-                            rebuysElement.innerHTML = '';
-                            for (let i = 0; i < 2; i++) {
-                                const dot = document.createElement('div');
-                                dot.className = i < (2 - data.rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
-                                rebuysElement.appendChild(dot);
-                            }
-                        }
-                    }
-                    
-                    // ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков (по finishTime)
-                    if (isFinished) {
-                        if (!finishInfoContainer) {
-                            const newFinishInfo = document.createElement('div');
-                            newFinishInfo.className = 'player-finish-info';
-                            const place = Number(data.finishPosition);
-                            let badgeClass = 'player-position-badge';
-                            if (place === 1) badgeClass += ' gold';
-                            else if (place === 2) badgeClass += ' silver';
-                            else if (place === 3) badgeClass += ' bronze';
+                    button.innerHTML = `
+                        <div class="position-indicator ${positionClass}">
+                            ${data.position}
+                        <\/div>
+                        <div class="player-info">
+                            <div class="player-nickname">${nicknameDisplay}<\/div>
+                            <div class="player-name">${playerName}<\/div>
+                        <\/div>
+                        <div class="player-rebuys"><\/div>
+                        <div class="chevron"><\/div>
+                    `;
 
-                            newFinishInfo.innerHTML = `
-                                <div class="player-position"><span class="${badgeClass}">${data.finishPosition || '?'}</span> место</div>
-                                <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
-                            `;
-                            button.insertBefore(newFinishInfo, chevron);
-                        } else {
-                            const place = Number(data.finishPosition);
-                            let badgeClass = 'player-position-badge';
-                            if (place === 1) badgeClass += ' gold';
-                            else if (place === 2) badgeClass += ' silver';
-                            else if (place === 3) badgeClass += ' bronze';
-
-                            finishInfoContainer.innerHTML = `
-                                <div class="player-position"><span class="${badgeClass}">${data.finishPosition || '?'}</span> место</div>
-                                <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
-                            `;
-                        }
-                    } else if (finishInfoContainer) {
-                        finishInfoContainer.remove();
-                    }
-                    
-                    // ИСПРАВЛЕНИЕ: Делаем кнопку неактивной для завершенных игроков (по finishTime)
-                    if (isFinished) {
-                        button.disabled = true;
-                        button.style.opacity = '0.5';
+                    // Добавляем обработчик клика только для непустых игроков
+                    if (!data.isEmpty) {
+                        button.addEventListener('click', () => {
+                            selectPlayer(playerName);
+                        });
                     } else {
-                        button.disabled = false;
-                        button.style.opacity = '1';
+                        button.disabled = true;
+                    }
+
+                    playersList.appendChild(button);
+
+                    // Обновляем кнопку только для непустых игроков (повторно настроит индикаторы, ребаи и т.д.)
+                    if (!data.isEmpty) {
+                        updatePlayerButton(playerName);
                     }
                 } else {
                     // Если нет игрока на этой позиции - создаем полностью пустое место
