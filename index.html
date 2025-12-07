@@ -1135,12 +1135,10 @@
                 finishInfoContainer.remove();
             }
             
-            // ИСПРАВЛЕНИЕ: Делаем кнопку неактивной для завершенных игроков (по finishTime)
+            // ✅ Для завершенных игроков только уменьшаем прозрачность, но оставляем кнопку кликабельной
             if (isFinished) {
-                button.disabled = true;
                 button.style.opacity = '0.5';
             } else {
-                button.disabled = false;
                 button.style.opacity = '1';
             }
         }
