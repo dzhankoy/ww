@@ -48,6 +48,30 @@
             gap: var(--spacing-sm);
         }
 
+        .player-role-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .player-role-badge.dealer {
+            background-color: var(--blue);
+            color: #fff;
+        }
+
+        .player-role-badge.admin {
+            background-color: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+
         .player-rating-badge {
             padding: 2px 8px;
             border-radius: 999px;
@@ -696,6 +720,7 @@
         <div class="header-content">
             <h1 class="player-title">
                 <span class="player-header-row">
+                    <span id="selectedPlayerRoleBadge" class="player-role-badge" style="display:none;"></span>
                     <span id="selectedPlayerNickname"></span>
                     <span class="player-rating-badge" id="selectedPlayerRating"></span>
                 </span>
@@ -766,6 +791,7 @@
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
+        const selectedPlayerRoleBadge = document.getElementById('selectedPlayerRoleBadge');
         const selectedPlayerRating = document.getElementById('selectedPlayerRating');
         const selectedPlayerName = document.getElementById('selectedPlayerName');
         const selectedPlayerTableInfo = document.getElementById('selectedPlayerTableInfo');
@@ -941,6 +967,7 @@
                     lastName: player.lastName,
                     rating: player.rating || null,
                     dealer: player.dealer || false,
+                    admin: player.admin || false,
                     rebuysLeft: player.rebuysLeft || 0,
                     finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
                     finishPosition: player.finishPosition || null,
@@ -961,8 +988,6 @@
             updateTournamentUI();
             updatePlayersList();
             checkGameFinished();
-        }
-
         }
 
         // Обновление UI турнира (без перезагрузки)
@@ -1113,6 +1138,42 @@
                 positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
 
                 if (isFinished) {
+                    // Для завершенных игроков оставляем номер места за столом
+                    positionIndicator.classList.add('finished');
+                    positionIndicator.textContent = data.position;
+                } else if (data.isEmpty) {
+                    positionIndicator.classList.add('empty');
+                    positionIndicator.textContent = data.position;
+                } else if (data.dealer) {
+                    // Активный дилер - синий индикатор
+                    positionIndicator.classList.add('dealer');
+                    positionIndicator.textContent = data.position;
+                } else {
+                    positionIndicator.classList.add('playing');
+                    positionIndicator.textContent = data.position;
+                }
+            }
+            
+            if (rebuysElement) {
+                if (isFinished) {
+                    rebuysElement.style.display = 'none';
+                } else {
+                    rebuysElement.style.display = 'flex';
+                    rebuysElement.innerHTML = '';
+                    for (let i = 0; i < 2; i++) {
+                        const dot = document.createElement('div');
+                        dot.className = i < (2 - data.rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                        rebuysElement.appendChild(dot);
+                    }
+                }
+            }
+            
+            // ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков (по finishTime)
+            if (isFinished) {
+                if (!finishInfoContainer) {
+                    const newFinishInfo = document.createElement('div');
+                    newFinishInfo.className = 'player-finish-info';
+                    const place = Number(data.finishPosition);
                     let badgeClass = 'player-position-badge';
                     if (place === 1) badgeClass += ' gold';
                     else if (place === 2) badgeClass += ' silver';
@@ -1197,20 +1258,54 @@
             selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
             const baseName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
             const ratingText = data.rating ? `${data.rating}` : '';
+            const isFinished = !!data.finishTime;
+
+            // Бейдж роли игрока (дилер / админ)
+            if (selectedPlayerRoleBadge) {
+                let roleText = '';
+                let roleClass = '';
+
+                if (data.admin) {
+                    roleText = '👑';
+                    roleClass = 'admin';
+                } else if (data.dealer) {
+                    roleText = 'D';
+                    roleClass = 'dealer';
+                }
+
+                if (roleText) {
+                    selectedPlayerRoleBadge.textContent = roleText;
+                    selectedPlayerRoleBadge.className = `player-role-badge ${roleClass}`;
+                    selectedPlayerRoleBadge.style.display = 'inline-flex';
+                } else {
+                    selectedPlayerRoleBadge.style.display = 'none';
+                }
+            }
 
             // Имя/фамилия отдельной строкой (крупнее), рейтинг в бейдже рядом с никнеймом
             selectedPlayerName.textContent = baseName;
 
-            // Информация о столе и боксе для выбранного игрока
+            // Информация о столе/боксе или финише для выбранного игрока
             if (selectedPlayerTableInfo && tournamentData) {
-                const table = tournamentData.table || '1';
-                const box = data.position || '-';
-                selectedPlayerTableInfo.innerHTML = `
-                    <span class="table-label">Стол<\/span>
-                    <span class="table-badge">${table}<\/span>
-                    <span class="table-label">Бокс<\/span>
-                    <span class="table-badge">${box}<\/span>
-                `;
+                if (!isFinished) {
+                    const table = tournamentData.table || '1';
+                    const box = data.position || '-';
+                    selectedPlayerTableInfo.innerHTML = `
+                        <span class="table-label">Стол<\/span>
+                        <span class="table-badge">${table}<\/span>
+                        <span class="table-label">Бокс<\/span>
+                        <span class="table-badge">${box}<\/span>
+                    `;
+                } else {
+                    const finishTimeLabel = data.finishTime ? formatFinishTime(new Date(data.finishTime)) : '—';
+                    const place = data.finishPosition || '?';
+                    selectedPlayerTableInfo.innerHTML = `
+                        <span class="table-label">Закончил<\/span>
+                        <span class="table-badge">${finishTimeLabel}<\/span>
+                        <span class="table-label">Место<\/span>
+                        <span class="table-badge">${place}<\/span>
+                    `;
+                }
             }
 
             if (selectedPlayerRating) {
@@ -1415,9 +1510,7 @@
             const dateString = now.toLocaleDateString('ru-RU', {
                 day: '2-digit', month: '2-digit', year: 'numeric'
             });
-            if (dateTimeFooterElement) {
-                dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
-            }
+            dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
         }
 
         function backToPlayerList() {
