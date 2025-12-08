@@ -1633,6 +1633,24 @@
                     currentTableNumber, 
                     currentDealerName
                 );
+                
+                // Уведомление пользователю после успешного вызова администратора
+                try {
+                    if (tg && typeof tg.showPopup === 'function') {
+                        tg.showPopup({
+                            title: 'Администратор вызван',
+                            message: 'Ожидайте, администратор уже идёт к вашему столу.',
+                            buttons: [
+                                { type: 'close' }
+                            ]
+                        });
+                    } else {
+                        alert('Администратор вызван. Ожидайте, он уже идёт к вашему столу.');
+                    }
+                } catch (popupError) {
+                    console.error('Error showing admin call popup:', popupError);
+                    alert('Администратор вызван. Ожидайте, он уже идёт к вашему столу.');
+                }
             } catch (error) {
                 console.error('Error calling admin:', error);
             }
