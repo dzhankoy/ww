@@ -414,7 +414,7 @@
         /* Подсветка стола, откуда вызывали администратора */
         .player-button.admin-call-active {
             /* меняем только фон карточки, граница-разделитель и индикатор остаются как у обычного стола */
-            background-color: rgba(181, 137, 0, 0.35);
+            background-color: rgba(181, 137, 0, 0.35) !important;
         }
         
         .tables-aggregates {
@@ -851,9 +851,9 @@
             <div class="tables-actions-title tables-section-padding">Действия</div>
             <div class="tables-actions tables-section-padding">
                 <button class="tables-action-button" id="tablesRebalanceButton">Рассадить столы</button>
-                <button class="tables-action-button" id="playersRebalanceButton">Рассадить игроков</button>
+                <button class="tables-action-button" id="playersRebalanceButton">Пересадить игрока</button>
                 <button class="tables-action-button" id="changeDealerButton">Сменить дилера</button>
-                <button class="tables-action-button" id="tournamentTimerToggleButton">Запустить/остановить таймер</button>
+                <button class="tables-action-button" id="tournamentTimerToggleButton">Остановить таймер</button>
             </div>
         </div>
     </div>
