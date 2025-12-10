@@ -728,6 +728,7 @@
             <div class="game-time" id="gameTime"></div>
             <div class="game-finished hidden" id="gameFinished"></div>
             <button class="admin-button" id="adminButton">Позвать администратора</button>
+            <button class="back-button" id="backToTablesButton" style="display:none;">Назад к столам</button>
         </div>
     </div>
 
@@ -830,6 +831,7 @@
         const backButton = document.getElementById('backButton');
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
+        const backToTablesButton = document.getElementById('backToTablesButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
         const errorText = document.getElementById('errorText');
@@ -1334,11 +1336,8 @@
                 button.innerHTML = `
                     <div class="position-indicator playing">${table.id}</div>
                     <div class="player-info">
-                        <div class="player-nickname">Стол ${table.id}</div>
+                        <div class="player-nickname">Стол ${table.id}, дилер ${dealerNickname}</div>
                         <div class="player-name">Игроков: ${players.length}, активных: ${activePlayers.length}, финишировали: ${finishedPlayersCount}</div>
-                    </div>
-                    <div class="player-finish-info">
-                        <div class="player-position">Дилер: ${dealerNickname}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
@@ -1348,6 +1347,11 @@
                     const adapted = adaptFullTournamentToSingleTable(fullTournamentData);
                     processTournamentData(adapted);
                     tablesScreen.classList.add('hidden');
+                    // Для администратора показываем отдельную кнопку "Назад к столам" стандартного стиля
+                    if (backToTablesButton) {
+                        backToTablesButton.style.display = '';
+                        backToTablesButton.onclick = backToTablesFromPlayers;
+                    }
                     showPlayerSelection();
                 });
 
@@ -1885,6 +1889,13 @@
             actionScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
             selectedPlayer = '';
+        }
+
+        // Возврат с списка игроков к списку столов (для админа)
+        function backToTablesFromPlayers() {
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+            showTablesScreen();
         }
 
         // ✅ ИСПРАВЛЕННЫЙ обработчик ребая
