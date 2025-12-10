@@ -405,6 +405,17 @@
             border-radius: 10px;             /* чуть больше, чем у самого квадрата для зазора */
             border: 1px solid #ffffff;       /* тонкая белая обводка вокруг зелёного квадрата */
         }
+
+        /* Индикатор стола с проблемой (дилер не зашёл в рабочее место) */
+        .table-indicator.warning {
+            background-color: var(--red);
+        }
+        
+        /* Подсветка стола, откуда вызывали администратора */
+        .player-button.admin-call-active {
+            /* меняем только фон карточки, граница-разделитель и индикатор остаются как у обычного стола */
+            background-color: rgba(181, 137, 0, 0.35);
+        }
         
         .tables-aggregates {
             margin-bottom: 0;
@@ -426,9 +437,18 @@
         .tables-actions-title {
             font-size: 18px;
             font-weight: 600;
-            margin-top: var(--spacing-xxl);   /* одинаковый отступ сверху от предыдущего блока */
+            margin-top: var(--spacing-lg);    /* более компактный стандартный отступ сверху */
             margin-bottom: var(--spacing-xs);
             text-align: left;
+        }
+
+        /* Для заголовка и блока статистики делаем чуть меньшие вертикальные отступы */
+        .tables-aggregates-title {
+            margin-top: var(--spacing-md);
+        }
+
+        .tables-aggregates.tables-section-block {
+            margin-bottom: var(--spacing-lg);
         }
 
         .tables-aggregates-text {
@@ -1580,8 +1600,10 @@
                     button.classList.add('admin-call-active');
                 }
 
+                const indicatorWarningClass = (index === 1) ? ' warning' : '';
+
                 button.innerHTML = `
-                    <div class="table-indicator">${table.id}</div>
+                    <div class="table-indicator${indicatorWarningClass}">${table.id}</div>
                     <div class="player-info">
                         <div class="player-nickname">Стол ${table.id}, дилер ${dealerNickname}</div>
                         <div class="player-name">Игроков: ${players.length}, актив: ${activePlayers.length}, всё: ${finishedPlayersCount}</div>
