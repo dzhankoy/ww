@@ -403,6 +403,14 @@
             margin-bottom: var(--spacing-md);
         }
 
+        .tables-aggregates-title,
+        .tables-active-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            text-align: left;
+        }
+
         .tables-aggregates-text {
             font-size: 14px;
             color: var(--secondary-text);
@@ -762,7 +770,7 @@
             </div>
         </div>
         <div class="tables-aggregates">
-            <div class="tables-aggregates-title">Активные столы</div>
+            <div class="tables-aggregates-title">Статистика турнира</div>
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
             <div class="tables-progress">
                 <div class="tables-progress-bar">
@@ -771,6 +779,7 @@
             </div>
         </div>
         <div class="players-list-container">
+            <div class="tables-active-title">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
         </div>
     </div>
