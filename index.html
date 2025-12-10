@@ -851,7 +851,7 @@
             </div>
             <div class="tables-actions-title tables-section-padding">Действия</div>
             <div class="tables-actions tables-section-padding">
-                <button class="tables-action-button" id="tablesRebalanceButton">Рассадить столы</button>
+                <button class="tables-action-button" id="tablesRebalanceButton">Объединить столы</button>
                 <button class="tables-action-button" id="playersRebalanceButton">Пересадить игрока</button>
                 <button class="tables-action-button" id="changeDealerButton">Сменить дилера</button>
                 <button class="tables-action-button" id="tournamentTimerToggleButton">Остановить таймер</button>
@@ -1591,6 +1591,18 @@
                 const players = Array.isArray(table.players) ? table.players : [];
                 const activePlayers = players.filter(p => !p.finishTime);
                 const finishedPlayersCount = players.filter(p => !!p.finishTime).length;
+
+                // Ребаи только по этому столу
+                let tableRebuys = 0;
+                players.forEach(p => {
+                    if (typeof p.rebuysLeft === 'number') {
+                        const maxRebuys = 2;
+                        const used = maxRebuys - p.rebuysLeft;
+                        if (used > 0) {
+                            tableRebuys += used;
+                        }
+                    }
+                });
                 const dealerPlayer = players.find(p => p.dealer);
                 const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || '—') : '—';
 
@@ -1609,7 +1621,7 @@
                     <div class="table-indicator${indicatorWarningClass}">${table.id}</div>
                     <div class="player-info">
                         <div class="player-nickname"><!--Стол ${table.id}, дилер -->${dealerNickname}</div>
-                        <div class="player-name">Игроков осталось: ${activePlayers.length}, вылетело: ${finishedPlayersCount}</div>
+                        <div class="player-name">Игроков: ${activePlayers.length}, вылетело: ${finishedPlayersCount}, ребаев: ${tableRebuys}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
@@ -1658,7 +1670,7 @@
             const totalEntries = totalPlayers + totalRebuys;
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
 
-            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${adminSuffix}`;
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${adminSuffix}`;
 
             // Прогресс-бар: доля оставшихся активных игроков от общего количества
             if (tablesProgressFill && totalPlayers > 0) {
@@ -2361,7 +2373,7 @@
 
         if (tablesRebalanceButton) {
             tablesRebalanceButton.addEventListener('click', () => {
-                showSimpleActionNotice('Рассадить столы');
+                showSimpleActionNotice('Объединить столы');
             });
         }
 
