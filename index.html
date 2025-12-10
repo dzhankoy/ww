@@ -383,9 +383,53 @@
             font-weight: 600;
             flex-shrink: 0;
             margin-right: var(--spacing-sm);
+            position: relative;
             background-color: var(--green);
             color: #fff;
             border: 1px solid #ffffff;
+        }
+
+        .table-indicator::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.7);
+        }
+        
+        .tables-aggregates {
+            padding: 0 var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .tables-aggregates-text {
+            font-size: 14px;
+            color: var(--secondary-text);
+            margin-bottom: var(--spacing-sm);
+            text-align: left;
+        }
+
+        .tables-progress {
+            width: 100%;
+        }
+
+        .tables-progress-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background-color: var(--border-color);
+            overflow: hidden;
+        }
+
+        .tables-progress-fill {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--green), #4cd964);
+            border-radius: 999px;
+            transition: width 0.3s ease;
         }
         
         .position-indicator.medal {
@@ -716,7 +760,14 @@
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="tablesTournamentInfo"></div>
-                    <div class="tournament-date" id="tablesTournamentStats"></div>
+                </div>
+            </div>
+        </div>
+        <div class="tables-aggregates">
+            <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
+            <div class="tables-progress">
+                <div class="tables-progress-bar">
+                    <div class="tables-progress-fill" id="tablesProgressFill"></div>
                 </div>
             </div>
         </div>
@@ -834,6 +885,7 @@
         const tablesTournamentTitle = document.getElementById('tablesTournamentTitle');
         const tablesTournamentInfo = document.getElementById('tablesTournamentInfo');
         const tablesTournamentStats = document.getElementById('tablesTournamentStats');
+        const tablesProgressFill = document.getElementById('tablesProgressFill');
         const tableNumber = document.getElementById('tableNumber');
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
@@ -1468,6 +1520,12 @@
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
 
             tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${adminSuffix}`;
+
+            // Прогресс-бар: доля оставшихся активных игроков от общего количества
+            if (tablesProgressFill && totalPlayers > 0) {
+                const ratio = Math.max(0, Math.min(1, totalActive / totalPlayers));
+                tablesProgressFill.style.width = `${ratio * 100}%`;
+            }
         }
 
         // Обновление UI турнира (без перезагрузки)
