@@ -383,9 +383,9 @@
             font-weight: 600;
             flex-shrink: 0;
             margin-right: var(--spacing-sm);
-            background-color: var(--blue);
+            background-color: var(--green);
             color: #fff;
-            border: 1px solid var(--blue);
+            border: 1px solid #ffffff;
         }
         
         .position-indicator.medal {
@@ -1347,15 +1347,46 @@
                 let totalPlayers = 0;
                 let totalActive = 0;
                 let totalFinished = 0;
+                let totalRebuys = 0;
 
                 tables.forEach(table => {
                     const players = Array.isArray(table.players) ? table.players : [];
                     totalPlayers += players.length;
                     totalActive += players.filter(p => !p.finishTime).length;
                     totalFinished += players.filter(p => !!p.finishTime).length;
+
+                    players.forEach(p => {
+                        if (typeof p.rebuysLeft === 'number') {
+                            const maxRebuys = 2;
+                            const used = maxRebuys - p.rebuysLeft;
+                            if (used > 0) {
+                                totalRebuys += used;
+                            }
+                        }
+                    });
                 });
 
-                tablesTournamentStats.textContent = `Столов: ${tables.length}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}`;
+                let durationText = '';
+                if (t.date && t.time) {
+                    try {
+                        const [day, month, year] = String(t.date).split('.');
+                        const [hours, minutes] = String(t.time).split(':');
+                        const startDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
+                        if (!isNaN(startDate.getTime())) {
+                            const now = new Date();
+                            const diff = now - startDate;
+                            const dh = Math.floor(diff / (1000 * 60 * 60));
+                            const dm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const ds = Math.floor((diff % (1000 * 60)) / 1000);
+                            durationText = `${dh.toString().padStart(2, '0')}:${dm.toString().padStart(2, '0')}:${ds.toString().padStart(2, '0')}`;
+                        }
+                    } catch (e) {
+                        durationText = '';
+                    }
+                }
+
+                const totalEntries = totalPlayers + totalRebuys;
+                tablesTournamentStats.textContent = `Столов: ${tables.length}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}, время: ${durationText || '—'}, ребаи: ${totalRebuys}, входы: ${totalEntries}`;
             }
 
             if (!tablesList) return;
