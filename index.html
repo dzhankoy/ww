@@ -16,6 +16,7 @@
             --red: #ff453a;
             --blue: #0a84ff;
             --yellow: #ffd60a;
+            --dark-yellow: #b58900;
             --gray: #8e8e93;
             --gold: #ffd700;
             --silver: #c0c0c0;
@@ -300,13 +301,13 @@
             justify-content: center;
             padding: var(--spacing-lg);
             font-weight: 400;
-            background-color: var(--dark-red);
-            color: white;
+            background-color: var(--dark-yellow);
+            color: black;
             margin-top: var(--spacing-lg);
         }
         
         .admin-button:active {
-            background-color: #b71c1c;
+            background-color: #8b6900;
         }
 
         .position-indicator {
@@ -1330,7 +1331,7 @@
             const allPlayersSet = new Set();           // множество всех игроков турнира (по id)
 
             const tables = fullTournamentData.tournament.tables || [];
-            tables.forEach(table => {
+            tables.forEach((table, index) => {
                 const players = Array.isArray(table.players) ? table.players : [];
                 players.forEach(p => {
                     if (p.id != null) {
@@ -1516,7 +1517,7 @@
                 let totalFinished = 0;
                 let totalRebuys = 0;
 
-                tables.forEach(table => {
+                tables.forEach((table, index) => {
                     const players = Array.isArray(table.players) ? table.players : [];
                     totalPlayers += players.length;
                     totalActive += players.filter(p => !p.finishTime).length;
@@ -1563,7 +1564,7 @@
             if (!tablesList) return;
             tablesList.innerHTML = '';
 
-            tables.forEach(table => {
+            tables.forEach((table, index) => {
                 const players = Array.isArray(table.players) ? table.players : [];
                 const activePlayers = players.filter(p => !p.finishTime);
                 const finishedPlayersCount = players.filter(p => !!p.finishTime).length;
@@ -1573,6 +1574,11 @@
                 const button = document.createElement('button');
                 button.classList.add('player-button');
                 button.setAttribute('data-table-id', String(table.id));
+
+                // Демонстрация вызова администратора: подсвечиваем первый стол
+                if (index === 0) {
+                    button.classList.add('admin-call-active');
+                }
 
                 button.innerHTML = `
                     <div class="table-indicator">${table.id}</div>
