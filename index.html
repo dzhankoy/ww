@@ -852,6 +852,7 @@
             <div class="tables-actions tables-section-padding">
                 <button class="tables-action-button" id="tablesRebalanceButton">Рассадить столы</button>
                 <button class="tables-action-button" id="playersRebalanceButton">Рассадить игроков</button>
+                <button class="tables-action-button" id="changeDealerButton">Сменить дилера</button>
                 <button class="tables-action-button" id="tournamentTimerToggleButton">Запустить/остановить таймер</button>
             </div>
         </div>
@@ -1008,6 +1009,7 @@
         const backToTablesButton = document.getElementById('backToTablesButton');
         const tablesRebalanceButton = document.getElementById('tablesRebalanceButton');
         const playersRebalanceButton = document.getElementById('playersRebalanceButton');
+        const changeDealerButton = document.getElementById('changeDealerButton');
         const tournamentTimerToggleButton = document.getElementById('tournamentTimerToggleButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
@@ -2365,6 +2367,12 @@
         if (playersRebalanceButton) {
             playersRebalanceButton.addEventListener('click', () => {
                 showSimpleActionNotice('Рассадить игроков');
+            });
+        }
+
+        if (changeDealerButton) {
+            changeDealerButton.addEventListener('click', () => {
+                showSimpleActionNotice('Сменить дилера');
             });
         }
 
