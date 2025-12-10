@@ -742,6 +742,7 @@
                 <div class="action-info" id="finishInfo"></div>
             </button>
             <button class="back-button" id="backButton">Назад к игрокам</button>
+            <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
     </div>
 
@@ -804,6 +805,7 @@
         const finishButton = document.getElementById('finishButton');
         const backButton = document.getElementById('backButton');
         const adminButton = document.getElementById('adminButton');
+        const playerAdminButton = document.getElementById('playerAdminButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
         const errorText = document.getElementById('errorText');
@@ -1005,6 +1007,14 @@
         // - для обычного игрока: сразу его карточка, без доступа к списку игроков
         // - для дилера/админа или если игрок не найден: стандартный экран выбора
         function applyRoleBasedInitialView() {
+            // На этом этапе данные уже загружены, прячем экран загрузки/ошибки
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+            }
+            if (errorScreen) {
+                errorScreen.classList.add('hidden');
+            }
+
             const viewerEntry = getViewerPlayerEntry();
 
             if (viewerEntry) {
@@ -1015,6 +1025,15 @@
                     if (backButton) {
                         backButton.style.display = 'none';
                     }
+                    if (rebuyButton) {
+                        rebuyButton.style.display = 'none';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = 'none';
+                    }
+                    if (playerAdminButton) {
+                        playerAdminButton.style.display = '';
+                    }
                     selectPlayer(playerName);
                     return;
                 }
@@ -1022,6 +1041,15 @@
 
             if (backButton) {
                 backButton.style.display = '';
+            }
+            if (rebuyButton) {
+                rebuyButton.style.display = '';
+            }
+            if (finishButton) {
+                finishButton.style.display = '';
+            }
+            if (playerAdminButton) {
+                playerAdminButton.style.display = 'none';
             }
             showPlayerSelection();
         }
@@ -1658,7 +1686,7 @@
             }
         });
 
-        adminButton.addEventListener('click', async () => {
+        async function handleAdminCall() {
             try {
                 const currentTableNumber = tableNumber.textContent;
                 const currentDealerName = dealerName.textContent;
@@ -1689,7 +1717,14 @@
             } catch (error) {
                 console.error('Error calling admin:', error);
             }
-        });
+        }
+
+        if (adminButton) {
+            adminButton.addEventListener('click', handleAdminCall);
+        }
+        if (playerAdminButton) {
+            playerAdminButton.addEventListener('click', handleAdminCall);
+        }
 
         backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
