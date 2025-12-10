@@ -1265,6 +1265,10 @@
                     if (finishButton) {
                         finishButton.style.display = 'none';
                     }
+                    // Админу не нужна кнопка "Позвать администратора"
+                    if (adminButton) {
+                        adminButton.style.display = 'none';
+                    }
                     if (playerAdminButton) {
                         playerAdminButton.style.display = 'none';
                     }
@@ -1337,7 +1341,7 @@
                     <div class="position-indicator playing">${table.id}</div>
                     <div class="player-info">
                         <div class="player-nickname">Стол ${table.id}, дилер ${dealerNickname}</div>
-                        <div class="player-name">Игроков: ${players.length}, активных: ${activePlayers.length}, финишировали: ${finishedPlayersCount}</div>
+                        <div class="player-name">Игроков: ${players.length}, актив: ${activePlayers.length}, всё: ${finishedPlayersCount}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
