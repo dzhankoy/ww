@@ -921,6 +921,50 @@
         tg.expand();
         //tg.enableClosingConfirmation();
 
+        // Применение темы Телеграма (светлая/тёмная) к CSS-переменным
+        function applyTelegramTheme() {
+            if (!tg) return;
+
+            const themeParams = tg.themeParams || {};
+            const colorScheme = tg.colorScheme || 'dark';
+
+            // Базовые дефолты под тёмную тему (как сейчас)
+            let bgColor = '#000000';
+            let cardBg = '#1c1c1e';
+            let textColor = '#ffffff';
+            let secondaryText = '#8e8e93';
+            let borderColor = '#38383a';
+
+            if (colorScheme === 'light') {
+                // Более светлая палитра для светлой темы
+                bgColor = themeParams.bg_color || '#ffffff';
+                cardBg = themeParams.secondary_bg_color || '#f2f2f7';
+                textColor = themeParams.text_color || '#000000';
+                secondaryText = themeParams.hint_color || '#8e8e93';
+                borderColor = '#d1d1d6';
+            } else {
+                // Тёмная тема — пробуем взять цвета из Telegram, если есть
+                bgColor = themeParams.bg_color || bgColor;
+                cardBg = themeParams.secondary_bg_color || cardBg;
+                textColor = themeParams.text_color || textColor;
+                secondaryText = themeParams.hint_color || secondaryText;
+                borderColor = themeParams.section_separator_color || borderColor;
+            }
+
+            const root = document.documentElement;
+            root.style.setProperty('--bg-color', bgColor);
+            root.style.setProperty('--card-bg', cardBg);
+            root.style.setProperty('--text-color', textColor);
+            root.style.setProperty('--secondary-text', secondaryText);
+            root.style.setProperty('--border-color', borderColor);
+        }
+
+        // Сразу применяем текущую тему и слушаем её изменения
+        applyTelegramTheme();
+        if (tg && typeof tg.onEvent === 'function') {
+            tg.onEvent('themeChanged', applyTelegramTheme);
+        }
+
         // Конфигурация
         const CONFIG = {
             // Новый эндпоинт ПЛАНА Б, возвращающий полный снимок турнира по КОНТРАКТУ
