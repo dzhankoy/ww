@@ -168,6 +168,7 @@
             padding: 1px;                 /* 1px отступ между логотипом и обводкой */
             background-color: #000000;    /* фон для зазора */
             border: 1px solid #ffffff;    /* тонкая белая обводка */
+            transform: translateY(-1px);  /* лёгкий сдвиг вверх для визуального центрирования */
         }
 
         .tournament-header-row {
@@ -390,23 +391,41 @@
             position: relative;
             background-color: var(--green);  /* цветной фон под цифрой */
             color: #fff;
-            border: 1px solid #ffffff;       /* единственная тонкая белая обводка снаружи */
+            border: none;                    /* рамка рисуется псевдоэлементом, как у position-indicator */
         }
 
-        /* Без дополнительных внутренних белых обводок для индикатора стола */
         .table-indicator::after {
-            content: none;
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 10px;             /* чуть больше, чем у самого квадрата для зазора */
+            border: 1px solid #ffffff;       /* тонкая белая обводка вокруг зелёного квадрата */
         }
         
         .tables-aggregates {
+            margin-bottom: 0;
+        }
+
+        /* Общий горизонтальный паддинг для секций экрана столов */
+        .tables-section-padding {
             padding: 0 var(--spacing-sm);
-            margin-bottom: var(--spacing-md);
+        }
+
+        /* Единый вертикальный отступ между блоками на экране столов */
+        .tables-section-block {
+            margin-bottom: var(--spacing-xxl);
         }
 
         .tables-aggregates-title,
-        .tables-active-title {
+        .tables-active-title,
+        .tables-progress-title,
+        .tables-actions-title {
             font-size: 18px;
             font-weight: 600;
+            margin-top: var(--spacing-xxl);   /* одинаковый отступ сверху от предыдущего блока */
             margin-bottom: var(--spacing-xs);
             text-align: left;
         }
@@ -414,7 +433,7 @@
         .tables-aggregates-text {
             font-size: 14px;
             color: var(--secondary-text);
-            margin-bottom: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);   /* больше воздуха перед блоком активных игроков */
             text-align: left;
         }
 
@@ -436,6 +455,32 @@
             background: linear-gradient(90deg, var(--green), #4cd964);
             border-radius: 999px;
             transition: width 0.3s ease;
+        }
+
+        .tables-actions {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+        }
+
+        .tables-action-button {
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            padding: var(--spacing-md) var(--spacing-lg);
+            min-height: var(--player-height);   /* стандартная высота кнопок */
+            font-size: 17px;                    /* как у основных кнопок */
+            background-color: var(--card-bg);
+            color: var(--blue);                 /* как у стандартных action-кнопок */
+            display: flex;
+            align-items: center;
+            justify-content: center;            /* текст по центру */
+            text-align: center;
+        }
+
+        .tables-action-button:active {
+            background-color: var(--border-color);
         }
         
         .position-indicator.medal {
@@ -769,18 +814,25 @@
                 </div>
             </div>
         </div>
-        <div class="tables-aggregates">
+        <div class="tables-aggregates tables-section-padding tables-section-block">
             <div class="tables-aggregates-title">Статистика турнира</div>
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
-            <div class="tables-progress">
+        </div>
+        <div class="players-list-container tables-section-block">
+            <div class="tables-active-title tables-section-padding">Активные столы</div>
+            <div class="players-list" id="tablesList"></div>
+            <div class="tables-progress-title tables-section-padding">Активные игроки</div>
+            <div class="tables-progress tables-section-padding">
                 <div class="tables-progress-bar">
                     <div class="tables-progress-fill" id="tablesProgressFill"></div>
                 </div>
             </div>
-        </div>
-        <div class="players-list-container">
-            <div class="tables-active-title">Активные столы</div>
-            <div class="players-list" id="tablesList"></div>
+            <div class="tables-actions-title tables-section-padding">Действия</div>
+            <div class="tables-actions tables-section-padding">
+                <button class="tables-action-button" id="tablesRebalanceButton">Рассадить столы</button>
+                <button class="tables-action-button" id="playersRebalanceButton">Рассадить игроков</button>
+                <button class="tables-action-button" id="tournamentTimerToggleButton">Запустить/остановить таймер</button>
+            </div>
         </div>
     </div>
 
@@ -862,6 +914,24 @@
             ADMIN_CALL: 'admin_call'
         };
 
+        function showSimpleActionNotice(title) {
+            const message = title;
+            try {
+                if (tg && typeof tg.showPopup === 'function') {
+                    tg.showPopup({
+                        title: title,
+                        message: message,
+                        buttons: [{ type: 'close' }]
+                    });
+                } else {
+                    alert(message);
+                }
+            } catch (e) {
+                console.error('Popup error:', e);
+                alert(message);
+            }
+        }
+
         // Глобальные переменные
         let tournamentData = null;              // данные текущего выбранного стола (для UI)
         let fullTournamentData = null;          // полный снимок турнира по КОНТРАКТУ (ПЛАН Б)
@@ -869,6 +939,7 @@
         let finishedPlayers = [];
         let gameTimerInterval = null;
         let refreshInterval = null;
+        let tournamentStatsInterval = null;     // таймер для обновления статистики турнира (экран столов)
         let isGameFinished = false;
         let gameStartTime = null;
         let selectedPlayer = '';
@@ -914,6 +985,9 @@
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
         const backToTablesButton = document.getElementById('backToTablesButton');
+        const tablesRebalanceButton = document.getElementById('tablesRebalanceButton');
+        const playersRebalanceButton = document.getElementById('playersRebalanceButton');
+        const tournamentTimerToggleButton = document.getElementById('tournamentTimerToggleButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
         const errorText = document.getElementById('errorText');
@@ -1361,6 +1435,32 @@
                     showTablesScreen();
                     return;
                 }
+            }
+
+            // Режим отладки: если chat.id не определён (браузер), считаем пользователя админом
+            if (!viewerChatId) {
+                viewerIsAdmin = true;
+                viewerAdminName = 'Debug Admin';
+                currentTableId = null;
+
+                if (backButton) {
+                    backButton.style.display = 'none';
+                }
+                if (rebuyButton) {
+                    rebuyButton.style.display = 'none';
+                }
+                if (finishButton) {
+                    finishButton.style.display = 'none';
+                }
+                if (adminButton) {
+                    adminButton.style.display = 'none';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.style.display = 'none';
+                }
+
+                showTablesScreen();
+                return;
             }
 
             if (backButton) {
@@ -2037,6 +2137,7 @@
                 
                 if (gameTimerInterval) clearInterval(gameTimerInterval);
                 if (refreshInterval) clearInterval(refreshInterval);
+                if (tournamentStatsInterval) clearInterval(tournamentStatsInterval);
             }
         }
 
@@ -2227,6 +2328,24 @@
             playerAdminButton.addEventListener('click', handleAdminCall);
         }
 
+        if (tablesRebalanceButton) {
+            tablesRebalanceButton.addEventListener('click', () => {
+                showSimpleActionNotice('Рассадить столы');
+            });
+        }
+
+        if (playersRebalanceButton) {
+            playersRebalanceButton.addEventListener('click', () => {
+                showSimpleActionNotice('Рассадить игроков');
+            });
+        }
+
+        if (tournamentTimerToggleButton) {
+            tournamentTimerToggleButton.addEventListener('click', () => {
+                showSimpleActionNotice('Запустить/остановить таймер');
+            });
+        }
+
         backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
 
@@ -2239,6 +2358,7 @@
             
             setInterval(updateCurrentTime, 1000);
             gameTimerInterval = setInterval(updateGameTime, 1000);
+            tournamentStatsInterval = setInterval(updateTournamentStatsDisplay, 1000);
             
             // Запускаем плавное обновление данных
             refreshInterval = setInterval(refreshTournamentData, CONFIG.REFRESH_INTERVAL);
