@@ -370,6 +370,23 @@
             color: white;
             border-color: var(--bronze);
         }
+
+        /* Индикатор номера стола на экране списков столов (квадрат с лёгкими скруглениями) */
+        .table-indicator {
+            width: var(--position-size);
+            height: var(--position-size);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-right: var(--spacing-sm);
+            background-color: var(--blue);
+            color: #fff;
+            border: 1px solid var(--blue);
+        }
         
         .position-indicator.medal {
             font-size: 18px;
@@ -699,6 +716,7 @@
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="tablesTournamentInfo"></div>
+                    <div class="tournament-date" id="tablesTournamentStats"></div>
                 </div>
             </div>
         </div>
@@ -812,6 +830,7 @@
         const tournamentTitle = document.getElementById('tournamentTitle');
         const tablesTournamentTitle = document.getElementById('tablesTournamentTitle');
         const tablesTournamentInfo = document.getElementById('tablesTournamentInfo');
+        const tablesTournamentStats = document.getElementById('tablesTournamentStats');
         const tableNumber = document.getElementById('tableNumber');
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
@@ -1323,6 +1342,22 @@
                 tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}`.trim();
             }
 
+            // Агрегаты по турниру: количество столов, игроков, активных и завершивших
+            if (tablesTournamentStats) {
+                let totalPlayers = 0;
+                let totalActive = 0;
+                let totalFinished = 0;
+
+                tables.forEach(table => {
+                    const players = Array.isArray(table.players) ? table.players : [];
+                    totalPlayers += players.length;
+                    totalActive += players.filter(p => !p.finishTime).length;
+                    totalFinished += players.filter(p => !!p.finishTime).length;
+                });
+
+                tablesTournamentStats.textContent = `Столов: ${tables.length}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}`;
+            }
+
             if (!tablesList) return;
             tablesList.innerHTML = '';
 
@@ -1338,7 +1373,7 @@
                 button.setAttribute('data-table-id', String(table.id));
 
                 button.innerHTML = `
-                    <div class="position-indicator playing">${table.id}</div>
+                    <div class="table-indicator">${table.id}</div>
                     <div class="player-info">
                         <div class="player-nickname">Стол ${table.id}, дилер ${dealerNickname}</div>
                         <div class="player-name">Игроков: ${players.length}, актив: ${activePlayers.length}, всё: ${finishedPlayersCount}</div>
