@@ -691,6 +691,22 @@
         </div>
     </div>
 
+    <!-- Экран выбора стола (для админа) -->
+    <div id="tablesScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
+                    <div class="tournament-date" id="tablesTournamentInfo"></div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="tablesList"></div>
+        </div>
+    </div>
+
     <!-- Экран выбора игрока -->
     <div id="playerSelectionScreen" class="screen hidden">
         <div class="header-content">
@@ -754,7 +770,8 @@
 
         // Конфигурация
         const CONFIG = {
-            TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-data',
+            // Новый эндпоинт ПЛАНА Б, возвращающий полный снимок турнира по КОНТРАКТУ
+            TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
             TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
             REFRESH_INTERVAL: 30000,
             REQUEST_TIMEOUT: 10000
@@ -768,7 +785,8 @@
         };
 
         // Глобальные переменные
-        let tournamentData = null;
+        let tournamentData = null;              // данные текущего выбранного стола (для UI)
+        let fullTournamentData = null;          // полный снимок турнира по КОНТРАКТУ (ПЛАН Б)
         let playerData = new Map();
         let finishedPlayers = [];
         let gameTimerInterval = null;
@@ -776,6 +794,8 @@
         let isGameFinished = false;
         let gameStartTime = null;
         let selectedPlayer = '';
+        let currentTableId = null;              // id текущего выбранного стола
+        let globalFinishPlaces = new Map();     // карта playerId -> место в турнире по finishTime
 
         // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -785,12 +805,16 @@
         // Элементы DOM
         const loadingScreen = document.getElementById('loadingScreen');
         const errorScreen = document.getElementById('errorScreen');
+        const tablesScreen = document.getElementById('tablesScreen');
         const playerSelectionScreen = document.getElementById('playerSelectionScreen');
         const actionScreen = document.getElementById('actionScreen');
         const tournamentTitle = document.getElementById('tournamentTitle');
+        const tablesTournamentTitle = document.getElementById('tablesTournamentTitle');
+        const tablesTournamentInfo = document.getElementById('tablesTournamentInfo');
         const tableNumber = document.getElementById('tableNumber');
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
+        const tablesList = document.getElementById('tablesList');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
         const selectedPlayerRoleBadge = document.getElementById('selectedPlayerRoleBadge');
         const selectedPlayerRating = document.getElementById('selectedPlayerRating');
@@ -894,7 +918,7 @@
         // Инициализация сервисов
         let eventService;
 
-        // Функция загрузки данных турнира
+        // Функция загрузки данных турнира (полный снимок -> адаптация под текущий UI)
         async function loadTournamentData() {
             try {
                 showLoading();
@@ -925,14 +949,21 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
+                const fullData = await response.json();
 
-                // Валидация данных
-                if (!data.tournament || !data.players) {
+                // Валидация данных нового формата (КОНТРАКТ)
+                if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
                     throw new Error('Invalid data format from server');
                 }
 
-                processTournamentData(data);
+                // Сохраняем полный снимок турнира и пересчитываем глобальные места
+                fullTournamentData = fullData;
+                recalculateGlobalFinishPlaces();
+
+                // Адаптация полного турнира к "одностольному" формату текущего UI
+                const adaptedData = adaptFullTournamentToSingleTable(fullData);
+
+                processTournamentData(adaptedData);
                 applyRoleBasedInitialView();
                 
             } catch (error) {
@@ -941,7 +972,7 @@
             }
         }
 
-        // Обработка данных турнира
+        // Обработка данных турнира (ожидает "одностольный" формат с tournament + players[])
         function processTournamentData(data) {
             tournamentData = data.tournament;
             playerData.clear();
@@ -960,6 +991,7 @@
             // Обрабатываем игроков
             data.players.forEach(player => {
                 const fullName = `${player.firstName} ${player.lastName}`.trim();
+                const globalPlace = globalFinishPlaces.get(player.id) || null;
                 playerData.set(fullName, {
                     id: player.id,
                     position: player.position,
@@ -972,7 +1004,7 @@
                     admin: player.admin || false,
                     rebuysLeft: player.rebuysLeft || 0,
                     finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
-                    finishPosition: player.finishPosition || null,
+                    finishPosition: globalPlace,
                     isEmpty: player.isEmpty || false
                 });
                 
@@ -992,6 +1024,185 @@
             checkGameFinished();
         }
 
+        // Построение ISO-времени старта из date (dd.mm.yyyy) и time (HH:mm)
+        function buildStartTimeISO(dateStr, timeStr) {
+            if (!dateStr || !timeStr) {
+                return new Date().toISOString();
+            }
+
+            try {
+                const [day, month, year] = dateStr.split('.');
+                const [hours, minutes] = timeStr.split(':');
+                const date = new Date(
+                    Number(year),
+                    Number(month) - 1,
+                    Number(day),
+                    Number(hours),
+                    Number(minutes),
+                    0,
+                    0
+                );
+                if (isNaN(date.getTime())) {
+                    return new Date().toISOString();
+                }
+                return date.toISOString();
+            } catch (e) {
+                console.error('Error building startTime ISO from', dateStr, timeStr, e);
+                return new Date().toISOString();
+            }
+        }
+
+        // Адаптер: полный турнир (КОНТРАКТ ПЛАНА Б) -> формат, который ожидает текущий UI (один стол)
+        function adaptFullTournamentToSingleTable(fullData) {
+            const t = fullData.tournament;
+            const tables = Array.isArray(t.tables) ? t.tables : [];
+
+            if (!tables.length) {
+                throw new Error('No tables in tournament data');
+            }
+
+            // 1) Если явно выбран стол (админом), используем его
+            let selectedTable = null;
+            if (currentTableId != null) {
+                selectedTable = tables.find(tbl => String(tbl.id) === String(currentTableId)) || null;
+            }
+
+            // 2) Пытаемся найти стол текущего пользователя по viewerChatId, если стол не выбран
+            if (!selectedTable && viewerChatId) {
+                for (const table of tables) {
+                    if (Array.isArray(table.players)) {
+                        const hasViewer = table.players.some(p => String(p.id) === String(viewerChatId));
+                        if (hasViewer) {
+                            selectedTable = table;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3) Если не нашли по viewerChatId — берём первый стол
+            if (!selectedTable) {
+                selectedTable = tables[0];
+            }
+
+            const rawPlayers = Array.isArray(selectedTable.players) ? selectedTable.players : [];
+
+            // Определяем дилера по флагу dealer среди игроков выбранного стола
+            const dealerPlayer = rawPlayers.find(p => p.dealer);
+            const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Максимус') : 'Максимус';
+
+            // Преобразуем игроков стола в старый формат и добавляем пустые боксы до 9
+            const playersByBox = new Map();
+            rawPlayers.forEach((p, index) => {
+                const box = p.box || (index + 1);
+                const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+                const player = {
+                    id: p.id,
+                    nickname: p.nickname || 'Неизвестно',
+                    firstName: p.firstName || p.nickname || 'Игрок',
+                    lastName: p.lastName || '',
+                    position: box,                   // старое поле position
+                    emoji: '👤',                      // эмодзи по умолчанию (фото мы подставляем отдельно)
+                    rebuysLeft: typeof p.rebuysLeft === 'number' ? p.rebuysLeft : 0,
+                    finishTime: p.finishTime || null,
+                    finishPosition: null,
+                    isEmpty: false,
+                    rating: typeof p.rating === 'number' ? p.rating : null,
+                    admin: !!p.admin,
+                    dealer: !!p.dealer
+                };
+                playersByBox.set(box, { player, fullName });
+            });
+
+            // Добавляем пустые места до 9 боксов, чтобы сохранить текущую логику UI
+            for (let box = 1; box <= 9; box++) {
+                if (!playersByBox.has(box)) {
+                    const emptyFullName = `Место свободно ${box}`;
+                    playersByBox.set(box, {
+                        fullName: emptyFullName,
+                        player: {
+                            id: 900000000 + box,
+                            nickname: 'Игрока нет',
+                            firstName: 'Место',
+                            lastName: 'свободно',
+                            position: box,
+                            emoji: '👤',
+                            rebuysLeft: 0,
+                            finishTime: null,
+                            finishPosition: null,
+                            isEmpty: true,
+                            rating: 0,
+                            admin: false,
+                            dealer: false
+                        }
+                    });
+                }
+            }
+
+            // Собираем массив игроков в порядке боксов
+            const adaptedPlayers = [];
+            Array.from(playersByBox.keys()).sort((a, b) => a - b).forEach(box => {
+                adaptedPlayers.push(playersByBox.get(box).player);
+            });
+
+            const startTimeISO = buildStartTimeISO(t.date, t.time);
+
+            return {
+                tournament: {
+                    id: t.id,
+                    title: t.title || 'Free Test Tournament',
+                    table: String(selectedTable.id || '1'),
+                    dealer: dealerNickname,
+                    startTime: startTimeISO,
+                    status: t.status || 'active'
+                },
+                players: adaptedPlayers
+            };
+        }
+
+        // Пересчёт глобальных мест по всему турниру по finishTime (по всему fullTournamentData)
+        function recalculateGlobalFinishPlaces() {
+            globalFinishPlaces.clear();
+
+            if (!fullTournamentData || !fullTournamentData.tournament || !Array.isArray(fullTournamentData.tournament.tables)) {
+                return;
+            }
+
+            const earliestFinishByPlayer = new Map(); // playerId -> earliest finish timestamp
+            const allPlayersSet = new Set();           // множество всех игроков турнира (по id)
+
+            const tables = fullTournamentData.tournament.tables || [];
+            tables.forEach(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                players.forEach(p => {
+                    if (p.id != null) {
+                        allPlayersSet.add(p.id);
+                    }
+
+                    if (!p.finishTime) return;
+                    const t = new Date(p.finishTime).getTime();
+                    if (isNaN(t)) return;
+                    const existing = earliestFinishByPlayer.get(p.id);
+                    if (existing == null || t < existing) {
+                        earliestFinishByPlayer.set(p.id, t);
+                    }
+                });
+            });
+
+            if (earliestFinishByPlayer.size === 0 || allPlayersSet.size === 0) {
+                return;
+            }
+
+            const totalPlayers = allPlayersSet.size;
+            const sorted = Array.from(earliestFinishByPlayer.entries()).sort((a, b) => a[1] - b[1]);
+
+            // Первый вылетевший получает худшее место (max), последний вылетевший -> 2, последний оставшийся -> 1
+            sorted.forEach(([playerId], index) => {
+                const placeFromEnd = totalPlayers - index;
+                globalFinishPlaces.set(playerId, placeFromEnd);
+            });
+        }
+
         // Определение игрока текущего пользователя по viewerChatId
         function getViewerPlayerEntry() {
             if (!viewerChatId) return null;
@@ -1005,7 +1216,8 @@
 
         // Начальное отображение в зависимости от роли текущего игрока
         // - для обычного игрока: сразу его карточка, без доступа к списку игроков
-        // - для дилера/админа или если игрок не найден: стандартный экран выбора
+        // - для дилера: стандартный экран выбора игроков
+        // - для админа: экран списка столов
         function applyRoleBasedInitialView() {
             // На этом этапе данные уже загружены, прячем экран загрузки/ошибки
             if (loadingScreen) {
@@ -1021,6 +1233,7 @@
                 const [playerName, data] = viewerEntry;
                 const isPrivileged = !!(data.admin || data.dealer);
 
+                // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
                     if (backButton) {
                         backButton.style.display = 'none';
@@ -1035,6 +1248,25 @@
                         playerAdminButton.style.display = '';
                     }
                     selectPlayer(playerName);
+                    return;
+                }
+
+                // Админ — экран списка столов
+                if (data.admin) {
+                    currentTableId = null;
+                    if (backButton) {
+                        backButton.style.display = 'none';
+                    }
+                    if (rebuyButton) {
+                        rebuyButton.style.display = 'none';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = 'none';
+                    }
+                    if (playerAdminButton) {
+                        playerAdminButton.style.display = 'none';
+                    }
+                    showTablesScreen();
                     return;
                 }
             }
@@ -1052,6 +1284,75 @@
                 playerAdminButton.style.display = 'none';
             }
             showPlayerSelection();
+        }
+
+        // Экран списка столов (для админа)
+        function showTablesScreen() {
+            if (!fullTournamentData || !fullTournamentData.tournament) {
+                showError('Нет данных турнира');
+                return;
+            }
+
+            loadingScreen.classList.add('hidden');
+            errorScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+            playerSelectionScreen.classList.add('hidden');
+            tablesScreen.classList.remove('hidden');
+
+            renderTablesList();
+        }
+
+        function renderTablesList() {
+            if (!fullTournamentData || !fullTournamentData.tournament) {
+                return;
+            }
+
+            const t = fullTournamentData.tournament;
+            const tables = Array.isArray(t.tables) ? t.tables : [];
+
+            if (tablesTournamentTitle) {
+                tablesTournamentTitle.textContent = t.title || 'Турнир';
+            }
+            if (tablesTournamentInfo) {
+                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}`.trim();
+            }
+
+            if (!tablesList) return;
+            tablesList.innerHTML = '';
+
+            tables.forEach(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                const activePlayers = players.filter(p => !p.finishTime);
+                const finishedPlayersCount = players.filter(p => !!p.finishTime).length;
+                const dealerPlayer = players.find(p => p.dealer);
+                const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || '—') : '—';
+
+                const button = document.createElement('button');
+                button.classList.add('player-button');
+                button.setAttribute('data-table-id', String(table.id));
+
+                button.innerHTML = `
+                    <div class="position-indicator playing">${table.id}</div>
+                    <div class="player-info">
+                        <div class="player-nickname">Стол ${table.id}</div>
+                        <div class="player-name">Игроков: ${players.length}, активных: ${activePlayers.length}, финишировали: ${finishedPlayersCount}</div>
+                    </div>
+                    <div class="player-finish-info">
+                        <div class="player-position">Дилер: ${dealerNickname}</div>
+                    </div>
+                    <div class="chevron"></div>
+                `;
+
+                button.addEventListener('click', () => {
+                    currentTableId = table.id;
+                    const adapted = adaptFullTournamentToSingleTable(fullTournamentData);
+                    processTournamentData(adapted);
+                    tablesScreen.classList.add('hidden');
+                    showPlayerSelection();
+                });
+
+                tablesList.appendChild(button);
+            });
         }
 
         // Обновление UI турнира (без перезагрузки)
@@ -1301,14 +1602,18 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const data = await response.json();
-                
-                if (!data.tournament || !data.players) {
+                const fullData = await response.json();
+
+                if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
                     throw new Error('Invalid data format from server');
                 }
-                
-                // Обновляем данные без перезагрузки экрана
-                processTournamentData(data);
+
+                fullTournamentData = fullData;
+                recalculateGlobalFinishPlaces();
+
+                // Обновляем данные без перезагрузки экрана, адаптируя полный турнир к формату одного стола
+                const adaptedData = adaptFullTournamentToSingleTable(fullData);
+                processTournamentData(adaptedData);
                 
             } catch (error) {
                 console.error('Error refreshing tournament data:', error);
