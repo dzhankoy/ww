@@ -165,6 +165,9 @@
             border-radius: 50%;
             object-fit: cover;
             flex-shrink: 0;
+            padding: 1px;                 /* 1px отступ между логотипом и обводкой */
+            background-color: #000000;    /* фон для зазора */
+            border: 1px solid #ffffff;    /* тонкая белая обводка */
         }
 
         .tournament-header-row {
@@ -392,12 +395,12 @@
         .table-indicator::after {
             content: '';
             position: absolute;
-            top: 2px;
-            left: 2px;
-            right: 2px;
-            bottom: 2px;
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.7);
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 10px;
+            border: 1px solid #ffffff;
         }
         
         .tables-aggregates {
@@ -764,6 +767,7 @@
             </div>
         </div>
         <div class="tables-aggregates">
+            <div class="tables-aggregates-title">Активные столы</div>
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
             <div class="tables-progress">
                 <div class="tables-progress-bar">
