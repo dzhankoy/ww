@@ -924,14 +924,14 @@
                 }
                 
                 const data = await response.json();
-                
+
                 // Валидация данных
                 if (!data.tournament || !data.players) {
                     throw new Error('Invalid data format from server');
                 }
-                
+
                 processTournamentData(data);
-                showPlayerSelection();
+                applyRoleBasedInitialView();
                 
             } catch (error) {
                 console.error('Error loading tournament data:', error);
@@ -988,6 +988,42 @@
             updateTournamentUI();
             updatePlayersList();
             checkGameFinished();
+        }
+
+        // Определение игрока текущего пользователя по viewerChatId
+        function getViewerPlayerEntry() {
+            if (!viewerChatId) return null;
+            for (const [playerName, data] of playerData.entries()) {
+                if (data.id === viewerChatId && !data.isEmpty) {
+                    return [playerName, data];
+                }
+            }
+            return null;
+        }
+
+        // Начальное отображение в зависимости от роли текущего игрока
+        // - для обычного игрока: сразу его карточка, без доступа к списку игроков
+        // - для дилера/админа или если игрок не найден: стандартный экран выбора
+        function applyRoleBasedInitialView() {
+            const viewerEntry = getViewerPlayerEntry();
+
+            if (viewerEntry) {
+                const [playerName, data] = viewerEntry;
+                const isPrivileged = !!(data.admin || data.dealer);
+
+                if (!isPrivileged) {
+                    if (backButton) {
+                        backButton.style.display = 'none';
+                    }
+                    selectPlayer(playerName);
+                    return;
+                }
+            }
+
+            if (backButton) {
+                backButton.style.display = '';
+            }
+            showPlayerSelection();
         }
 
         // Обновление UI турнира (без перезагрузки)
