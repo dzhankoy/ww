@@ -715,13 +715,15 @@
 
         @media (max-width: 768px) {
             body {
-                background-color: #000000 !important;
+                /* на мобильных тоже используем цвет из текущей темы */
+                background-color: var(--bg-color) !important;
             }
-            
+
             .player-button,
             .action-button,
             .back-button {
-                background-color: #1c1c1e !important;
+                /* карточки берут фон из темы; спец-состояния (например, admin-call-active) его перекрывают */
+                background-color: var(--card-bg) !important;
             }
         }
 
