@@ -815,6 +815,9 @@
         let selectedPlayer = '';
         let currentTableId = null;              // id текущего выбранного стола
         let globalFinishPlaces = new Map();     // карта playerId -> место в турнире по finishTime
+        let tournamentStatsCache = null;        // кэш агрегатов турнира для экрана столов
+        let viewerIsAdmin = false;              // флаг, что текущий зритель — админ
+        let viewerAdminName = '';               // ник/имя текущего админа
 
         // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -1249,6 +1252,8 @@
             }
 
             const viewerEntry = getViewerPlayerEntry();
+            viewerIsAdmin = false;
+            viewerAdminName = '';
 
             if (viewerEntry) {
                 const [playerName, data] = viewerEntry;
@@ -1274,6 +1279,8 @@
 
                 // Админ — экран списка столов
                 if (data.admin) {
+                    viewerIsAdmin = true;
+                    viewerAdminName = data.nickname || playerName;
                     currentTableId = null;
                     if (backButton) {
                         backButton.style.display = 'none';
@@ -1342,7 +1349,7 @@
                 tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}`.trim();
             }
 
-            // Агрегаты по турниру: количество столов, игроков, активных и завершивших
+            // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
             if (tablesTournamentStats) {
                 let totalPlayers = 0;
                 let totalActive = 0;
@@ -1366,27 +1373,31 @@
                     });
                 });
 
-                let durationText = '';
+                let startDate = null;
                 if (t.date && t.time) {
                     try {
                         const [day, month, year] = String(t.date).split('.');
                         const [hours, minutes] = String(t.time).split(':');
-                        const startDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
-                        if (!isNaN(startDate.getTime())) {
-                            const now = new Date();
-                            const diff = now - startDate;
-                            const dh = Math.floor(diff / (1000 * 60 * 60));
-                            const dm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            const ds = Math.floor((diff % (1000 * 60)) / 1000);
-                            durationText = `${dh.toString().padStart(2, '0')}:${dm.toString().padStart(2, '0')}:${ds.toString().padStart(2, '0')}`;
+                        startDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
+                        if (isNaN(startDate.getTime())) {
+                            startDate = null;
                         }
                     } catch (e) {
-                        durationText = '';
+                        startDate = null;
                     }
                 }
 
-                const totalEntries = totalPlayers + totalRebuys;
-                tablesTournamentStats.textContent = `Столов: ${tables.length}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}, время: ${durationText || '—'}, ребаи: ${totalRebuys}, входы: ${totalEntries}`;
+                tournamentStatsCache = {
+                    tablesCount: tables.length,
+                    totalPlayers,
+                    totalActive,
+                    totalFinished,
+                    totalRebuys,
+                    startDate,
+                    adminName: viewerAdminName || ''
+                };
+
+                updateTournamentStatsDisplay();
             }
 
             if (!tablesList) return;
@@ -1427,6 +1438,36 @@
 
                 tablesList.appendChild(button);
             });
+        }
+
+        // Обновляет строку агрегатов турнира на экране списка столов с учётом текущего времени
+        function updateTournamentStatsDisplay() {
+            if (!tablesTournamentStats || !tournamentStatsCache) return;
+
+            const {
+                tablesCount,
+                totalPlayers,
+                totalActive,
+                totalFinished,
+                totalRebuys,
+                startDate,
+                adminName
+            } = tournamentStatsCache;
+
+            let durationText = '—';
+            if (startDate instanceof Date && !isNaN(startDate.getTime())) {
+                const now = new Date();
+                const diff = now - startDate;
+                const dh = Math.floor(diff / (1000 * 60 * 60));
+                const dm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const ds = Math.floor((diff % (1000 * 60)) / 1000);
+                durationText = `${dh.toString().padStart(2, '0')}:${dm.toString().padStart(2, '0')}:${ds.toString().padStart(2, '0')}`;
+            }
+
+            const totalEntries = totalPlayers + totalRebuys;
+            const adminSuffix = adminName ? `, админ: ${adminName}` : '';
+
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, актив: ${totalActive}, всё: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${adminSuffix}`;
         }
 
         // Обновление UI турнира (без перезагрузки)
@@ -1788,6 +1829,11 @@
             
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.remove('hidden');
+
+            // Для администратора на карточке игрока показываем кнопку "Назад к игрокам"
+            if (viewerIsAdmin && backButton) {
+                backButton.style.display = '';
+            }
         }
 
         function updateRebuyButtonState(data) {
@@ -1953,6 +1999,9 @@
                 day: '2-digit', month: '2-digit', year: 'numeric'
             });
             dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
+
+            // Обновляем длительность турнира в агрегатах на экране столов
+            updateTournamentStatsDisplay();
         }
 
         function backToPlayerList() {
