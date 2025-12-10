@@ -1262,22 +1262,21 @@
 
             // Бейдж роли игрока (дилер / админ)
             if (selectedPlayerRoleBadge) {
-                let roleText = '';
-                let roleClass = '';
+                const badges = [];
 
                 if (data.admin) {
-                    roleText = '👑';
-                    roleClass = 'admin';
-                } else if (data.dealer) {
-                    roleText = 'D';
-                    roleClass = 'dealer';
+                    badges.push('<span class="player-role-badge admin">👑<\/span>');
                 }
 
-                if (roleText) {
-                    selectedPlayerRoleBadge.textContent = roleText;
-                    selectedPlayerRoleBadge.className = `player-role-badge ${roleClass}`;
+                if (data.dealer) {
+                    badges.push('<span class="player-role-badge dealer">D<\/span>');
+                }
+
+                if (badges.length > 0) {
+                    selectedPlayerRoleBadge.innerHTML = badges.join(' ');
                     selectedPlayerRoleBadge.style.display = 'inline-flex';
                 } else {
+                    selectedPlayerRoleBadge.innerHTML = '';
                     selectedPlayerRoleBadge.style.display = 'none';
                 }
             }
