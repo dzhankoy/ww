@@ -916,6 +916,10 @@
                 <span>Игрок закончил игру</span>
                 <div class="action-info" id="finishInfo"></div>
             </button>
+            <button class="action-button" id="messagePlayerButton" style="display:none;">
+                <span>Написать игроку</span>
+                <div class="action-info">Открыть чат в Telegram</div>
+            </button>
             <button class="back-button" id="backButton">Назад к игрокам</button>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
@@ -1078,6 +1082,7 @@
         const rebuyButton = document.getElementById('rebuyButton');
         const finishButton = document.getElementById('finishButton');
         const backButton = document.getElementById('backButton');
+        const messagePlayerButton = document.getElementById('messagePlayerButton');
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
         const backToTablesButton = document.getElementById('backToTablesButton');
@@ -2122,6 +2127,15 @@
 
             const isPrivilegedHere = viewerIsAdmin || isViewerDealer;
 
+            // Кнопка "Написать игроку" — только для админа/дилера и не для пустых мест
+            if (messagePlayerButton) {
+                if (isPrivilegedHere && !data.isEmpty && data.id) {
+                    messagePlayerButton.style.display = '';
+                } else {
+                    messagePlayerButton.style.display = 'none';
+                }
+            }
+
             // Для администратора и дилера на карточке игрока показываем кнопку "Назад к игрокам"
             if (isPrivilegedHere && backButton) {
                 backButton.style.display = '';
@@ -2434,6 +2448,19 @@
                 }
             }
         });
+
+        // Кнопка "Написать игроку" — открыть чат в Telegram по chat_id
+        if (messagePlayerButton) {
+            messagePlayerButton.addEventListener('click', () => {
+                if (!selectedPlayer || !tg || typeof tg.openTelegramLink !== 'function') return;
+
+                const player = playerData.get(selectedPlayer);
+                if (!player || !player.id || player.isEmpty) return;
+
+                const playerId = player.id;
+                tg.openTelegramLink(`tg://user?id=${playerId}`);
+            });
+        }
 
         async function handleAdminCall() {
             try {
