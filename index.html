@@ -2031,7 +2031,8 @@
             const baseName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
             const ratingText = data.rating ? `${data.rating}` : '';
             const isFinished = !!data.finishTime;
-            const isViewerDealerHere = !!(viewerChatId && data.id === viewerChatId && data.dealer);
+            // Зритель считается дилером, если в списке игроков есть запись с его chat_id и флагом dealer
+            const isViewerDealer = !!(viewerChatId && Array.from(playerData.values()).some(p => p.id === viewerChatId && p.dealer));
 
             // Бейдж роли игрока (дилер / админ)
             if (selectedPlayerRoleBadge) {
@@ -2119,7 +2120,7 @@
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.remove('hidden');
 
-            const isPrivilegedHere = viewerIsAdmin || isViewerDealerHere;
+            const isPrivilegedHere = viewerIsAdmin || isViewerDealer;
 
             // Для администратора и дилера на карточке игрока показываем кнопку "Назад к игрокам"
             if (isPrivilegedHere && backButton) {
