@@ -1257,6 +1257,7 @@
                     position: player.position,
                     emoji: player.emoji || '👤',
                     nickname: player.nickname,
+                    username: player.username || null,
                     firstName: player.firstName,
                     lastName: player.lastName,
                     rating: player.rating || null,
@@ -1359,6 +1360,7 @@
                 const player = {
                     id: p.id,
                     nickname: p.nickname || 'Неизвестно',
+                    username: p.username || null,
                     firstName: p.firstName || p.nickname || 'Игрок',
                     lastName: p.lastName || '',
                     position: box,                   // старое поле position
@@ -2129,7 +2131,7 @@
 
             // Кнопка "Написать игроку" — только для админа/дилера и не для пустых мест
             if (messagePlayerButton) {
-                if (isPrivilegedHere && !data.isEmpty && data.id) {
+                if (isPrivilegedHere && !data.isEmpty && data.username) {
                     messagePlayerButton.style.display = '';
                 } else {
                     messagePlayerButton.style.display = 'none';
@@ -2449,16 +2451,16 @@
             }
         });
 
-        // Кнопка "Написать игроку" — открыть чат в Telegram по chat_id
+        // Кнопка "Написать игроку" — открыть чат в Telegram по username через https://t.me/
         if (messagePlayerButton) {
             messagePlayerButton.addEventListener('click', () => {
                 if (!selectedPlayer || !tg || typeof tg.openTelegramLink !== 'function') return;
 
                 const player = playerData.get(selectedPlayer);
-                if (!player || !player.id || player.isEmpty) return;
+                if (!player || !player.username || player.isEmpty) return;
 
-                const playerId = player.id;
-                tg.openTelegramLink(`tg://user?id=${playerId}`);
+                const username = player.username.replace(/^@+/, '');
+                tg.openTelegramLink(`https://t.me/${encodeURIComponent(username)}`);
             });
         }
 
