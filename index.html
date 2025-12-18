@@ -1484,38 +1484,35 @@
             viewerAdminName = '';
 
             if (viewerPlayer) {
-                const isPrivileged = !!(viewerPlayer.admin || viewerPlayer.dealer);
-
-                // Обычный игрок (не админ и не дилер) — сразу его карточка
-                if (!isPrivileged) {
-                    hideTelegramBackButton();
-                    if (rebuyButton) {
-                        rebuyButton.style.display = 'none';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = 'none';
-                    }
-                    if (playerAdminButton) {
-                        playerAdminButton.style.display = '';
-                    }
-                    
-                    // Находим бокс игрока и открываем его карточку
-                    if (currentBoxes) {
-                        for (let box = 1; box <= 9; box++) {
-                            const player = getPlayerByBox(box);
-                            if (player && String(player.id) === String(viewerChatId)) {
-                                selectBox(box);
-                                return;
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                // Админ — экран списка столов
+                // Устанавливаем флаг админа, если он есть
                 if (viewerPlayer.admin) {
                     viewerIsAdmin = true;
                     viewerAdminName = viewerPlayer.nickname || viewerPlayer.firstName || 'Admin';
+                }
+
+                // ПРИОРИТЕТ 1: Дилер (даже если он админ) — экран списка игроков своего стола
+                if (viewerPlayer.dealer) {
+                    // Дилер работает со своим столом, показываем список игроков
+                    hideTelegramBackButton();
+                    if (rebuyButton) {
+                        rebuyButton.style.display = '';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = '';
+                    }
+                    // Дилеру не нужна кнопка "Позвать администратора"
+                    if (adminButton) {
+                        adminButton.style.display = 'none';
+                    }
+                    if (playerAdminButton) {
+                        playerAdminButton.style.display = 'none';
+                    }
+                    showPlayerSelection();
+                    return;
+                }
+
+                // ПРИОРИТЕТ 2: Только админ (не дилер) — экран списка столов
+                if (viewerPlayer.admin) {
                     currentTableId = null;
                     hideTelegramBackButton();
                     if (rebuyButton) {
@@ -1534,6 +1531,30 @@
                     showTablesScreen();
                     return;
                 }
+
+                // ПРИОРИТЕТ 3: Обычный игрок (не админ и не дилер) — сразу его карточка
+                hideTelegramBackButton();
+                if (rebuyButton) {
+                    rebuyButton.style.display = 'none';
+                }
+                if (finishButton) {
+                    finishButton.style.display = 'none';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.style.display = '';
+                }
+                
+                // Находим бокс игрока и открываем его карточку
+                if (currentBoxes) {
+                    for (let box = 1; box <= 9; box++) {
+                        const player = getPlayerByBox(box);
+                        if (player && String(player.id) === String(viewerChatId)) {
+                            selectBox(box);
+                            return;
+                        }
+                    }
+                }
+                return;
             }
 
             // Режим отладки: если chat.id не определён (браузер), считаем пользователя админом
