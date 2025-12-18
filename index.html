@@ -1548,6 +1548,35 @@
                     showTablesScreen();
                     return;
                 }
+
+                // Дилер (не админ) — экран выбора игроков своего стола
+                if (data.dealer) {
+                    viewerIsAdmin = false;
+                    viewerAdminName = '';
+                    currentTableId = viewerEntry.tableId;
+                    applySnapshotToUI();
+                    updatePlayersList();
+
+                    hideTelegramBackButton();
+                    if (backButton) {
+                        backButton.style.display = '';
+                    }
+                    if (rebuyButton) {
+                        rebuyButton.style.display = '';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = '';
+                    }
+                    if (adminButton) {
+                        adminButton.style.display = '';
+                    }
+                    if (playerAdminButton) {
+                        playerAdminButton.style.display = 'none';
+                    }
+
+                    showPlayerSelection();
+                    return;
+                }
             }
 
             // Если есть viewerChatId, но игрока нет ни за одним столом — показываем ошибку
