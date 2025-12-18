@@ -1506,9 +1506,12 @@
         // - для дилера: стандартный экран выбора игроков
         // - для админа: экран списка столов
         function applyRoleBasedInitialView() {
+            console.log('DEBUG: applyRoleBasedInitialView called');
+            
             // На этом этапе данные уже загружены, прячем экран загрузки/ошибки
             if (loadingScreen) {
                 loadingScreen.classList.add('hidden');
+                console.log('DEBUG: loadingScreen hidden');
             }
             if (errorScreen) {
                 errorScreen.classList.add('hidden');
