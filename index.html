@@ -1194,7 +1194,19 @@
                 if (table) return table;
             }
 
-            // 2) Пытаемся найти стол текущего пользователя по viewerChatId
+            // 2) Приоритетно ищем стол, где текущий пользователь является дилером
+            if (viewerChatId) {
+                for (const table of tables) {
+                    if (Array.isArray(table.players)) {
+                        const isDealer = table.players.some(p => 
+                            String(p.id) === String(viewerChatId) && p.dealer === true
+                        );
+                        if (isDealer) return table;
+                    }
+                }
+            }
+
+            // 3) Если не дилер, ищем стол где пользователь просто присутствует
             if (viewerChatId) {
                 for (const table of tables) {
                     if (Array.isArray(table.players)) {
@@ -1204,7 +1216,7 @@
                 }
             }
 
-            // 3) Если не нашли — берём первый стол
+            // 4) Если не нашли — берём первый стол
             return tables[0] || null;
         }
 
