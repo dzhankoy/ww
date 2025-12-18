@@ -541,6 +541,21 @@
             font-weight: 500;
         }
         
+        .loading-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .loading-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+        }
+        .loading {
+            color: var(--text-color);
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        
         .player-rebuys {
             display: flex;
             gap: var(--spacing-xs);
@@ -819,6 +834,9 @@
 <body>
     <!-- Экран загрузки -->
     <div id="loadingScreen" class="screen">
+        <div class="loading-header">
+            <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="loading-logo">
+        </div>
         <div class="loading">Загрузка данных...</div>
     </div>
 
@@ -1500,9 +1518,6 @@
             if (viewerEntry) {
                 const data = viewerEntry.player;
                 const isPrivileged = !!(data.admin || data.dealer);
-                
-                // ВРЕМЕННАЯ ОТЛАДКА
-                alert(`DEBUG: viewerEntry=${JSON.stringify(viewerEntry, null, 2)}`);
 
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
