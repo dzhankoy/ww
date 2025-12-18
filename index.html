@@ -1484,9 +1484,9 @@
                 if (finishButton) {
                     finishButton.style.display = '';
                 }
-                // Дилеру нужна кнопка "Позвать администратора" на экране списка игроков
+                // Дилеру нужна кнопка "Позвать администратора", только если он не админ
                 if (adminButton) {
-                    adminButton.style.display = '';
+                    adminButton.style.display = isTournamentAdmin ? 'none' : '';
                 }
                 if (playerAdminButton) {
                     playerAdminButton.style.display = 'none';
