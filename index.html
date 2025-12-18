@@ -2016,7 +2016,12 @@
             if (selectedPlayerRoleBadge) {
                 const badges = [];
 
-                if (player.admin) {
+                // Проверяем, является ли этот игрок админом через tournament.admins
+                const isPlayerAdmin = fullTournamentData?.tournament?.admins?.some(
+                    adminId => String(adminId) === String(player.id)
+                ) || false;
+
+                if (isPlayerAdmin) {
                     badges.push('<span class="player-role-badge admin">👑<\/span>');
                 }
 
