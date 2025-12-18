@@ -1320,25 +1320,8 @@
                 gameStartTime = new Date();
             }
 
-            // Обновляем время игры
+            // Устанавливаем начальный текст времени игры сразу после получения данных турнира
             updateGameTime();
-
-            // Пересчитываем список завершивших игроков для автофиниша
-            finishedPlayers = [];
-            if (selectedTable.players) {
-                selectedTable.players.forEach(player => {
-                    if (player.finishTime) {
-                        finishedPlayers.push({
-                            finishTime: new Date(player.finishTime),
-                            timeDiff: new Date(player.finishTime) - gameStartTime,
-                            playerName: `${player.firstName || ''} ${player.lastName || ''}`.trim()
-                        });
-                    }
-                });
-            }
-
-            // Проверяем окончание игры
-            checkGameFinished();
         }
 
         // ===== КОНЕЦ БЛОКА 2 =====
