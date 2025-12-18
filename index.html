@@ -277,6 +277,12 @@
             color: var(--secondary-text);
         }
         
+        /* Кнопка "Написать игроку" остаётся синей даже при disabled */
+        #messagePlayerButton:disabled {
+            color: var(--blue);
+            opacity: 0.5;
+        }
+        
         .action-button.destructive { color: var(--red); }
         .action-button.rebuy { color: var(--blue); }
         
@@ -2106,7 +2112,7 @@
                     // Если нет username - блокируем кнопку и меняем текст
                     if (!player.username) {
                         messagePlayerButton.disabled = true;
-                        messagePlayerInfo.textContent = 'У игрока не указан username в Telegram';
+                        messagePlayerInfo.textContent = 'У игрока скрыт ник в Telegram';
                     } else {
                         messagePlayerButton.disabled = false;
                         messagePlayerInfo.textContent = 'Открыть чат в Telegram';
