@@ -1239,20 +1239,9 @@
             return currentBoxes[box].player;
         }
 
-        // Проверить, является ли текущий пользователь админом (ищем по всем столам)
+        // Проверить, является ли текущий пользователь админом (через tournament.admins)
         function isViewerAdmin() {
-            if (!fullTournamentData || !viewerChatId) return false;
-            
-            const tables = fullTournamentData.tournament?.tables || [];
-            for (const table of tables) {
-                if (Array.isArray(table.players)) {
-                    const adminPlayer = table.players.find(p => 
-                        String(p.id) === String(viewerChatId) && p.admin === true
-                    );
-                    if (adminPlayer) return true;
-                }
-            }
-            return false;
+            return isViewerTournamentAdmin();
         }
 
         // Проверить, является ли текущий пользователь дилером (ищем по всем столам)
@@ -1353,7 +1342,15 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const fullData = await response.json();
+                let responseData = await response.json();
+
+                // ИСПРАВЛЕНИЕ: Обрабатываем ответ в формате массива от n8n
+                let fullData;
+                if (Array.isArray(responseData) && responseData.length > 0) {
+                    fullData = responseData[0];
+                } else {
+                    fullData = responseData;
+                }
 
                 // Валидация данных нового формата (КОНТРАКТ)
                 if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
@@ -1450,6 +1447,13 @@
             });
         }
 
+        // Проверка, является ли текущий зритель админом турнира
+        function isViewerTournamentAdmin() {
+            if (!viewerChatId || !fullTournamentData) return false;
+            const admins = fullTournamentData.tournament?.admins || [];
+            return admins.some(adminId => String(adminId) === String(viewerChatId));
+        }
+
         // Определение игрока текущего пользователя по viewerChatId через snapshot
         function getViewerPlayer() {
             if (!viewerChatId || !fullTournamentData) return null;
@@ -1494,60 +1498,67 @@
                 errorScreen.classList.add('hidden');
             }
 
+            // Проверяем, является ли зритель админом турнира
+            const isTournamentAdmin = isViewerTournamentAdmin();
+            if (isTournamentAdmin) {
+                viewerIsAdmin = true;
+                // Имя админа берём из его данных игрока (если есть) или дефолтное
+                const viewerPlayer = getViewerPlayer();
+                viewerAdminName = viewerPlayer 
+                    ? (viewerPlayer.nickname || viewerPlayer.firstName || 'Admin')
+                    : 'Admin';
+            } else {
+                viewerIsAdmin = false;
+                viewerAdminName = '';
+            }
+
             const viewerPlayer = getViewerPlayer();
-            viewerIsAdmin = false;
-            viewerAdminName = '';
 
+            // ПРИОРИТЕТ 1: Дилер (даже если он админ) — экран списка игроков своего стола
+            if (viewerPlayer && viewerPlayer.dealer) {
+                // Дилер работает со своим столом, показываем список игроков
+                hideTelegramBackButton();
+                if (rebuyButton) {
+                    rebuyButton.style.display = '';
+                }
+                if (finishButton) {
+                    finishButton.style.display = '';
+                }
+                // Дилеру не нужна кнопка "Позвать администратора"
+                if (adminButton) {
+                    adminButton.style.display = 'none';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.style.display = 'none';
+                }
+                showPlayerSelection();
+                return;
+            }
+
+            // ПРИОРИТЕТ 2: Админ (не дилер или вообще не за столом) — экран списка столов
+            if (isTournamentAdmin) {
+                currentTableId = null;
+                hideTelegramBackButton();
+                if (rebuyButton) {
+                    rebuyButton.style.display = 'none';
+                }
+                if (finishButton) {
+                    finishButton.style.display = 'none';
+                }
+                // Админу не нужна кнопка "Позвать администратора"
+                if (adminButton) {
+                    adminButton.style.display = 'none';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.style.display = 'none';
+                }
+                showTablesScreen();
+                return;
+            }
+
+            // ПРИОРИТЕТ 3: Обычный игрок (не админ и не дилер)
             if (viewerPlayer) {
-                // Устанавливаем флаг админа, если он есть
-                if (viewerPlayer.admin) {
-                    viewerIsAdmin = true;
-                    viewerAdminName = viewerPlayer.nickname || viewerPlayer.firstName || 'Admin';
-                }
-
-                // ПРИОРИТЕТ 1: Дилер (даже если он админ) — экран списка игроков своего стола
-                if (viewerPlayer.dealer) {
-                    // Дилер работает со своим столом, показываем список игроков
-                    hideTelegramBackButton();
-                    if (rebuyButton) {
-                        rebuyButton.style.display = '';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = '';
-                    }
-                    // Дилеру не нужна кнопка "Позвать администратора"
-                    if (adminButton) {
-                        adminButton.style.display = 'none';
-                    }
-                    if (playerAdminButton) {
-                        playerAdminButton.style.display = 'none';
-                    }
-                    showPlayerSelection();
-                    return;
-                }
-
-                // ПРИОРИТЕТ 2: Только админ (не дилер) — экран списка столов
-                if (viewerPlayer.admin) {
-                    currentTableId = null;
-                    hideTelegramBackButton();
-                    if (rebuyButton) {
-                        rebuyButton.style.display = 'none';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = 'none';
-                    }
-                    // Админу не нужна кнопка "Позвать администратора"
-                    if (adminButton) {
-                        adminButton.style.display = 'none';
-                    }
-                    if (playerAdminButton) {
-                        playerAdminButton.style.display = 'none';
-                    }
-                    showTablesScreen();
-                    return;
-                }
-
-                // ПРИОРИТЕТ 3: Обычный игрок (не админ и не дилер) — сразу его карточка
+                // Сразу его карточка
                 hideTelegramBackButton();
                 if (rebuyButton) {
                     rebuyButton.style.display = 'none';
