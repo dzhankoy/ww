@@ -886,7 +886,6 @@
             <div class="game-time" id="gameTime"></div>
             <div class="game-finished hidden" id="gameFinished"></div>
             <button class="admin-button" id="adminButton">Позвать администратора</button>
-            <button class="back-button" id="backToTablesButton" style="display:none;">Назад к столам</button>
         </div>
     </div>
 
@@ -920,7 +919,6 @@
                 <span>Написать игроку</span>
                 <div class="action-info">Открыть чат в Telegram</div>
             </button>
-            <button class="back-button" id="backButton">Назад к игрокам</button>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
     </div>
@@ -1085,11 +1083,9 @@
         const playerPhotoImage = document.getElementById('playerPhotoImage');
         const rebuyButton = document.getElementById('rebuyButton');
         const finishButton = document.getElementById('finishButton');
-        const backButton = document.getElementById('backButton');
         const messagePlayerButton = document.getElementById('messagePlayerButton');
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
-        const backToTablesButton = document.getElementById('backToTablesButton');
         const tablesRebalanceButton = document.getElementById('tablesRebalanceButton');
         const playersRebalanceButton = document.getElementById('playersRebalanceButton');
         const changeDealerButton = document.getElementById('changeDealerButton');
@@ -1493,9 +1489,6 @@
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
                     hideTelegramBackButton();
-                    if (backButton) {
-                        backButton.style.display = 'none';
-                    }
                     if (rebuyButton) {
                         rebuyButton.style.display = 'none';
                     }
@@ -1525,9 +1518,6 @@
                     viewerAdminName = viewerPlayer.nickname || viewerPlayer.firstName || 'Admin';
                     currentTableId = null;
                     hideTelegramBackButton();
-                    if (backButton) {
-                        backButton.style.display = 'none';
-                    }
                     if (rebuyButton) {
                         rebuyButton.style.display = 'none';
                     }
@@ -1552,38 +1542,32 @@
                 viewerAdminName = 'Debug Admin';
                 currentTableId = null;
                 hideTelegramBackButton();
-                if (backButton) {
-                    backButton.style.display = 'none';
-                }
                 if (rebuyButton) {
                     rebuyButton.style.display = 'none';
                 }
                 if (finishButton) {
                     finishButton.style.display = 'none';
                 }
+                // Админу не нужна кнопка "Позвать администратора"
                 if (adminButton) {
                     adminButton.style.display = 'none';
                 }
                 if (playerAdminButton) {
                     playerAdminButton.style.display = 'none';
                 }
-
                 showTablesScreen();
                 return;
             }
 
             hideTelegramBackButton();
-            if (backButton) {
-                backButton.style.display = '';
-            }
             if (rebuyButton) {
                 rebuyButton.style.display = '';
             }
             if (finishButton) {
                 finishButton.style.display = '';
             }
-            if (playerAdminButton) {
-                playerAdminButton.style.display = 'none';
+            if (adminButton) {
+                adminButton.style.display = '';
             }
             showPlayerSelection();
         }
@@ -1721,11 +1705,6 @@
                     applySnapshotToUI();
                     updatePlayersList();
                     tablesScreen.classList.add('hidden');
-                    // Для администратора показываем отдельную кнопку "Назад к столам" стандартного стиля
-                    if (backToTablesButton) {
-                        backToTablesButton.style.display = '';
-                        backToTablesButton.onclick = backToTablesFromPlayers;
-                    }
                     showPlayerSelection();
                 });
 
@@ -2048,10 +2027,6 @@
                 }
             }
 
-            if (isPrivilegedHere && backButton) {
-                backButton.style.display = '';
-            }
-
             if (isPrivilegedHere) {
                 showTelegramBackButton(backToPlayerList);
             } else {
@@ -2356,7 +2331,6 @@
             });
         }
 
-        backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
 
         // Инициализация
