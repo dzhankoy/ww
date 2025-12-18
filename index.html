@@ -1500,6 +1500,9 @@
             if (viewerEntry) {
                 const data = viewerEntry.player;
                 const isPrivileged = !!(data.admin || data.dealer);
+                
+                // ВРЕМЕННАЯ ОТЛАДКА
+                alert(`DEBUG: viewerEntry=${JSON.stringify(viewerEntry, null, 2)}`);
 
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
