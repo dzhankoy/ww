@@ -1364,6 +1364,7 @@
 
         // Функция загрузки данных турнира (полный снимок -> адаптация под текущий UI)
         async function loadTournamentData() {
+            alert('DEBUG: loadTournamentData called');
             try {
                 showLoading();
                 
@@ -2418,6 +2419,7 @@
 
         // Инициализация
         function init() {
+            alert('DEBUG: init called');
             // Инициализируем сервисы
             eventService = new TournamentEventService();
             
