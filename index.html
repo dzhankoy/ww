@@ -917,7 +917,7 @@
             </button>
             <button class="action-button" id="messagePlayerButton" style="display:none;">
                 <span>Написать игроку</span>
-                <div class="action-info">Открыть чат в Telegram</div>
+                <div class="action-info" id="messagePlayerInfo">Открыть чат в Telegram</div>
             </button>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
@@ -1092,6 +1092,7 @@
         const tournamentTimerToggleButton = document.getElementById('tournamentTimerToggleButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
+        const messagePlayerInfo = document.getElementById('messagePlayerInfo');
         const errorText = document.getElementById('errorText');
         const retryButton = document.getElementById('retryButton');
         const rebuyText = document.getElementById('rebuyText');
@@ -2099,8 +2100,17 @@
             const isPrivilegedHere = isViewerAdminCheck || isViewerDealerCheck;
 
             if (messagePlayerButton) {
-                if (isPrivilegedHere && player.username) {
+                if (isPrivilegedHere) {
                     messagePlayerButton.style.display = '';
+                    
+                    // Если нет username - блокируем кнопку и меняем текст
+                    if (!player.username) {
+                        messagePlayerButton.disabled = true;
+                        messagePlayerInfo.textContent = 'У игрока не указан username в Telegram';
+                    } else {
+                        messagePlayerButton.disabled = false;
+                        messagePlayerInfo.textContent = 'Открыть чат в Telegram';
+                    }
                 } else {
                     messagePlayerButton.style.display = 'none';
                 }
