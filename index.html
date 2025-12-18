@@ -548,7 +548,10 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 40vh;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         .loading-logo {
             width: 80px;
@@ -909,8 +912,7 @@
             <div class="game-time" id="gameTime"></div>
             <div class="game-finished hidden" id="gameFinished"></div>
             <button class="admin-button" id="adminButton">Позвать администратора</button>
-            <button class="back-button" id="backToTablesButton" style="display:none;">Назад к столам</button>
-        </div>
+                    </div>
     </div>
 
     <!-- Экран действий игрока -->
@@ -943,8 +945,7 @@
                 <span>Написать игроку</span>
                 <div class="action-info">Открыть чат в Telegram</div>
             </button>
-            <button class="back-button" id="backButton">Назад к игрокам</button>
-            <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
+                        <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
     </div>
 
@@ -1106,11 +1107,9 @@
         const playerPhotoImage = document.getElementById('playerPhotoImage');
         const rebuyButton = document.getElementById('rebuyButton');
         const finishButton = document.getElementById('finishButton');
-        const backButton = document.getElementById('backButton');
         const messagePlayerButton = document.getElementById('messagePlayerButton');
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
-        const backToTablesButton = document.getElementById('backToTablesButton');
         const tablesRebalanceButton = document.getElementById('tablesRebalanceButton');
         const playersRebalanceButton = document.getElementById('playersRebalanceButton');
         const changeDealerButton = document.getElementById('changeDealerButton');
@@ -1527,9 +1526,6 @@
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
                     hideTelegramBackButton();
-                    if (backButton) {
-                        backButton.style.display = 'none';
-                    }
                     if (rebuyButton) {
                         rebuyButton.style.display = 'none';
                     }
@@ -1541,25 +1537,6 @@
                     }
                     currentTableId = viewerEntry.tableId;
                     applySnapshotToUI();
-                    updatePlayersList();
-                    selectBox(data.box);
-                    return;
-                }
-
-                // Админ — экран списка столов
-                if (data.admin) {
-                    viewerIsAdmin = true;
-                    viewerAdminName = data.nickname || 'Admin';
-                    currentTableId = null;
-                    hideTelegramBackButton();
-                    if (backButton) {
-                        backButton.style.display = 'none';
-                    }
-                    if (rebuyButton) {
-                        rebuyButton.style.display = 'none';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = 'none';
                     }
                     // Админу не нужна кнопка "Позвать администратора"
                     if (adminButton) {
@@ -1580,10 +1557,6 @@
                     applySnapshotToUI();
                     updatePlayersList();
 
-                    hideTelegramBackButton();
-                    if (backButton) {
-                        backButton.style.display = '';
-                    }
                     if (rebuyButton) {
                         rebuyButton.style.display = '';
                     }
@@ -1613,10 +1586,6 @@
                 viewerIsAdmin = true;
                 viewerAdminName = 'Debug Admin';
                 currentTableId = null;
-                hideTelegramBackButton();
-                if (backButton) {
-                    backButton.style.display = 'none';
-                }
                 if (rebuyButton) {
                     rebuyButton.style.display = 'none';
                 }
@@ -1634,10 +1603,6 @@
                 return;
             }
 
-            hideTelegramBackButton();
-            if (backButton) {
-                backButton.style.display = '';
-            }
             if (rebuyButton) {
                 rebuyButton.style.display = '';
             }
@@ -1648,7 +1613,6 @@
                 playerAdminButton.style.display = 'none';
             }
             showPlayerSelection();
-        }
 
         // Экран списка столов (для админа)
         function showTablesScreen() {
@@ -1784,10 +1748,6 @@
                     updatePlayersList();
                     tablesScreen.classList.add('hidden');
                     // Для администратора показываем отдельную кнопку "Назад к столам" стандартного стиля
-                    if (backToTablesButton) {
-                        backToTablesButton.style.display = '';
-                        backToTablesButton.onclick = backToTablesFromPlayers;
-                    }
                     showPlayerSelection();
                 });
 
@@ -2106,9 +2066,6 @@
                 }
             }
 
-            if (isPrivilegedHere && backButton) {
-                backButton.style.display = '';
-            }
 
             if (isPrivilegedHere) {
                 showTelegramBackButton(backToPlayerList);
@@ -2455,7 +2412,6 @@
             });
         }
 
-        backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
 
         // Инициализация
