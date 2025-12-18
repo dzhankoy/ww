@@ -541,28 +541,6 @@
             font-weight: 500;
         }
         
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            gap: 20px;
-        }
-        .loading-logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-        }
-        .loading {
-            color: var(--text-color);
-            font-size: 18px;
-            margin: 0;
-        }
-        
         .player-rebuys {
             display: flex;
             gap: var(--spacing-xs);
@@ -841,10 +819,7 @@
 <body>
     <!-- Экран загрузки -->
     <div id="loadingScreen" class="screen">
-        <div class="loading-container">
-            <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="loading-logo">
-            <div class="loading">Загрузка данных...</div>
-        </div>
+        <div class="loading">Загрузка данных...</div>
     </div>
 
     <!-- Экран ошибки -->
@@ -911,7 +886,8 @@
             <div class="game-time" id="gameTime"></div>
             <div class="game-finished hidden" id="gameFinished"></div>
             <button class="admin-button" id="adminButton">Позвать администратора</button>
-                    </div>
+            <button class="back-button" id="backToTablesButton" style="display:none;">Назад к столам</button>
+        </div>
     </div>
 
     <!-- Экран действий игрока -->
@@ -944,7 +920,8 @@
                 <span>Написать игроку</span>
                 <div class="action-info">Открыть чат в Telegram</div>
             </button>
-                        <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
+            <button class="back-button" id="backButton">Назад к игрокам</button>
+            <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
     </div>
 
@@ -1056,23 +1033,21 @@
         }
 
         // Глобальные переменные
+        let tournamentData = null;              // данные текущего выбранного стола (для UI)
         let fullTournamentData = null;          // полный снимок турнира по КОНТРАКТУ (ПЛАН Б)
+        let playerData = new Map();
         let finishedPlayers = [];
         let gameTimerInterval = null;
         let refreshInterval = null;
         let tournamentStatsInterval = null;     // таймер для обновления статистики турнира (экран столов)
         let isGameFinished = false;
         let gameStartTime = null;
+        let selectedPlayer = '';
         let currentTableId = null;              // id текущего выбранного стола
         let globalFinishPlaces = new Map();     // карта playerId -> место в турнире по finishTime
         let tournamentStatsCache = null;        // кэш агрегатов турнира для экрана столов
         let viewerIsAdmin = false;              // флаг, что текущий зритель — админ
         let viewerAdminName = '';               // ник/имя текущего админа
-
-        // ===== БЛОК 1: Новые переменные для работы с boxes (нативный API snapshot) =====
-        let selectedBox = null;                 // выбранный бокс (1..9)
-        let currentBoxes = null;                // массив боксов текущего стола [1..9] -> {player: ... | null}
-        let pendingOperations = new Set();      // Set боксов с активными операциями (для индикаторов загрузки)
 
         // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -1106,9 +1081,11 @@
         const playerPhotoImage = document.getElementById('playerPhotoImage');
         const rebuyButton = document.getElementById('rebuyButton');
         const finishButton = document.getElementById('finishButton');
+        const backButton = document.getElementById('backButton');
         const messagePlayerButton = document.getElementById('messagePlayerButton');
         const adminButton = document.getElementById('adminButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
+        const backToTablesButton = document.getElementById('backToTablesButton');
         const tablesRebalanceButton = document.getElementById('tablesRebalanceButton');
         const playersRebalanceButton = document.getElementById('playersRebalanceButton');
         const changeDealerButton = document.getElementById('changeDealerButton');
@@ -1201,170 +1178,8 @@
         // Инициализация сервисов
         let eventService;
 
-        // ===== БЛОК 1: Вспомогательные функции для работы с нативным API snapshot =====
-        
-        // Получить текущий выбранный стол из fullTournamentData
-        function getSelectedTable() {
-            if (!fullTournamentData || !fullTournamentData.tournament || !Array.isArray(fullTournamentData.tournament.tables)) {
-                return null;
-            }
-
-            const tables = fullTournamentData.tournament.tables;
-            
-            // 1) Если явно выбран стол (админом), используем его
-            if (currentTableId != null) {
-                const table = tables.find(t => String(t.id) === String(currentTableId));
-                if (table) return table;
-            }
-
-            // 2) Пытаемся найти стол текущего пользователя по viewerChatId
-            if (viewerChatId) {
-                for (const table of tables) {
-                    if (Array.isArray(table.players)) {
-                        const hasViewer = table.players.some(p => String(p.id) === String(viewerChatId));
-                        if (hasViewer) return table;
-                    }
-                }
-            }
-
-            // 3) Если не нашли — берём первый стол
-            return tables[0] || null;
-        }
-
-        // Построить массив боксов 1..9 из игроков стола
-        // Возвращает объект: { 1: {player: ...}, 2: {player: null}, ..., 9: {player: ...} }
-        function buildBoxes(table) {
-            const boxes = {};
-            
-            // Инициализируем все боксы как пустые
-            for (let box = 1; box <= 9; box++) {
-                boxes[box] = { player: null };
-            }
-
-            // Заполняем боксы реальными игроками
-            if (table && Array.isArray(table.players)) {
-                table.players.forEach(player => {
-                    const box = player.box;
-                    if (box >= 1 && box <= 9) {
-                        boxes[box] = { player: player };
-                    }
-                });
-            }
-
-            return boxes;
-        }
-
-        // Получить игрока по номеру бокса из currentBoxes
-        function getPlayerByBox(box) {
-            if (!currentBoxes || !currentBoxes[box]) {
-                return null;
-            }
-            return currentBoxes[box].player;
-        }
-
-        // Проверить, является ли текущий пользователь админом (ищем по всем столам)
-        function isViewerAdmin() {
-            if (!fullTournamentData || !viewerChatId) return false;
-            
-            const tables = fullTournamentData.tournament?.tables || [];
-            for (const table of tables) {
-                if (Array.isArray(table.players)) {
-                    const adminPlayer = table.players.find(p => 
-                        String(p.id) === String(viewerChatId) && p.admin === true
-                    );
-                    if (adminPlayer) return true;
-                }
-            }
-            return false;
-        }
-
-        // Проверить, является ли текущий пользователь дилером (ищем по всем столам)
-        function isViewerDealer() {
-            if (!fullTournamentData || !viewerChatId) return false;
-            
-            const tables = fullTournamentData.tournament?.tables || [];
-            for (const table of tables) {
-                if (Array.isArray(table.players)) {
-                    const dealerPlayer = table.players.find(p => 
-                        String(p.id) === String(viewerChatId) && p.dealer === true
-                    );
-                    if (dealerPlayer) return true;
-                }
-            }
-            return false;
-        }
-
-        // ===== КОНЕЦ БЛОКА 1 =====
-
-        // ===== БЛОК 2: Новая функция применения snapshot к UI (параллельно со старой) =====
-
-        // Применить snapshot турнира к UI (новый путь без адаптера)
-        function applySnapshotToUI() {
-            // Получаем выбранный стол
-            const selectedTable = getSelectedTable();
-            if (!selectedTable) {
-                console.error('No table selected or available');
-                return;
-            }
-
-            // Строим боксы для текущего стола
-            currentBoxes = buildBoxes(selectedTable);
-
-            // Обновляем заголовок турнира
-            if (tournamentTitle && fullTournamentData.tournament) {
-                tournamentTitle.textContent = fullTournamentData.tournament.title || 'King & Joker Tournament';
-            }
-
-            // Обновляем номер стола
-            if (tableNumber) {
-                tableNumber.textContent = selectedTable.id || '1';
-            }
-
-            // Определяем дилера по флагу dealer у игрока и используем его никнейм
-            const dealerPlayer = selectedTable.players?.find(p => p.dealer);
-            if (dealerName) {
-                dealerName.textContent = dealerPlayer 
-                    ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Максимус')
-                    : 'Максимус';
-            }
-
-            // Устанавливаем время начала игры
-            if (fullTournamentData.tournament.date && fullTournamentData.tournament.time) {
-                const startTimeISO = buildStartTimeISO(
-                    fullTournamentData.tournament.date,
-                    fullTournamentData.tournament.time
-                );
-                gameStartTime = new Date(startTimeISO);
-            } else {
-                gameStartTime = new Date();
-            }
-
-            // Обновляем время игры
-            updateGameTime();
-
-            // Пересчитываем список завершивших игроков для автофиниша
-            finishedPlayers = [];
-            if (selectedTable.players) {
-                selectedTable.players.forEach(player => {
-                    if (player.finishTime) {
-                        finishedPlayers.push({
-                            finishTime: new Date(player.finishTime),
-                            timeDiff: new Date(player.finishTime) - gameStartTime,
-                            playerName: `${player.firstName || ''} ${player.lastName || ''}`.trim()
-                        });
-                    }
-                });
-            }
-
-            // Проверяем окончание игры
-            checkGameFinished();
-        }
-
-        // ===== КОНЕЦ БЛОКА 2 =====
-
         // Функция загрузки данных турнира (полный снимок -> адаптация под текущий UI)
         async function loadTournamentData() {
-            alert('DEBUG: loadTournamentData called');
             try {
                 showLoading();
                 
@@ -1405,15 +1220,69 @@
                 fullTournamentData = fullData;
                 recalculateGlobalFinishPlaces();
 
-                // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
-                applySnapshotToUI();
-                updatePlayersList();
+                // Адаптация полного турнира к "одностольному" формату текущего UI
+                const adaptedData = adaptFullTournamentToSingleTable(fullData);
+
+                processTournamentData(adaptedData);
                 applyRoleBasedInitialView();
                 
             } catch (error) {
                 console.error('Error loading tournament data:', error);
                 showError(`Не удалось загрузить данные: ${error.message}`);
             }
+        }
+
+        // Обработка данных турнира (ожидает "одностольный" формат с tournament + players[])
+        function processTournamentData(data) {
+            tournamentData = data.tournament;
+            playerData.clear();
+            finishedPlayers = [];
+            
+            // Устанавливаем время начала игры
+            if (tournamentData.startTime) {
+                gameStartTime = new Date(tournamentData.startTime);
+            } else {
+                gameStartTime = new Date();
+            }
+            
+            // Устанавливаем начальный текст времени игры сразу после получения данных турнира
+            updateGameTime();
+            
+            // Обрабатываем игроков
+            data.players.forEach(player => {
+                const fullName = `${player.firstName} ${player.lastName}`.trim();
+                const globalPlace = globalFinishPlaces.get(player.id) || null;
+                playerData.set(fullName, {
+                    id: player.id,
+                    position: player.position,
+                    emoji: player.emoji || '👤',
+                    nickname: player.nickname,
+                    username: player.username || null,
+                    firstName: player.firstName,
+                    lastName: player.lastName,
+                    rating: player.rating || null,
+                    dealer: player.dealer || false,
+                    admin: player.admin || false,
+                    rebuysLeft: player.rebuysLeft || 0,
+                    finishTime: player.finishTime ? new Date(player.finishTime).toISOString() : null,
+                    finishPosition: globalPlace,
+                    isEmpty: player.isEmpty || false
+                });
+                
+                // Добавляем в список завершивших, если есть время финиша и это не пустое место
+                if (player.finishTime && !player.isEmpty) {
+                    finishedPlayers.push({
+                        finishTime: new Date(player.finishTime),
+                        timeDiff: new Date(player.finishTime) - gameStartTime,
+                        playerName: fullName
+                    });
+                }
+            });
+            
+            // Обновляем UI без перезагрузки
+            updateTournamentUI();
+            updatePlayersList();
+            checkGameFinished();
         }
 
         // Построение ISO-времени старта из date (dd.mm.yyyy) и time (HH:mm)
@@ -1442,6 +1311,115 @@
                 console.error('Error building startTime ISO from', dateStr, timeStr, e);
                 return new Date().toISOString();
             }
+        }
+
+        // Адаптер: полный турнир (КОНТРАКТ ПЛАНА Б) -> формат, который ожидает текущий UI (один стол)
+        function adaptFullTournamentToSingleTable(fullData) {
+            const t = fullData.tournament;
+            const tables = Array.isArray(t.tables) ? t.tables : [];
+
+            if (!tables.length) {
+                throw new Error('No tables in tournament data');
+            }
+
+            // 1) Если явно выбран стол (админом), используем его
+            let selectedTable = null;
+            if (currentTableId != null) {
+                selectedTable = tables.find(tbl => String(tbl.id) === String(currentTableId)) || null;
+            }
+
+            // 2) Пытаемся найти стол текущего пользователя по viewerChatId, если стол не выбран
+            if (!selectedTable && viewerChatId) {
+                for (const table of tables) {
+                    if (Array.isArray(table.players)) {
+                        const hasViewer = table.players.some(p => String(p.id) === String(viewerChatId));
+                        if (hasViewer) {
+                            selectedTable = table;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3) Если не нашли по viewerChatId — берём первый стол
+            if (!selectedTable) {
+                selectedTable = tables[0];
+            }
+
+            const rawPlayers = Array.isArray(selectedTable.players) ? selectedTable.players : [];
+
+            // Определяем дилера по флагу dealer среди игроков выбранного стола
+            const dealerPlayer = rawPlayers.find(p => p.dealer);
+            const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Максимус') : 'Максимус';
+
+            // Преобразуем игроков стола в старый формат и добавляем пустые боксы до 9
+            const playersByBox = new Map();
+            rawPlayers.forEach((p, index) => {
+                const box = p.box || (index + 1);
+                const fullName = `${p.firstName || ''} ${p.lastName || ''}`.trim();
+                const player = {
+                    id: p.id,
+                    nickname: p.nickname || 'Неизвестно',
+                    username: p.username || null,
+                    firstName: p.firstName || p.nickname || 'Игрок',
+                    lastName: p.lastName || '',
+                    position: box,                   // старое поле position
+                    emoji: '👤',                      // эмодзи по умолчанию (фото мы подставляем отдельно)
+                    rebuysLeft: typeof p.rebuysLeft === 'number' ? p.rebuysLeft : 0,
+                    finishTime: p.finishTime || null,
+                    finishPosition: null,
+                    isEmpty: false,
+                    rating: typeof p.rating === 'number' ? p.rating : null,
+                    admin: !!p.admin,
+                    dealer: !!p.dealer
+                };
+                playersByBox.set(box, { player, fullName });
+            });
+
+            // Добавляем пустые места до 9 боксов, чтобы сохранить текущую логику UI
+            for (let box = 1; box <= 9; box++) {
+                if (!playersByBox.has(box)) {
+                    const emptyFullName = `Место свободно ${box}`;
+                    playersByBox.set(box, {
+                        fullName: emptyFullName,
+                        player: {
+                            id: 900000000 + box,
+                            nickname: 'Игрока нет',
+                            firstName: 'Место',
+                            lastName: 'свободно',
+                            position: box,
+                            emoji: '👤',
+                            rebuysLeft: 0,
+                            finishTime: null,
+                            finishPosition: null,
+                            isEmpty: true,
+                            rating: 0,
+                            admin: false,
+                            dealer: false
+                        }
+                    });
+                }
+            }
+
+            // Собираем массив игроков в порядке боксов
+            const adaptedPlayers = [];
+            Array.from(playersByBox.keys()).sort((a, b) => a - b).forEach(box => {
+                adaptedPlayers.push(playersByBox.get(box).player);
+            });
+
+            const startTimeISO = buildStartTimeISO(t.date, t.time);
+
+            return {
+                tournament: {
+                    id: t.id,
+                    title: t.title || 'Free Test Tournament',
+                    table: String(selectedTable.id || '1'),
+                    dealer: dealerNickname,
+                    startTime: startTimeISO,
+                    status: t.status || 'active'
+                },
+                players: adaptedPlayers
+            };
         }
 
         // Пересчёт глобальных мест по всему турниру по finishTime (по всему fullTournamentData)
@@ -1490,13 +1468,9 @@
         // Определение игрока текущего пользователя по viewerChatId
         function getViewerPlayerEntry() {
             if (!viewerChatId) return null;
-            const tables = fullTournamentData?.tournament?.tables || [];
-            for (const table of tables) {
-                const players = Array.isArray(table.players) ? table.players : [];
-                for (const p of players) {
-                    if (String(p.id) === String(viewerChatId)) {
-                        return { tableId: table.id, player: p };
-                    }
+            for (const [playerName, data] of playerData.entries()) {
+                if (data.id === viewerChatId && !data.isEmpty) {
+                    return [playerName, data];
                 }
             }
             return null;
@@ -1507,12 +1481,9 @@
         // - для дилера: стандартный экран выбора игроков
         // - для админа: экран списка столов
         function applyRoleBasedInitialView() {
-            alert('DEBUG: applyRoleBasedInitialView called');
-            
             // На этом этапе данные уже загружены, прячем экран загрузки/ошибки
             if (loadingScreen) {
                 loadingScreen.classList.add('hidden');
-                alert('DEBUG: loadingScreen hidden');
             }
             if (errorScreen) {
                 errorScreen.classList.add('hidden');
@@ -1523,12 +1494,15 @@
             viewerAdminName = '';
 
             if (viewerEntry) {
-                const data = viewerEntry.player;
+                const [playerName, data] = viewerEntry;
                 const isPrivileged = !!(data.admin || data.dealer);
 
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
                     hideTelegramBackButton();
+                    if (backButton) {
+                        backButton.style.display = 'none';
+                    }
                     if (rebuyButton) {
                         rebuyButton.style.display = 'none';
                     }
@@ -1538,8 +1512,24 @@
                     if (playerAdminButton) {
                         playerAdminButton.style.display = '';
                     }
-                    currentTableId = viewerEntry.tableId;
-                    applySnapshotToUI();
+                    selectPlayer(playerName);
+                    return;
+                }
+
+                // Админ — экран списка столов
+                if (data.admin) {
+                    viewerIsAdmin = true;
+                    viewerAdminName = data.nickname || playerName;
+                    currentTableId = null;
+                    hideTelegramBackButton();
+                    if (backButton) {
+                        backButton.style.display = 'none';
+                    }
+                    if (rebuyButton) {
+                        rebuyButton.style.display = 'none';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = 'none';
                     }
                     // Админу не нужна кнопка "Позвать администратора"
                     if (adminButton) {
@@ -1551,37 +1541,6 @@
                     showTablesScreen();
                     return;
                 }
-
-                // Дилер (не админ) — экран выбора игроков своего стола
-                if (data.dealer) {
-                    viewerIsAdmin = false;
-                    viewerAdminName = '';
-                    currentTableId = viewerEntry.tableId;
-                    applySnapshotToUI();
-                    updatePlayersList();
-
-                    if (rebuyButton) {
-                        rebuyButton.style.display = '';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = '';
-                    }
-                    if (adminButton) {
-                        adminButton.style.display = '';
-                    }
-                    if (playerAdminButton) {
-                        playerAdminButton.style.display = 'none';
-                    }
-
-                    showPlayerSelection();
-                    return;
-                }
-            }
-
-            // Если есть viewerChatId, но игрока нет ни за одним столом — показываем ошибку
-            if (viewerChatId) {
-                showError('Вы не участник турнира');
-                return;
             }
 
             // Режим отладки: если chat.id не определён (браузер), считаем пользователя админом
@@ -1589,6 +1548,10 @@
                 viewerIsAdmin = true;
                 viewerAdminName = 'Debug Admin';
                 currentTableId = null;
+                hideTelegramBackButton();
+                if (backButton) {
+                    backButton.style.display = 'none';
+                }
                 if (rebuyButton) {
                     rebuyButton.style.display = 'none';
                 }
@@ -1606,6 +1569,10 @@
                 return;
             }
 
+            hideTelegramBackButton();
+            if (backButton) {
+                backButton.style.display = '';
+            }
             if (rebuyButton) {
                 rebuyButton.style.display = '';
             }
@@ -1616,6 +1583,7 @@
                 playerAdminButton.style.display = 'none';
             }
             showPlayerSelection();
+        }
 
         // Экран списка столов (для админа)
         function showTablesScreen() {
@@ -1746,11 +1714,14 @@
 
                 button.addEventListener('click', () => {
                     currentTableId = table.id;
-                    // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
-                    applySnapshotToUI();
-                    updatePlayersList();
+                    const adapted = adaptFullTournamentToSingleTable(fullTournamentData);
+                    processTournamentData(adapted);
                     tablesScreen.classList.add('hidden');
                     // Для администратора показываем отдельную кнопку "Назад к столам" стандартного стиля
+                    if (backToTablesButton) {
+                        backToTablesButton.style.display = '';
+                        backToTablesButton.onclick = backToTablesFromPlayers;
+                    }
                     showPlayerSelection();
                 });
 
@@ -1794,58 +1765,67 @@
             }
         }
 
+        // Обновление UI турнира (без перезагрузки)
+        function updateTournamentUI() {
+            if (tournamentData) {
+                tournamentTitle.textContent = tournamentData.title || 'King & Joker Tournament';
+                tableNumber.textContent = tournamentData.table || '1';
+                // Определяем дилера по флагу dealer у игрока и используем его никнейм
+                let dealerNickname = null;
+                for (const [fullName, data] of playerData.entries()) {
+                    if (data.dealer && !data.isEmpty) {
+                        dealerNickname = data.nickname || fullName;
+                        break;
+                    }
+                }
+
+                // Если дилер не найден среди игроков, используем значение из данных турнира или дефолт
+                dealerName.textContent = dealerNickname || tournamentData.dealer || 'Максимус';
+            }
+        }
+
         // Обновление списка игроков (без перезагрузки)
         function updatePlayersList() {
             playersList.innerHTML = '';
             
-            // ===== БЛОК 3: Новая логика на основе boxes (если currentBoxes заполнен) =====
-            if (currentBoxes) {
-                // Работаем с boxes (1..9)
-                for (let box = 1; box <= 9; box++) {
-                    const boxData = currentBoxes[box];
-                    const player = boxData ? boxData.player : null;
+            // Создаем массив для всех 9 позиций
+            const allPositions = Array.from({ length: 9 }, (_, i) => i + 1);
+            
+            allPositions.forEach(position => {
+                // Ищем игрока на этой позиции
+                const playerEntry = Array.from(playerData.entries()).find(([name, data]) => data.position === position);
+                
+                if (playerEntry) {
+                    // Если есть игрок на этой позиции
+                    const [playerName, data] = playerEntry;
                     const button = document.createElement('button');
+                    button.setAttribute('data-player', playerName);
                     button.classList.add('player-button');
-                    button.setAttribute('data-box', box);
 
-                    if (!player) {
-                        // Пустой бокс
+                    // Проверяем, является ли игрок пустым местом
+                    if (data.isEmpty) {
                         button.classList.add('empty');
                         button.disabled = true;
-                        button.innerHTML = `
-                            <div class="position-indicator empty">${box}</div>
-                            <div class="player-info">
-                                <div class="player-nickname">Игрока нет</div>
-                                <div class="player-name">Место свободно</div>
-                            </div>
-                            <div class="player-rebuys"></div>
-                            <div class="chevron"></div>
-                        `;
-                        playersList.appendChild(button);
-                        continue;
                     }
 
-                    // Есть игрок в боксе
-                    const isCurrentViewerPlayer = !!(viewerChatId && String(player.id) === String(viewerChatId));
+                    const isCurrentViewerPlayer = !!(viewerChatId && data.id === viewerChatId);
                     const nicknameDisplay = isCurrentViewerPlayer
-                        ? `${player.nickname || 'Игрок'} (${viewerChatId})`
-                        : (player.nickname || 'Игрок');
+                        ? `${data.nickname} (${viewerChatId})`
+                        : data.nickname;
 
-                    const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-                    const isFinished = !!player.finishTime;
-                    
-                    // Проверяем, есть ли активная операция для этого бокса
-                    const isPending = pendingOperations.has(box);
-
+                    // Выбираем класс индикатора позиции с учетом активного дилера и завершенности по finishTime
+                    const isFinished = !!data.finishTime;
                     const positionClass = isFinished
                         ? 'finished'
-                        : player.dealer
-                            ? 'dealer'
-                            : 'playing';
+                        : data.isEmpty
+                            ? 'empty'
+                            : data.dealer
+                                ? 'dealer'
+                                : 'playing';
 
                     button.innerHTML = `
                         <div class="position-indicator ${positionClass}">
-                            ${box}
+                            ${data.position}
                         <\/div>
                         <div class="player-info">
                             <div class="player-nickname">${nicknameDisplay}<\/div>
@@ -1855,63 +1835,152 @@
                         <div class="chevron"><\/div>
                     `;
 
-                    // Клик по игроку - используем новую функцию selectBox
-                    button.addEventListener('click', () => {
-                        selectBox(box);
-                    });
+                    // Добавляем обработчик клика только для непустых игроков
+                    if (!data.isEmpty) {
+                        button.addEventListener('click', () => {
+                            selectPlayer(playerName);
+                        });
+                    } else {
+                        button.disabled = true;
+                    }
 
                     playersList.appendChild(button);
 
-                    // Обновляем ребаи и финиш-инфо
-                    const rebuysElement = button.querySelector('.player-rebuys');
-                    
-                    if (isPending) {
-                        // Показываем индикатор загрузки вместо ребаев
-                        if (rebuysElement) {
-                            rebuysElement.style.display = 'flex';
-                            rebuysElement.innerHTML = '<div class="rebuy-dot" style="animation: pulse 1s infinite;">⏳</div>';
-                        }
-                    } else if (isFinished) {
-                        // Для завершенных игроков показываем место
-                        if (rebuysElement) {
-                            rebuysElement.style.display = 'none';
-                        }
-                        const globalPlace = globalFinishPlaces.get(player.id) || '?';
-                        const finishTime = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : 'неизвестно';
-                        
-                        const finishInfoContainer = document.createElement('div');
-                        finishInfoContainer.className = 'player-finish-info';
-                        const place = Number(globalPlace);
-                        let badgeClass = 'player-position-badge';
-                        if (place === 1) badgeClass += ' gold';
-                        else if (place === 2) badgeClass += ' silver';
-                        else if (place === 3) badgeClass += ' bronze';
-
-                        finishInfoContainer.innerHTML = `
-                            <div class="player-position"><span class="${badgeClass}">${globalPlace}</span> место</div>
-                            <div class="finish-time">${finishTime}</div>
-                        `;
-                        const chevron = button.querySelector('.chevron');
-                        button.insertBefore(finishInfoContainer, chevron);
-                        button.style.opacity = '0.5';
-                    } else {
-                        // Активный игрок - показываем ребаи
-                        if (rebuysElement) {
-                            rebuysElement.style.display = 'flex';
-                            rebuysElement.innerHTML = '';
-                            const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-                            for (let i = 0; i < 2; i++) {
-                                const dot = document.createElement('div');
-                                dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
-                                rebuysElement.appendChild(dot);
-                            }
-                        }
+                    // Обновляем кнопку только для непустых игроков (повторно настроит индикаторы, ребаи и т.д.)
+                    if (!data.isEmpty) {
+                        updatePlayerButton(playerName);
                     }
+                } else {
+                    // Если нет игрока на этой позиции - создаем полностью пустое место
+                    const emptyButton = document.createElement('button');
+                    emptyButton.classList.add('player-button', 'empty');
+                    emptyButton.disabled = true;
+                    
+                    emptyButton.innerHTML = `
+                        <div class="position-indicator empty">${position}</div>
+                        <div class="player-info">
+                            <div class="player-nickname">Игрока нет</div>
+                            <div class="player-name">Место свободно</div>
+                        </div>
+                        <div class="player-rebuys"></div>
+                        <div class="chevron"></div>
+                    `;
+                    
+                    playersList.appendChild(emptyButton);
                 }
+            });
+        }
+
+        // Обновление отдельной кнопки игрока
+        function updatePlayerButton(playerName) {
+            const button = document.querySelector(`[data-player="${playerName}"]`);
+            if (!button) return;
+            
+            const data = playerData.get(playerName);
+            if (!data) return;
+            
+            // Если игрок пустой, делаем кнопку неактивной
+            if (data.isEmpty) {
+                button.classList.add('empty');
+                button.disabled = true;
                 return;
             }
             
-            console.error('currentBoxes is not initialized');
+            const nicknameElement = button.querySelector('.player-nickname');
+            const nameElement = button.querySelector('.player-name');
+            const rebuysElement = button.querySelector('.player-rebuys');
+            const positionIndicator = button.querySelector('.position-indicator');
+            const finishInfoContainer = button.querySelector('.player-finish-info');
+            const chevron = button.querySelector('.chevron');
+            
+            if (nicknameElement) {
+                const isCurrentViewerPlayer = !!(viewerChatId && data.id === viewerChatId);
+                const baseNickname = data.nickname || 'Неизвестно';
+                nicknameElement.textContent = isCurrentViewerPlayer
+                    ? `${baseNickname} (${viewerChatId})`
+                    : baseNickname;
+            }
+            if (nameElement) nameElement.textContent = playerName || 'Неизвестно';
+            
+            // ИСПРАВЛЕНИЕ: Обрабатываем состояние завершенного игрока на основе finishTime
+            const isFinished = !!data.finishTime;
+            button.classList.remove('finished', 'gold', 'silver', 'bronze', 'empty');
+            if (isFinished) {
+                button.classList.add('finished');
+            }
+            
+            if (positionIndicator) {
+                positionIndicator.classList.remove('playing', 'finished', 'gold', 'silver', 'bronze', 'medal', 'empty', 'dealer');
+
+                if (isFinished) {
+                    // Для завершенных игроков оставляем номер места за столом
+                    positionIndicator.classList.add('finished');
+                    positionIndicator.textContent = data.position;
+                } else if (data.isEmpty) {
+                    positionIndicator.classList.add('empty');
+                    positionIndicator.textContent = data.position;
+                } else if (data.dealer) {
+                    // Активный дилер - синий индикатор
+                    positionIndicator.classList.add('dealer');
+                    positionIndicator.textContent = data.position;
+                } else {
+                    positionIndicator.classList.add('playing');
+                    positionIndicator.textContent = data.position;
+                }
+            }
+            
+            if (rebuysElement) {
+                if (isFinished) {
+                    rebuysElement.style.display = 'none';
+                } else {
+                    rebuysElement.style.display = 'flex';
+                    rebuysElement.innerHTML = '';
+                    for (let i = 0; i < 2; i++) {
+                        const dot = document.createElement('div');
+                        dot.className = i < (2 - data.rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                        rebuysElement.appendChild(dot);
+                    }
+                }
+            }
+            
+            // ИСПРАВЛЕНИЕ: Всегда показываем информацию о финише для завершенных игроков (по finishTime)
+            if (isFinished) {
+                if (!finishInfoContainer) {
+                    const newFinishInfo = document.createElement('div');
+                    newFinishInfo.className = 'player-finish-info';
+                    const place = Number(data.finishPosition);
+                    let badgeClass = 'player-position-badge';
+                    if (place === 1) badgeClass += ' gold';
+                    else if (place === 2) badgeClass += ' silver';
+                    else if (place === 3) badgeClass += ' bronze';
+
+                    newFinishInfo.innerHTML = `
+                        <div class="player-position"><span class="${badgeClass}">${data.finishPosition || '?'}</span> место</div>
+                        <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
+                    `;
+                    button.insertBefore(newFinishInfo, chevron);
+                } else {
+                    const place = Number(data.finishPosition);
+                    let badgeClass = 'player-position-badge';
+                    if (place === 1) badgeClass += ' gold';
+                    else if (place === 2) badgeClass += ' silver';
+                    else if (place === 3) badgeClass += ' bronze';
+
+                    finishInfoContainer.innerHTML = `
+                        <div class="player-position"><span class="${badgeClass}">${data.finishPosition || '?'}</span> место</div>
+                        <div class="finish-time">${data.finishTime ? formatFinishTime(new Date(data.finishTime)) : 'неизвестно'}</div>
+                    `;
+                }
+            } else if (finishInfoContainer) {
+                finishInfoContainer.remove();
+            }
+            
+            // ✅ Для завершенных игроков только уменьшаем прозрачность, но оставляем кнопку кликабельной
+            if (isFinished) {
+                button.style.opacity = '0.5';
+            } else {
+                button.style.opacity = '1';
+            }
         }
 
         // Функция для плавного обновления данных
@@ -1952,43 +2021,35 @@
                 fullTournamentData = fullData;
                 recalculateGlobalFinishPlaces();
 
-                // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
-                applySnapshotToUI();
-                updatePlayersList();
+                // Обновляем данные без перезагрузки экрана, адаптируя полный турнир к формату одного стола
+                const adaptedData = adaptFullTournamentToSingleTable(fullData);
+                processTournamentData(adaptedData);
                 
             } catch (error) {
                 console.error('Error refreshing tournament data:', error);
             }
         }
 
-        // ===== БЛОК 4: Новая функция выбора игрока по боксу =====
-        function selectBox(box) {
-            selectedBox = box;
-            const player = getPlayerByBox(box);
+        function selectPlayer(playerName) {
+            selectedPlayer = playerName;
+            const data = playerData.get(selectedPlayer);
             
-            if (!player) {
-                console.error('No player in box', box);
-                return;
-            }
-
-            selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
-            const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-            const ratingText = player.rating ? `${player.rating}` : '';
-            const isFinished = !!player.finishTime;
-            
-            // Проверяем роли через snapshot
-            const isViewerDealerCheck = isViewerDealer();
-            const isViewerAdminCheck = isViewerAdmin();
+            selectedPlayerNickname.textContent = data.nickname || 'Неизвестно';
+            const baseName = `${data.firstName || ''} ${data.lastName || ''}`.trim() || 'Неизвестно';
+            const ratingText = data.rating ? `${data.rating}` : '';
+            const isFinished = !!data.finishTime;
+            // Зритель считается дилером, если в списке игроков есть запись с его chat_id и флагом dealer
+            const isViewerDealer = !!(viewerChatId && Array.from(playerData.values()).some(p => p.id === viewerChatId && p.dealer));
 
             // Бейдж роли игрока (дилер / админ)
             if (selectedPlayerRoleBadge) {
                 const badges = [];
 
-                if (player.admin) {
+                if (data.admin) {
                     badges.push('<span class="player-role-badge admin">👑<\/span>');
                 }
 
-                if (player.dealer) {
+                if (data.dealer) {
                     badges.push('<span class="player-role-badge dealer">D<\/span>');
                 }
 
@@ -2001,21 +2062,23 @@
                 }
             }
 
+            // Имя/фамилия отдельной строкой (крупнее), рейтинг в бейдже рядом с никнеймом
             selectedPlayerName.textContent = baseName;
 
-            // Информация о столе/боксе или финише
-            const selectedTable = getSelectedTable();
-            if (selectedPlayerTableInfo && selectedTable) {
+            // Информация о столе/боксе или финише для выбранного игрока
+            if (selectedPlayerTableInfo && tournamentData) {
                 if (!isFinished) {
+                    const table = tournamentData.table || '1';
+                    const box = data.position || '-';
                     selectedPlayerTableInfo.innerHTML = `
                         <span class="table-label">Стол<\/span>
-                        <span class="table-badge">${selectedTable.id || '1'}<\/span>
+                        <span class="table-badge">${table}<\/span>
                         <span class="table-label">Бокс<\/span>
                         <span class="table-badge">${box}<\/span>
                     `;
                 } else {
-                    const finishTimeLabel = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : '—';
-                    const place = globalFinishPlaces.get(player.id) || '?';
+                    const finishTimeLabel = data.finishTime ? formatFinishTime(new Date(data.finishTime)) : '—';
+                    const place = data.finishPosition || '?';
                     selectedPlayerTableInfo.innerHTML = `
                         <span class="table-label">Закончил<\/span>
                         <span class="table-badge">${finishTimeLabel}<\/span>
@@ -2035,41 +2098,52 @@
                 }
             }
             
-            // Фото игрока
+            // Фото игрока (пока используем дефолтное фото из VK)
             const testPhotoUrl = 'https://sun9-45.userapi.com/s/v1/ig2/XLmXDh27WjvU0nRp2l7tpUymw8rG9L2MetH313YE07_iZp4uwdTmNY7zVJtPJ6IvD82BTerAYJ_QItSCSNNZWHAN.jpg?quality=95&as=32x48,48x72,72x109,108x163,160x241,240x362,360x543,480x725,540x815,640x966,720x1087,1080x1630,1280x1932,1440x2174,1696x2560&from=bu&cs=1696x0';
             if (playerPhotoImage) {
+                // Сначала скрываем, покажем только если загрузка прошла успешно
                 playerPhotoImage.style.display = 'none';
+
                 playerPhotoImage.onload = () => {
                     playerPhotoImage.style.display = 'block';
                 };
+
                 playerPhotoImage.onerror = () => {
+                    // Если не загрузилось, прячем фото
                     playerPhotoImage.style.display = 'none';
                 };
+
                 playerPhotoImage.src = testPhotoUrl;
             }
 
+            // Эмодзи пока скрываем, чтобы в профиле был только аватар
             if (playerEmoji) {
                 playerEmoji.style.display = 'none';
             }
             
-            // Обновляем состояние кнопок (используем player напрямую)
-            updateRebuyButtonStateForPlayer(player);
-            updateFinishButtonStateForPlayer(player);
+            updateRebuyButtonState(data);
+            updateFinishButtonState(data);
             
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.remove('hidden');
 
-            const isPrivilegedHere = isViewerAdminCheck || isViewerDealerCheck;
+            const isPrivilegedHere = viewerIsAdmin || isViewerDealer;
 
+            // Кнопка "Написать игроку" — только для админа/дилера и не для пустых мест
             if (messagePlayerButton) {
-                if (isPrivilegedHere && player.username) {
+                if (isPrivilegedHere && !data.isEmpty && data.username) {
                     messagePlayerButton.style.display = '';
                 } else {
                     messagePlayerButton.style.display = 'none';
                 }
             }
 
+            // Для администратора и дилера на карточке игрока показываем кнопку "Назад к игрокам"
+            if (isPrivilegedHere && backButton) {
+                backButton.style.display = '';
+            }
 
+            // Для администратора и дилера на карточке игрока системная кнопка ведёт "Назад к игрокам"
             if (isPrivilegedHere) {
                 showTelegramBackButton(backToPlayerList);
             } else {
@@ -2077,32 +2151,33 @@
             }
         }
 
-        // Новые функции обновления состояния кнопок для player из API
-        function updateRebuyButtonStateForPlayer(player) {
-            const isFinished = !!player.finishTime;
-            const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-            if (rebuysLeft <= 0 || isFinished) {
+        function updateRebuyButtonState(data) {
+            const isFinished = !!data.finishTime;
+            if (data.rebuysLeft <= 0 || isFinished || data.isEmpty) {
                 rebuyButton.disabled = true;
                 rebuyInfo.textContent = 'Ребаев больше нет';
             } else {
                 rebuyButton.disabled = false;
-                rebuyInfo.textContent = `Осталось ребаев: ${rebuysLeft}`;
+                rebuyInfo.textContent = `Осталось ребаев: ${data.rebuysLeft}`;
             }
         }
 
-        function updateFinishButtonStateForPlayer(player) {
-            const isFinished = !!player.finishTime;
-            if (isFinished) {
+        function updateFinishButtonState(data) {
+            const isFinished = !!data.finishTime;
+            if (isFinished || data.isEmpty) {
                 finishButton.disabled = true;
-                finishInfo.textContent = formatFinishTimeInfo(player.finishTime);
+                if (data.finishTime && !data.isEmpty) {
+                    finishInfo.textContent = formatFinishTimeInfo(data.finishTime);
+                } else if (data.isEmpty) {
+                    finishInfo.textContent = 'Пустое место';
+                } else {
+                    finishInfo.textContent = 'Игрок уже завершил';
+                }
             } else {
                 finishButton.disabled = false;
                 finishInfo.textContent = '';
             }
         }
-
-        // ===== КОНЕЦ БЛОКА 4 =====
-
 
         // Управление экранами
         function showLoading() {
@@ -2184,19 +2259,28 @@
         }
 
         function checkAutoFinish() {
-            const selectedTable = getSelectedTable();
-            const players = Array.isArray(selectedTable?.players) ? selectedTable.players : [];
-            const activePlayers = players.filter(p => !p.finishTime);
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.finishTime && !player.isEmpty);
             if (activePlayers.length === 1) {
-                // Локально не меняем snapshot (источник истины — бэкенд). Только проверяем окончание игры.
-                checkGameFinished();
+                const lastPlayer = activePlayers[0];
+                const playerName = Array.from(playerData.entries()).find(([name, data]) => data === lastPlayer)[0];
+                
+                if (!lastPlayer.finishTime) {
+                    lastPlayer.finishTime = new Date().toISOString();
+                    lastPlayer.finishPosition = 1;
+                    
+                    finishedPlayers.push({
+                        finishTime: new Date(lastPlayer.finishTime),
+                        timeDiff: new Date(lastPlayer.finishTime) - gameStartTime
+                    });
+                    
+                    updatePlayerButton(playerName);
+                    checkGameFinished();
+                }
             }
         }
 
         function checkGameFinished() {
-            const selectedTable = getSelectedTable();
-            const players = Array.isArray(selectedTable?.players) ? selectedTable.players : [];
-            const activePlayers = players.filter(p => !p.finishTime);
+            const activePlayers = Array.from(playerData.values()).filter(player => !player.finishTime && !player.isEmpty);
             if (activePlayers.length === 0 && !isGameFinished) {
                 isGameFinished = true;
                 const totalTime = new Date() - gameStartTime;
@@ -2246,7 +2330,7 @@
         function backToPlayerList() {
             actionScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
-            selectedBox = null;
+            selectedPlayer = '';
 
             // После возврата к списку игроков у админа кнопка Telegram ведёт обратно к списку столов
             if (viewerIsAdmin) {
@@ -2263,88 +2347,117 @@
             showTablesScreen();
         }
 
-        // ===== БЛОК 5: Новые обработчики rebuy/finish (вариант В) =====
-        
-        // Обработчик ребая с использованием selectedBox
+        // ✅ ИСПРАВЛЕННЫЙ обработчик ребая
         rebuyButton.addEventListener('click', async () => {
-            if (selectedBox == null || !currentBoxes) return;
-
-            const player = getPlayerByBox(selectedBox);
-            if (!player) return;
+            if (!selectedPlayer) return;
             
-            const isFinished = !!player.finishTime;
-            const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-            if (rebuysLeft <= 0 || isFinished) {
+            const data = playerData.get(selectedPlayer);
+            
+            const isFinished = !!data.finishTime;
+            if (data.rebuysLeft <= 0 || isFinished || data.isEmpty) {
                 return;
             }
 
-            // 1. Сразу переходим на список игроков
+            // ✅ МГНОВЕННОЕ ОБНОВЛЕНИЕ ИНТЕРФЕЙСА
+            data.rebuysLeft = Math.max(0, data.rebuysLeft - 1);
+            
+            // Мгновенное обновление UI
+            updateRebuyButtonState(data);
+            updatePlayerButton(selectedPlayer);
+            
+            // Немедленный возврат к списку игроков БЕЗ ЗАДЕРЖКИ
             backToPlayerList();
-            
-            // 2. Добавляем бокс в pending и показываем индикатор
-            pendingOperations.add(selectedBox);
-            updatePlayersList();
-            
-            // 3. Отправляем запрос на сервер
-            try {
-                await eventService.playerRebuy(player.id);
-                console.log('✅ Rebuy successful on server');
-            } catch (error) {
-                console.error('💥 Rebuy error:', error);
-            } finally {
-                // 4. Обновляем данные с сервера
-                await refreshTournamentData();
-                
-                // 5. Убираем индикатор и обновляем список
-                pendingOperations.delete(selectedBox);
-                updatePlayersList();
-            }
+
+            // ✅ ОТПРАВКА НА СЕРВЕР В ФОНЕ (без ожидания ответа)
+            eventService.playerRebuy(data.id)
+                .then(result => {
+                    console.log('✅ Rebuy successful on server');
+                    // Обновляем данные с сервера для синхронизации
+                    refreshTournamentData();
+                })
+                .catch(error => {
+                    console.error('💥 Rebuy error:', error);
+                    // В случае ошибки перезагружаем данные для восстановления состояния
+                    refreshTournamentData();
+                });
         });
 
-        // Обработчик финиша с использованием selectedBox
+        // ✅ ИСПРАВЛЕННЫЙ обработчик завершения игры с ОПТИМИСТИЧНЫМ ОБНОВЛЕНИЕМ
         finishButton.addEventListener('click', async () => {
-            if (selectedBox == null || !currentBoxes) return;
-
-            const player = getPlayerByBox(selectedBox);
-            if (!player) return;
-            
-            const isFinished = !!player.finishTime;
-            if (isFinished) {
-                return;
-            }
-
-            // 1. Сразу переходим на список игроков
-            backToPlayerList();
-            
-            // 2. Добавляем бокс в pending и показываем индикатор
-            pendingOperations.add(selectedBox);
-            updatePlayersList();
-            
-            // 3. Отправляем запрос на сервер
-            try {
-                await eventService.playerFinish(player.id);
-                console.log('✅ Finish successful on server');
-            } catch (error) {
-                console.error('❌ Finish error:', error);
-            } finally {
-                // 4. Обновляем данные с сервера
-                await refreshTournamentData();
+            if (selectedPlayer) {
+                const data = playerData.get(selectedPlayer);
                 
-                // 5. Убираем индикатор и обновляем список
-                pendingOperations.delete(selectedBox);
-                updatePlayersList();
+                const isFinished = !!data.finishTime;
+                if (!isFinished && !data.isEmpty) {
+                    try {
+                        console.log('🎯 Finishing player:', selectedPlayer, 'ID:', data.id);
+                        
+                        // ✅ ОПТИМИСТИЧНОЕ ОБНОВЛЕНИЕ: сразу устанавливаем время финиша
+                        data.finishTime = new Date().toISOString();
+                        
+                        // ✅ ИСПРАВЛЕНИЕ: Правильно рассчитываем позицию
+                        const activePlayers = Array.from(playerData.values()).filter(player => 
+                            !player.finishTime && !player.isEmpty
+                        );
+                        data.finishPosition = activePlayers.length; // Позиция = количество оставшихся активных игроков
+                        
+                        // ✅ Обновляем список завершенных игроков
+                        finishedPlayers.push({
+                            finishTime: new Date(data.finishTime),
+                            timeDiff: new Date(data.finishTime) - gameStartTime,
+                            playerName: selectedPlayer
+                        });
+                        
+                        // Сортируем завершенных игроков по времени финиша
+                        finishedPlayers.sort((a, b) => a.timeDiff - b.timeDiff);
+                        
+                        // Обновляем позиции всех завершенных игроков
+                        finishedPlayers.forEach((player, index) => {
+                            const playerDataObj = playerData.get(player.playerName);
+                            if (playerDataObj) {
+                                playerDataObj.finishPosition = index + 1;
+                            }
+                        });
+                        
+                        // Мгновенно обновляем UI
+                        updatePlayerButton(selectedPlayer);
+                        updateFinishButtonState(data);
+                        
+                        // Немедленный возврат к списку игроков
+                        backToPlayerList();
+                        
+                        // ✅ ОТПРАВЛЯЕМ ТОЛЬКО playerId НА СЕРВЕР
+                        eventService.playerFinish(data.id)
+                            .then(result => {
+                                console.log('✅ Finish response:', result);
+                                // Обновляем данные с сервера для синхронизации
+                                refreshTournamentData();
+                            })
+                            .catch(error => {
+                                console.error('❌ Finish error:', error);
+                                // В случае ошибки все равно обновляем данные для синхронизации
+                                refreshTournamentData();
+                            });
+                        
+                    } catch (error) {
+                        console.error('❌ Finish error:', error);
+                        // В случае ошибки откатываем изменения
+                        data.finishTime = null;
+                        data.finishPosition = null;
+                        updatePlayerButton(selectedPlayer);
+                        updateFinishButtonState(data);
+                    }
+                }
             }
         });
-
-        // ===== КОНЕЦ БЛОКА 5 =====
 
         // Кнопка "Написать игроку" — открыть чат в Telegram по username через https://t.me/
         if (messagePlayerButton) {
             messagePlayerButton.addEventListener('click', () => {
-                if (selectedBox == null || !tg || typeof tg.openTelegramLink !== 'function') return;
+                if (!selectedPlayer || !tg || typeof tg.openTelegramLink !== 'function') return;
 
-                const player = getPlayerByBox(selectedBox);
-                if (!player || !player.username) return;
+                const player = playerData.get(selectedPlayer);
+                if (!player || !player.username || player.isEmpty) return;
 
                 const username = player.username.replace(/^@+/, '');
                 tg.openTelegramLink(`https://t.me/${encodeURIComponent(username)}`);
@@ -2415,11 +2528,11 @@
             });
         }
 
+        backButton.addEventListener('click', backToPlayerList);
         retryButton.addEventListener('click', loadTournamentData);
 
         // Инициализация
         function init() {
-            alert('DEBUG: init called');
             // Инициализируем сервисы
             eventService = new TournamentEventService();
             
