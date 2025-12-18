@@ -1454,12 +1454,17 @@
             });
         }
 
-        // Определение игрока текущего пользователя по viewerChatId
-        function getViewerPlayerEntry() {
-            if (!viewerChatId) return null;
-            for (const [playerName, data] of playerData.entries()) {
-                if (data.id === viewerChatId && !data.isEmpty) {
-                    return [playerName, data];
+        // Определение игрока текущего пользователя по viewerChatId через snapshot
+        function getViewerPlayer() {
+            if (!viewerChatId || !fullTournamentData) return null;
+            
+            const tables = fullTournamentData.tournament?.tables || [];
+            for (const table of tables) {
+                if (Array.isArray(table.players)) {
+                    const player = table.players.find(p => String(p.id) === String(viewerChatId));
+                    if (player) {
+                        return player;
+                    }
                 }
             }
             return null;
@@ -1478,13 +1483,12 @@
                 errorScreen.classList.add('hidden');
             }
 
-            const viewerEntry = getViewerPlayerEntry();
+            const viewerPlayer = getViewerPlayer();
             viewerIsAdmin = false;
             viewerAdminName = '';
 
-            if (viewerEntry) {
-                const [playerName, data] = viewerEntry;
-                const isPrivileged = !!(data.admin || data.dealer);
+            if (viewerPlayer) {
+                const isPrivileged = !!(viewerPlayer.admin || viewerPlayer.dealer);
 
                 // Обычный игрок (не админ и не дилер) — сразу его карточка
                 if (!isPrivileged) {
@@ -1501,14 +1505,24 @@
                     if (playerAdminButton) {
                         playerAdminButton.style.display = '';
                     }
-                    selectPlayer(playerName);
+                    
+                    // Находим бокс игрока и открываем его карточку
+                    if (currentBoxes) {
+                        for (let box = 1; box <= 9; box++) {
+                            const player = getPlayerByBox(box);
+                            if (player && String(player.id) === String(viewerChatId)) {
+                                selectBox(box);
+                                return;
+                            }
+                        }
+                    }
                     return;
                 }
 
                 // Админ — экран списка столов
-                if (data.admin) {
+                if (viewerPlayer.admin) {
                     viewerIsAdmin = true;
-                    viewerAdminName = data.nickname || playerName;
+                    viewerAdminName = viewerPlayer.nickname || viewerPlayer.firstName || 'Admin';
                     currentTableId = null;
                     hideTelegramBackButton();
                     if (backButton) {
