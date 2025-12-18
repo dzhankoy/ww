@@ -1726,6 +1726,21 @@
                     applySnapshotToUI();
                     updatePlayersList();
                     tablesScreen.classList.add('hidden');
+                    
+                    // Проверяем, является ли зритель дилером выбранного стола
+                    const selectedTable = getSelectedTable();
+                    const isViewerDealerHere = selectedTable && Array.isArray(selectedTable.players) 
+                        ? selectedTable.players.some(p => String(p.id) === String(viewerChatId) && p.dealer)
+                        : false;
+                    
+                    // Показываем кнопки rebuy/finish только если зритель - дилер этого стола
+                    if (rebuyButton) {
+                        rebuyButton.style.display = isViewerDealerHere ? '' : 'none';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = isViewerDealerHere ? '' : 'none';
+                    }
+                    
                     showPlayerSelection();
                 });
 
