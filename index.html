@@ -932,15 +932,9 @@
         // Управление системной кнопкой "Назад" в заголовке Telegram
         let telegramBackHandler = null;
 
-        function showTelegramBackButton(handler, text) {
+        function showTelegramBackButton(handler) {
             if (!tg || !tg.BackButton || typeof tg.BackButton.show !== 'function') return;
             telegramBackHandler = typeof handler === 'function' ? handler : null;
-            
-            // Устанавливаем текст кнопки, если передан
-            if (text && typeof tg.BackButton.setText === 'function') {
-                tg.BackButton.setText(text);
-            }
-            
             tg.BackButton.show();
         }
 
@@ -2113,7 +2107,7 @@
             }
 
             if (isPrivilegedHere) {
-                showTelegramBackButton(backToPlayerList, 'Игроки');
+                showTelegramBackButton(backToPlayerList);
             } else {
                 hideTelegramBackButton();
             }
@@ -2170,7 +2164,7 @@
 
             // Для админа на экране списка игроков системная кнопка ведёт "Назад к столам"
             if (viewerIsAdmin) {
-                showTelegramBackButton(backToTablesFromPlayers, 'Столы');
+                showTelegramBackButton(backToTablesFromPlayers);
             } else {
                 hideTelegramBackButton();
             }
@@ -2255,7 +2249,7 @@
 
             // После возврата к списку игроков у админа кнопка Telegram ведёт обратно к списку столов
             if (viewerIsAdmin) {
-                showTelegramBackButton(backToTablesFromPlayers, 'Столы');
+                showTelegramBackButton(backToTablesFromPlayers);
             } else {
                 hideTelegramBackButton();
             }
