@@ -1455,15 +1455,30 @@
             if (!viewerChatId || !fullTournamentData) return null;
             
             const tables = fullTournamentData.tournament?.tables || [];
+            let foundPlayer = null;
+            
+            // Сначала ищем игрока с флагом dealer (приоритет)
+            for (const table of tables) {
+                if (Array.isArray(table.players)) {
+                    const player = table.players.find(p => String(p.id) === String(viewerChatId) && p.dealer);
+                    if (player) {
+                        return player; // Нашли дилера - сразу возвращаем
+                    }
+                }
+            }
+            
+            // Если не нашли дилера, ищем любого игрока с этим ID
             for (const table of tables) {
                 if (Array.isArray(table.players)) {
                     const player = table.players.find(p => String(p.id) === String(viewerChatId));
                     if (player) {
-                        return player;
+                        foundPlayer = player;
+                        break;
                     }
                 }
             }
-            return null;
+            
+            return foundPlayer;
         }
 
         // Начальное отображение в зависимости от роли текущего игрока
