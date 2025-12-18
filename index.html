@@ -930,12 +930,9 @@
     </div>
 
     <script>
-        // Инициализация Telegram Web App
         let tg = window.Telegram.WebApp;
         tg.expand();
-        //tg.enableClosingConfirmation();
 
-        // Управление системной кнопкой "Назад" в заголовке Telegram
         let telegramBackHandler = null;
 
         function showTelegramBackButton(handler) {
@@ -958,14 +955,12 @@
             });
         }
 
-        // Применение темы Телеграма (светлая/тёмная) к CSS-переменным
         function applyTelegramTheme() {
             if (!tg) return;
 
             const themeParams = tg.themeParams || {};
             const colorScheme = tg.colorScheme || 'dark';
 
-            // Базовые дефолты под тёмную тему (как сейчас)
             let bgColor = '#000000';
             let cardBg = '#1c1c1e';
             let textColor = '#ffffff';
@@ -973,14 +968,12 @@
             let borderColor = '#38383a';
 
             if (colorScheme === 'light') {
-                // Более светлая палитра для светлой темы
                 bgColor = themeParams.bg_color || '#ffffff';
                 cardBg = themeParams.secondary_bg_color || '#f2f2f7';
                 textColor = themeParams.text_color || '#000000';
                 secondaryText = themeParams.hint_color || '#8e8e93';
                 borderColor = '#d1d1d6';
             } else {
-                // Тёмная тема — пробуем взять цвета из Telegram, если есть
                 bgColor = themeParams.bg_color || bgColor;
                 cardBg = themeParams.secondary_bg_color || cardBg;
                 textColor = themeParams.text_color || textColor;
@@ -996,15 +989,12 @@
             root.style.setProperty('--border-color', borderColor);
         }
 
-        // Сразу применяем текущую тему и слушаем её изменения
         applyTelegramTheme();
         if (tg && typeof tg.onEvent === 'function') {
             tg.onEvent('themeChanged', applyTelegramTheme);
         }
 
-        // Конфигурация
         const CONFIG = {
-            // Новый эндпоинт ПЛАНА Б, возвращающий полный снимок турнира по КОНТРАКТУ
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
             TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
             REFRESH_INTERVAL: 30000,
@@ -1037,32 +1027,25 @@
         }
 
         // Глобальные переменные
-        let fullTournamentData = null;          // полный снимок турнира по КОНТРАКТУ (ПЛАН Б)
+        let fullTournamentData = null;
         let gameTimerInterval = null;
         let refreshInterval = null;
-        let tournamentStatsInterval = null;     // таймер для обновления статистики турнира (экран столов)
+        let tournamentStatsInterval = null;
         let isGameFinished = false;
         let gameStartTime = null;
-        let currentTableId = null;              // id текущего выбранного стола
-        let globalFinishPlaces = new Map();     // карта playerId -> место в турнире по finishTime
-        let tournamentStatsCache = null;        // кэш агрегатов турнира для экрана столов
-        let viewerIsAdmin = false;              // флаг, что текущий зритель — админ
-        let viewerAdminName = '';               // ник/имя текущего админа
+        let currentTableId = null;
+        let globalFinishPlaces = new Map();
+        let tournamentStatsCache = null;
+        let viewerIsAdmin = false;
+        let viewerAdminName = '';
+        let selectedBox = null;
+        let currentBoxes = null;
+        let pendingOperations = new Set();
 
-        // ===== БЛОК 1: Переменные для работы с boxes (нативный API snapshot) =====
-        let selectedBox = null;                 // выбранный бокс (1..9)
-        let currentBoxes = null;                // массив боксов текущего стола [1..9] -> {player: ... | null}
-        let pendingOperations = new Set();      // Set боксов с активными операциями (для индикаторов загрузки)
-        
-        // ===== БЛОК 7: Удалены неиспользуемые переменные =====
-        // tournamentData, playerData, finishedPlayers, selectedPlayer - больше не используются
-
-        // Идентификатор текущего чата/пользователя (для отображения рядом с никнеймом своего игрока)
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
         const viewerChatId = tgInitData.chat?.id || viewerUserId || null;
 
-        // Элементы DOM
         const loadingScreen = document.getElementById('loadingScreen');
         const errorScreen = document.getElementById('errorScreen');
         const tablesScreen = document.getElementById('tablesScreen');
@@ -1142,7 +1125,6 @@
                     
                     const responseData = await response.json();
                     
-                    // ИСПРАВЛЕНИЕ: Обрабатываем ответ в формате массива от n8n
                     let actualResult;
                     if (Array.isArray(responseData) && responseData.length > 0) {
                         actualResult = responseData[0];
@@ -1158,7 +1140,6 @@
                 }
             }
             
-            // События игроков - отправляем ТОЛЬКО playerId
             async playerRebuy(playerId) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_REBUY, {
                     playerId: playerId
@@ -1171,7 +1152,6 @@
                 });
             }
             
-            // Сервисные события
             async callAdmin(reason, tableNumber, dealerName) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.ADMIN_CALL, {
                     reason: reason,
@@ -1182,12 +1162,8 @@
             }
         }
 
-        // Инициализация сервисов
         let eventService;
 
-        // ===== БЛОК 1: Вспомогательные функции для работы с нативным API snapshot =====
-        
-        // Получить текущий выбранный стол из fullTournamentData
         function getSelectedTable() {
             if (!fullTournamentData || !fullTournamentData.tournament || !Array.isArray(fullTournamentData.tournament.tables)) {
                 return null;
@@ -1195,13 +1171,11 @@
 
             const tables = fullTournamentData.tournament.tables;
             
-            // 1) Если явно выбран стол (админом), используем его
             if (currentTableId != null) {
                 const table = tables.find(t => String(t.id) === String(currentTableId));
                 if (table) return table;
             }
 
-            // 2) Приоритетно ищем стол, где текущий пользователь является дилером
             if (viewerChatId) {
                 for (const table of tables) {
                     if (Array.isArray(table.players)) {
@@ -1213,7 +1187,6 @@
                 }
             }
 
-            // 3) Если не дилер, ищем стол где пользователь просто присутствует
             if (viewerChatId) {
                 for (const table of tables) {
                     if (Array.isArray(table.players)) {
@@ -1223,21 +1196,16 @@
                 }
             }
 
-            // 4) Если не нашли — берём первый стол
             return tables[0] || null;
         }
 
-        // Построить массив боксов 1..9 из игроков стола
-        // Возвращает объект: { 1: {player: ...}, 2: {player: null}, ..., 9: {player: ...} }
         function buildBoxes(table) {
             const boxes = {};
             
-            // Инициализируем все боксы как пустые
             for (let box = 1; box <= 9; box++) {
                 boxes[box] = { player: null };
             }
 
-            // Заполняем боксы реальными игроками
             if (table && Array.isArray(table.players)) {
                 table.players.forEach(player => {
                     const box = player.box;
@@ -1250,7 +1218,6 @@
             return boxes;
         }
 
-        // Получить игрока по номеру бокса из currentBoxes
         function getPlayerByBox(box) {
             if (!currentBoxes || !currentBoxes[box]) {
                 return null;
@@ -1279,28 +1246,19 @@
             return false;
         }
 
-        // ===== КОНЕЦ БЛОКА 1 =====
-
-        // ===== БЛОК 2: Новая функция применения snapshot к UI (параллельно со старой) =====
-
-        // Применить snapshot турнира к UI (новый путь без адаптера)
         function applySnapshotToUI() {
-            // Получаем выбранный стол
             const selectedTable = getSelectedTable();
             if (!selectedTable) {
                 console.error('No table selected or available');
                 return;
             }
 
-            // Строим боксы для текущего стола
             currentBoxes = buildBoxes(selectedTable);
 
-            // Обновляем заголовок турнира
             if (tournamentTitle && fullTournamentData.tournament) {
                 tournamentTitle.textContent = fullTournamentData.tournament.title || 'King & Joker Tournament';
             }
 
-            // Обновляем номер стола
             if (tableNumber) {
                 tableNumber.textContent = selectedTable.id || '1';
             }
@@ -1313,7 +1271,6 @@
                     : 'Максимус';
             }
 
-            // Устанавливаем время начала игры
             if (fullTournamentData.tournament.date && fullTournamentData.tournament.time) {
                 const startTimeISO = buildStartTimeISO(
                     fullTournamentData.tournament.date,
@@ -1324,13 +1281,9 @@
                 gameStartTime = new Date();
             }
 
-            // Устанавливаем начальный текст времени игры сразу после получения данных турнира
             updateGameTime();
         }
 
-        // ===== КОНЕЦ БЛОКА 2 =====
-
-        // Функция загрузки данных турнира (полный снимок -> адаптация под текущий UI)
         async function loadTournamentData() {
             try {
                 showLoading();
@@ -1371,16 +1324,12 @@
                     fullData = responseData;
                 }
 
-                // Валидация данных нового формата (КОНТРАКТ)
                 if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
                     throw new Error('Invalid data format from server');
                 }
 
-                // Сохраняем полный снимок турнира и пересчитываем глобальные места
                 fullTournamentData = fullData;
                 recalculateGlobalFinishPlaces();
-
-                // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
                 applySnapshotToUI();
                 updatePlayersList();
                 applyRoleBasedInitialView();
@@ -1391,9 +1340,6 @@
             }
         }
 
-        // ===== БЛОК 7: processTournamentData удалён, используется applySnapshotToUI =====
-
-        // Построение ISO-времени старта из date (dd.mm.yyyy) и time (HH:mm)
         function buildStartTimeISO(dateStr, timeStr) {
             if (!dateStr || !timeStr) {
                 return new Date().toISOString();
@@ -1421,9 +1367,6 @@
             }
         }
 
-        // ===== БЛОК 7: Адаптер удалён, используется applySnapshotToUI =====
-
-        // Пересчёт глобальных мест по всему турниру по finishTime (по всему fullTournamentData)
         function recalculateGlobalFinishPlaces() {
             globalFinishPlaces.clear();
 
@@ -1466,14 +1409,12 @@
             });
         }
 
-        // Проверка, является ли текущий зритель админом турнира
         function isViewerTournamentAdmin() {
             if (!viewerChatId || !fullTournamentData) return false;
             const admins = fullTournamentData.tournament?.admins || [];
             return admins.some(adminId => String(adminId) === String(viewerChatId));
         }
 
-        // Определение игрока текущего пользователя по viewerChatId через snapshot
         function getViewerPlayer() {
             if (!viewerChatId || !fullTournamentData) return null;
             
@@ -1767,7 +1708,6 @@
 
                 button.addEventListener('click', () => {
                     currentTableId = table.id;
-                    // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
                     applySnapshotToUI();
                     updatePlayersList();
                     tablesScreen.classList.add('hidden');
@@ -1778,7 +1718,6 @@
                         ? selectedTable.players.some(p => String(p.id) === String(viewerChatId) && p.dealer)
                         : false;
                     
-                    // Показываем кнопки rebuy/finish только если зритель - дилер этого стола
                     if (rebuyButton) {
                         rebuyButton.style.display = isViewerDealerHere ? '' : 'none';
                     }
@@ -1793,7 +1732,6 @@
             });
         }
 
-        // Обновляет строку агрегатов турнира на экране списка столов с учётом текущего времени
         function updateTournamentStatsDisplay() {
             if (!tablesTournamentStats || !tournamentStatsCache) return;
 
@@ -1829,15 +1767,10 @@
             }
         }
 
-        // ===== БЛОК 7: updateTournamentUI удалён, используется applySnapshotToUI =====
-
-        // Обновление списка игроков (без перезагрузки)
         function updatePlayersList() {
             playersList.innerHTML = '';
             
-            // ===== БЛОК 3: Новая логика на основе boxes (если currentBoxes заполнен) =====
             if (currentBoxes) {
-                // Работаем с boxes (1..9)
                 for (let box = 1; box <= 9; box++) {
                     const boxData = currentBoxes[box];
                     const player = boxData ? boxData.player : null;
@@ -1899,11 +1832,9 @@
 
                     playersList.appendChild(button);
 
-                    // Обновляем ребаи и финиш-инфо
                     const rebuysElement = button.querySelector('.player-rebuys');
                     
                     if (isPending) {
-                        // Показываем индикатор загрузки вместо ребаев
                         if (rebuysElement) {
                             rebuysElement.style.display = 'flex';
                             rebuysElement.innerHTML = '<div class="rebuy-dot" style="animation: pulse 1s infinite;">⏳</div>';
@@ -1947,13 +1878,8 @@
                 }
                 return;
             }
-            
-            // ===== БЛОК 7: Старый fallback удалён =====
         }
 
-        // ===== БЛОК 7: updatePlayerButton удалён =====
-
-        // Функция для плавного обновления данных
         async function refreshTournamentData() {
             try {
                 const controller = new AbortController();
@@ -2000,7 +1926,6 @@
             }
         }
 
-        // ===== БЛОК 4: Новая функция выбора игрока по боксу =====
         function selectBox(box) {
             selectedBox = box;
             const player = getPlayerByBox(box);
@@ -2096,7 +2021,6 @@
                 playerEmoji.style.display = 'none';
             }
             
-            // Обновляем состояние кнопок (используем player напрямую)
             updateRebuyButtonStateForPlayer(player);
             updateFinishButtonStateForPlayer(player);
             
@@ -2153,10 +2077,6 @@
             }
         }
 
-        // ===== КОНЕЦ БЛОКА 4 =====
-        // ===== БЛОК 7: selectPlayer и старые функции состояния кнопок удалены =====
-
-        // Управление экранами
         function showLoading() {
             loadingScreen.classList.remove('hidden');
             errorScreen.classList.add('hidden');
@@ -2226,8 +2146,6 @@
             }
         }
 
-        // ===== БЛОК 7: calculateFinishPosition, checkAutoFinish, checkGameFinished удалены =====
-
         function updateGameTime() {
             if (isGameFinished) return;
             
@@ -2254,7 +2172,6 @@
             });
             dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
 
-            // Обновляем длительность турнира в агрегатах на экране столов
             updateTournamentStatsDisplay();
         }
 
