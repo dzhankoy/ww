@@ -2339,12 +2339,37 @@
             
             const tournaments = getTournamentsList();
             
-            // Сортируем: активные первыми, потом запланированные, потом завершённые
+            // Парсинг даты dd.mm.yyyy
+            function parseTournamentDate(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('.');
+                if (parts.length === 3) {
+                    return new Date(+parts[2], +parts[1] - 1, +parts[0]);
+                }
+                return null;
+            }
+            
+            // Сортируем: активные первыми, потом запланированные (ближайшие первыми), потом завершённые (недавние первыми)
             const sortedTournaments = [...tournaments].sort((a, b) => {
                 const statusOrder = { active: 0, scheduled: 1, finished: 2 };
                 const aOrder = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 3;
                 const bOrder = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 3;
-                return aOrder - bOrder;
+                
+                if (aOrder !== bOrder) return aOrder - bOrder;
+                
+                // Подсортировка по дате внутри группы
+                const aDate = parseTournamentDate(a.date);
+                const bDate = parseTournamentDate(b.date);
+                if (!aDate || !bDate) return 0;
+                
+                if (a.status === 'scheduled') {
+                    // Ближайшие первыми (по возрастанию)
+                    return aDate - bDate;
+                } else if (a.status === 'finished') {
+                    // Недавние первыми (по убыванию)
+                    return bDate - aDate;
+                }
+                return 0;
             });
             
             sortedTournaments.forEach(tournament => {
