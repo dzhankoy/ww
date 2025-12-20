@@ -1376,6 +1376,11 @@
                 }
 
                 fullTournamentData = fullData;
+                
+                // Отладка: выводим в консоль что пришло от API
+                console.log('📦 API Response:', fullData);
+                console.log('👥 Players from DB:', fullData.players);
+                
                 recalculateGlobalFinishPlaces();
                 applySnapshotToUI();
                 updatePlayersList();
@@ -2009,21 +2014,35 @@
         function renderDbPlayersPreview() {
             if (!dbPlayersPreviewList) return;
             
-            const dbPlayers = fullTournamentData?.players || [];
+            // players находится внутри tournament, а не на верхнем уровне
+            const dbPlayers = fullTournamentData?.tournament?.players || [];
+            
+            console.log('🔍 renderDbPlayersPreview - players count:', dbPlayers.length);
             
             dbPlayersPreviewList.innerHTML = '';
             
             const button = document.createElement('button');
             button.classList.add('player-button');
             
-            button.innerHTML = `
-                <div class="table-indicator">${dbPlayers.length}</div>
-                <div class="player-info">
-                    <div class="player-nickname">Все игроки клуба</div>
-                    <div class="player-name">Полный список из базы данных</div>
-                </div>
-                <div class="chevron"></div>
-            `;
+            if (dbPlayers.length === 0) {
+                button.innerHTML = `
+                    <div class="table-indicator" style="background-color: var(--gray);">0</div>
+                    <div class="player-info">
+                        <div class="player-nickname">База игроков</div>
+                        <div class="player-name">Нет данных от API (players: ${fullTournamentData?.players === undefined ? 'undefined' : 'пустой массив'})</div>
+                    </div>
+                    <div class="chevron"></div>
+                `;
+            } else {
+                button.innerHTML = `
+                    <div class="table-indicator">${dbPlayers.length}</div>
+                    <div class="player-info">
+                        <div class="player-nickname">Все игроки клуба</div>
+                        <div class="player-name">Полный список из базы данных</div>
+                    </div>
+                    <div class="chevron"></div>
+                `;
+            }
             
             button.addEventListener('click', () => {
                 showDbPlayersScreen();
@@ -2051,7 +2070,7 @@
                 dbPlayersTournamentTitle.textContent = fullTournamentData.tournament?.title || 'Турнир';
             }
             
-            const dbPlayers = fullTournamentData.players || [];
+            const dbPlayers = fullTournamentData.tournament?.players || [];
             
             if (dbPlayersInfo) {
                 dbPlayersInfo.textContent = `Всего игроков в базе: ${dbPlayers.length}`;
@@ -2073,7 +2092,7 @@
         function renderDbPlayersList() {
             if (!dbPlayersList) return;
             
-            const dbPlayers = fullTournamentData?.players || [];
+            const dbPlayers = fullTournamentData?.tournament?.players || [];
             dbPlayersList.innerHTML = '';
             
             // Сортируем по никнейму
