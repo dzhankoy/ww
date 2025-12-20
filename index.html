@@ -1820,7 +1820,8 @@
                 if (!aFinished && bFinished) return -1;
                 
                 if (aFinished && bFinished) {
-                    return new Date(a.finishTime) - new Date(b.finishTime);
+                    // Позже вылетел = выше в списке (ранние вылетевшие внизу)
+                    return new Date(b.finishTime) - new Date(a.finishTime);
                 }
                 
                 // Оба активные - сортируем по столу, потом по боксу
