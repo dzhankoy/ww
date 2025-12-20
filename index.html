@@ -1298,6 +1298,7 @@
 
         function buildBoxes(table) {
             const boxes = {};
+            const adminCalls = fullTournamentData?.tournament?.adminCalls || [];
             
             for (let box = 1; box <= 9; box++) {
                 boxes[box] = { player: null };
@@ -1307,7 +1308,13 @@
                 table.players.forEach(player => {
                     const box = player.box;
                     if (box >= 1 && box <= 9) {
-                        boxes[box] = { player: player };
+                        // Добавляем флаг adminCall к игроку
+                        boxes[box] = { 
+                            player: {
+                                ...player,
+                                adminCall: adminCalls.includes(player.id)
+                            }
+                        };
                     }
                 });
             }
@@ -2731,7 +2738,7 @@
                 
                 // Индикация вызова админа
                 if (player.adminCall) {
-                    badges.push('<span class="player-role-badge" style="background-color: rgba(181, 137, 0, 0.8);">🔔 Вызывает админа<\/span>');
+                    badges.push('<span class="player-role-badge" style="background-color: rgba(181, 137, 0, 0.8);">🔔<\/span>');
                 }
 
                 if (badges.length > 0) {
