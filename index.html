@@ -588,7 +588,7 @@
             color: var(--badge-color);
             font-size: 12px;
             font-weight: 700;
-            margin-right: 6px;
+            margin-right: 3px;
         }
 
         .player-position-badge.gold {
@@ -2556,6 +2556,7 @@
                         `;
                         const chevron = button.querySelector('.chevron');
                         button.insertBefore(finishInfoContainer, chevron);
+                        chevron.style.display = 'none';
                         button.style.opacity = '0.5';
                     } else {
                         // Активный игрок - показываем ребаи
