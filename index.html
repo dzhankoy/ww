@@ -338,7 +338,7 @@
             right: -2px;
             bottom: -2px;
             border-radius: 18px;
-            border: 1px solid currentColor;
+            border: 1px solid var(--indicator-border, currentColor);
         }
         
         .position-indicator.playing {
@@ -409,7 +409,7 @@
             right: -2px;
             bottom: -2px;
             border-radius: 10px;             /* чуть больше, чем у самого квадрата для зазора */
-            border: 1px solid #ffffff;       /* тонкая белая обводка вокруг зелёного квадрата */
+            border: 1px solid var(--table-indicator-border);
         }
 
         /* Индикатор стола с проблемой (дилер не зашёл в рабочее место) */
@@ -584,8 +584,8 @@
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background-color: var(--text-color);
-            color: #000;
+            background-color: var(--badge-bg);
+            color: var(--badge-color);
             font-size: 12px;
             font-weight: 700;
             margin-right: 6px;
@@ -604,56 +604,6 @@
         .player-position-badge.bronze {
             background-color: var(--bronze);
             color: #fff;
-        }
-
-        /* === Переопределения для светлой темы === */
-        body.light-theme .player-position-badge {
-            background-color: #333;
-            color: #fff;
-        }
-        
-        body.light-theme .player-position-badge.gold {
-            background-color: var(--gold);
-            color: #000;
-        }
-        
-        body.light-theme .player-position-badge.silver {
-            background-color: var(--silver);
-            color: #000;
-        }
-        
-        body.light-theme .player-position-badge.bronze {
-            background-color: var(--bronze);
-            color: #fff;
-        }
-        
-        body.light-theme .position-indicator::after {
-            border-color: rgba(0, 0, 0, 0.2);
-        }
-        
-        body.light-theme .position-indicator.playing::after {
-            border-color: var(--green);
-        }
-        
-        body.light-theme .position-indicator.dealer::after {
-            border-color: var(--blue);
-        }
-        
-        body.light-theme .position-indicator.finished::after,
-        body.light-theme .position-indicator.empty::after {
-            border-color: var(--border-color);
-        }
-        
-        body.light-theme .position-indicator.gold::after {
-            border-color: var(--gold);
-        }
-        
-        body.light-theme .position-indicator.silver::after {
-            border-color: var(--silver);
-        }
-        
-        body.light-theme .position-indicator.bronze::after {
-            border-color: var(--bronze);
         }
         
         .finish-time {
@@ -1074,13 +1024,17 @@
             root.style.setProperty('--secondary-text', secondaryText);
             root.style.setProperty('--border-color', borderColor);
             
-            // Добавляем класс темы на body для CSS переопределений
+            // Переменные для badge и indicator в зависимости от темы
             if (colorScheme === 'light') {
-                document.body.classList.add('light-theme');
-                document.body.classList.remove('dark-theme');
+                root.style.setProperty('--badge-bg', '#333');
+                root.style.setProperty('--badge-color', '#fff');
+                root.style.setProperty('--indicator-border', 'rgba(0, 0, 0, 0.15)');
+                root.style.setProperty('--table-indicator-border', 'rgba(0, 0, 0, 0.2)');
             } else {
-                document.body.classList.add('dark-theme');
-                document.body.classList.remove('light-theme');
+                root.style.setProperty('--badge-bg', textColor);
+                root.style.setProperty('--badge-color', '#000');
+                root.style.setProperty('--indicator-border', 'currentColor');
+                root.style.setProperty('--table-indicator-border', '#ffffff');
             }
         }
 
