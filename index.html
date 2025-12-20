@@ -2341,7 +2341,9 @@
             // Сортируем: активные первыми, потом запланированные, потом завершённые
             const sortedTournaments = [...tournaments].sort((a, b) => {
                 const statusOrder = { active: 0, scheduled: 1, finished: 2 };
-                return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+                const aOrder = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 3;
+                const bOrder = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 3;
+                return aOrder - bOrder;
             });
             
             sortedTournaments.forEach(tournament => {
