@@ -2251,6 +2251,12 @@
                     <div class="chevron"></div>
                 `;
                 
+                // Подсветка вызывающего админа игрока
+                const adminCalls = fullTournamentData?.tournament?.adminCalls || [];
+                if (adminCalls.includes(player.id)) {
+                    button.classList.add('admin-call-active');
+                }
+                
                 // Клик по игроку из базы - показываем попап с информацией
                 button.addEventListener('click', () => {
                     showDbPlayerInfo(player);
@@ -2505,9 +2511,11 @@
             }
 
             const totalEntries = totalPlayers + totalRebuys;
+            const adminCallsCount = fullTournamentData?.tournament?.adminCalls?.length || 0;
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
+            const callsSuffix = adminCallsCount > 0 ? `, вызовов: ${adminCallsCount}` : '';
 
-            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${adminSuffix}`;
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${callsSuffix}${adminSuffix}`;
 
             // Прогресс-бар: доля оставшихся активных игроков от общего количества
             if (tablesProgressFill && totalPlayers > 0) {
@@ -2555,11 +2563,6 @@
                     
                     // Проверяем, есть ли активная операция для этого бокса
                     const isPending = pendingOperations.has(box);
-                    
-                    // Подсветка вызывающего админа игрока
-                    if (player.adminCall) {
-                        button.classList.add('admin-call-active');
-                    }
 
                     const positionClass = isFinished
                         ? 'finished'
@@ -2578,6 +2581,11 @@
                         <div class="player-rebuys"><\/div>
                         <div class="chevron"><\/div>
                     `;
+                    
+                    // Подсветка вызывающего админа игрока (после innerHTML!)
+                    if (player.adminCall) {
+                        button.classList.add('admin-call-active');
+                    }
 
                     // Клик по игроку - используем новую функцию selectBox
                     button.addEventListener('click', () => {
@@ -2704,7 +2712,7 @@
             const isViewerDealerCheck = isViewerDealer();
             const isViewerAdminCheck = isViewerAdmin();
 
-            // Бейдж роли игрока (дилер / админ)
+            // Бейдж роли игрока (дилер / админ / вызов админа)
             if (selectedPlayerRoleBadge) {
                 const badges = [];
 
@@ -2719,6 +2727,11 @@
 
                 if (player.dealer) {
                     badges.push('<span class="player-role-badge dealer">D<\/span>');
+                }
+                
+                // Индикация вызова админа
+                if (player.adminCall) {
+                    badges.push('<span class="player-role-badge" style="background-color: rgba(181, 137, 0, 0.8);">🔔 Вызывает админа<\/span>');
                 }
 
                 if (badges.length > 0) {
