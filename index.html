@@ -864,6 +864,8 @@
             <div class="players-list" id="dbPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
+            <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Турниры</div>
+            <div class="players-list" id="tournamentsPreviewList"></div>
             <div class="tables-actions-title tables-section-padding">Действия</div>
             <div class="tables-actions tables-section-padding">
                 <button class="tables-action-button" id="tablesRebalanceButton">Объединить столы</button>
@@ -903,6 +905,22 @@
         </div>
         <div class="players-list-container">
             <div class="players-list" id="dbPlayersList"></div>
+        </div>
+    </div>
+
+    <!-- Экран списка турниров (для админа) -->
+    <div id="tournamentsScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title">King & Joker Club</div>
+                    <div class="tournament-date">Все турниры</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="tournamentsList"></div>
         </div>
     </div>
 
@@ -1119,6 +1137,9 @@
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
         const dbPlayersInfo = document.getElementById('dbPlayersInfo');
+        const tournamentsScreen = document.getElementById('tournamentsScreen');
+        const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
+        const tournamentsList = document.getElementById('tournamentsList');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
         const selectedPlayerRoleBadge = document.getElementById('selectedPlayerRoleBadge');
         const selectedPlayerRating = document.getElementById('selectedPlayerRating');
@@ -1656,6 +1677,7 @@
             playerSelectionScreen.classList.add('hidden');
             allPlayersScreen.classList.add('hidden');
             dbPlayersScreen.classList.add('hidden');
+            tournamentsScreen.classList.add('hidden');
             tablesScreen.classList.remove('hidden');
 
             // На корневом экране админа (список столов) системная кнопка "Назад" скрыта
@@ -1803,6 +1825,9 @@
             
             // Рендерим превью списка игроков из базы
             renderDbPlayersPreview();
+            
+            // Рендерим превью списка турниров
+            renderTournamentsPreview();
         }
 
         // Получить всех игроков турнира из всех столов
@@ -1883,6 +1908,7 @@
             errorScreen.classList.add('hidden');
             tablesScreen.classList.add('hidden');
             dbPlayersScreen.classList.add('hidden');
+            tournamentsScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
             allPlayersScreen.classList.remove('hidden');
@@ -2251,6 +2277,154 @@
             }
         }
 
+        // === ТУРНИРЫ ===
+        
+        // Получить список турниров из данных API
+        function getTournamentsList() {
+            return fullTournamentData?.tournaments || [];
+        }
+
+        // Рендер превью списка турниров на экране столов
+        function renderTournamentsPreview() {
+            if (!tournamentsPreviewList) return;
+            
+            tournamentsPreviewList.innerHTML = '';
+            
+            const tournaments = getTournamentsList();
+            
+            const button = document.createElement('button');
+            button.classList.add('player-button');
+            
+            const activeTournaments = tournaments.filter(t => t.status === 'active').length;
+            const scheduledTournaments = tournaments.filter(t => t.status === 'scheduled').length;
+            
+            button.innerHTML = `
+                <div class="table-indicator">${tournaments.length}</div>
+                <div class="player-info">
+                    <div class="player-nickname">Все турниры</div>
+                    <div class="player-name">Активных: ${activeTournaments}, запланировано: ${scheduledTournaments}</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            
+            button.addEventListener('click', showTournamentsScreen);
+            tournamentsPreviewList.appendChild(button);
+        }
+
+        // Показать экран списка турниров
+        function showTournamentsScreen() {
+            tablesScreen.classList.add('hidden');
+            allPlayersScreen.classList.add('hidden');
+            dbPlayersScreen.classList.add('hidden');
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+            tournamentsScreen.classList.remove('hidden');
+            
+            renderTournamentsList();
+            showTelegramBackButton(backToTablesFromTournaments);
+        }
+
+        // Возврат с экрана турниров к списку столов
+        function backToTablesFromTournaments() {
+            tournamentsScreen.classList.add('hidden');
+            showTablesScreen();
+        }
+
+        // Рендер полного списка турниров
+        function renderTournamentsList() {
+            if (!tournamentsList) return;
+            
+            tournamentsList.innerHTML = '';
+            
+            const tournaments = getTournamentsList();
+            
+            // Сортируем: активные первыми, потом запланированные, потом завершённые
+            const sortedTournaments = [...tournaments].sort((a, b) => {
+                const statusOrder = { active: 0, scheduled: 1, finished: 2 };
+                return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+            });
+            
+            sortedTournaments.forEach(tournament => {
+                const button = document.createElement('button');
+                button.classList.add('player-button');
+                
+                // Определяем класс статуса
+                let statusClass = 'finished';
+                let statusText = 'Завершён';
+                if (tournament.status === 'active') {
+                    statusClass = 'playing';
+                    statusText = 'Активен';
+                } else if (tournament.status === 'scheduled') {
+                    statusClass = 'dealer';
+                    statusText = 'Запланирован';
+                }
+                
+                const infoLine = tournament.status === 'active' 
+                    ? `Игроков: ${tournament.playersCount}, столов: ${tournament.tablesCount}`
+                    : tournament.status === 'scheduled'
+                        ? 'Регистрация открыта'
+                        : `Игроков было: ${tournament.playersCount}`;
+                
+                button.innerHTML = `
+                    <div class="position-indicator ${statusClass}">
+                        <span style="font-size: 14px;">🏆</span>
+                    </div>
+                    <div class="player-info">
+                        <div class="player-nickname">${tournament.title}</div>
+                        <div class="player-name">${tournament.date} ${tournament.time} • ${statusText}</div>
+                        <div class="player-name">${infoLine}</div>
+                    </div>
+                    <div class="chevron"></div>
+                `;
+                
+                button.addEventListener('click', () => {
+                    showTournamentInfo(tournament);
+                });
+                
+                tournamentsList.appendChild(button);
+            });
+        }
+
+        // Показать информацию о турнире
+        function showTournamentInfo(tournament) {
+            const statusText = tournament.status === 'active' ? 'Активен' 
+                : tournament.status === 'scheduled' ? 'Запланирован' : 'Завершён';
+            
+            const message = `Дата: ${tournament.date}\nВремя: ${tournament.time}\nСтатус: ${statusText}\nИгроков: ${tournament.playersCount}\nСтолов: ${tournament.tablesCount}`;
+            
+            const buttons = [];
+            
+            if (tournament.status === 'active') {
+                buttons.push({
+                    id: 'open',
+                    type: 'default',
+                    text: 'Открыть турнир'
+                });
+            }
+            
+            buttons.push({ type: 'close', text: 'Закрыть' });
+            
+            try {
+                if (tg && typeof tg.showPopup === 'function') {
+                    tg.showPopup({
+                        title: tournament.title,
+                        message: message,
+                        buttons: buttons
+                    }, (buttonId) => {
+                        if (buttonId === 'open') {
+                            // TODO: Переключиться на этот турнир
+                            console.log('Открыть турнир:', tournament.id);
+                        }
+                    });
+                } else {
+                    alert(`${tournament.title}\n\n${message}`);
+                }
+            } catch (e) {
+                console.error('Popup error:', e);
+                alert(`${tournament.title}\n\n${message}`);
+            }
+        }
+
         function updateTournamentStatsDisplay() {
             if (!tablesTournamentStats || !tournamentStatsCache) return;
 
@@ -2615,6 +2789,7 @@
             tablesScreen.classList.add('hidden');
             allPlayersScreen.classList.add('hidden');
             dbPlayersScreen.classList.add('hidden');
+            tournamentsScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
         }
@@ -2626,6 +2801,7 @@
             tablesScreen.classList.add('hidden');
             allPlayersScreen.classList.add('hidden');
             dbPlayersScreen.classList.add('hidden');
+            tournamentsScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
         }
@@ -2636,6 +2812,7 @@
             tablesScreen.classList.add('hidden');
             allPlayersScreen.classList.add('hidden');
             dbPlayersScreen.classList.add('hidden');
+            tournamentsScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
             actionScreen.classList.add('hidden');
 
