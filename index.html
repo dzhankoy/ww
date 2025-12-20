@@ -1798,8 +1798,10 @@
                 button.classList.add('player-button');
                 button.setAttribute('data-table-id', String(table.id));
 
-                // Демонстрация вызова администратора: подсвечиваем первый стол
-                if (index === 0) {
+                // Подсветка стола если в нём есть игрок, вызывающий админа
+                const adminCalls = fullTournamentData.tournament.adminCalls || [];
+                const hasAdminCall = table.players.some(p => adminCalls.includes(p.id));
+                if (hasAdminCall) {
                     button.classList.add('admin-call-active');
                 }
 
