@@ -3112,10 +3112,18 @@
 
         // Звуковой сигнал
         const signalSound = new Audio('UVB-76.ogg');
+        signalSound.loop = true;
         if (playSoundButton) {
             playSoundButton.addEventListener('click', () => {
-                signalSound.currentTime = 0;
-                signalSound.play();
+                if (signalSound.paused) {
+                    signalSound.currentTime = 0;
+                    signalSound.play();
+                    playSoundButton.textContent = '🔇 Стоп';
+                } else {
+                    signalSound.pause();
+                    signalSound.currentTime = 0;
+                    playSoundButton.textContent = '🔊 Сигнал';
+                }
             });
         }
 
