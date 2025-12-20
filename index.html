@@ -2364,7 +2364,7 @@
                 const infoLine = tournament.status === 'active' 
                     ? `Игроков: ${tournament.playersCount}, столов: ${tournament.tablesCount}`
                     : tournament.status === 'scheduled'
-                        ? 'Регистрация открыта'
+                        ? `Зарегистрировано: ${tournament.playersCount}`
                         : `Игроков было: ${tournament.playersCount}`;
                 
                 button.innerHTML = `
@@ -2372,9 +2372,8 @@
                         <span style="font-size: 14px;">🏆</span>
                     </div>
                     <div class="player-info">
-                        <div class="player-nickname">${tournament.title}</div>
-                        <div class="player-name">${tournament.date} ${tournament.time} • ${statusText}</div>
-                        <div class="player-name">${infoLine}</div>
+                        <div class="player-nickname">${tournament.title} • ${tournament.date} ${tournament.time}</div>
+                        <div class="player-name">${statusText} • ${infoLine}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
