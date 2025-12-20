@@ -886,6 +886,7 @@
                 <button class="tables-action-button" id="playersRebalanceButton">Пересадить игрока</button>
                 <button class="tables-action-button" id="changeDealerButton">Сменить дилера</button>
                 <button class="tables-action-button" id="tournamentTimerToggleButton">Остановить таймер</button>
+                <button class="tables-action-button" id="playSoundButton">🔊 Сигнал</button>
             </div>
         </div>
     </div>
@@ -1173,6 +1174,7 @@
         const playersRebalanceButton = document.getElementById('playersRebalanceButton');
         const changeDealerButton = document.getElementById('changeDealerButton');
         const tournamentTimerToggleButton = document.getElementById('tournamentTimerToggleButton');
+        const playSoundButton = document.getElementById('playSoundButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
         const finishInfo = document.getElementById('finishInfo');
         const messagePlayerInfo = document.getElementById('messagePlayerInfo');
@@ -3105,6 +3107,15 @@
         if (tournamentTimerToggleButton) {
             tournamentTimerToggleButton.addEventListener('click', () => {
                 showSimpleActionNotice('Запустить/остановить таймер');
+            });
+        }
+
+        // Звуковой сигнал
+        const signalSound = new Audio('UVB-76.ogg');
+        if (playSoundButton) {
+            playSoundButton.addEventListener('click', () => {
+                signalSound.currentTime = 0;
+                signalSound.play();
             });
         }
 
