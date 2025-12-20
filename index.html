@@ -2088,6 +2088,45 @@
             showTablesScreen();
         }
 
+        // Парсинг даты регистрации (поддержка dd.mm.yyyy и ISO)
+        function parseRegDate(dateStr) {
+            if (!dateStr) return null;
+            
+            const str = String(dateStr).trim();
+            
+            // Сначала пробуем формат dd.mm.yyyy (приоритет для нашего формата)
+            if (str.includes('.')) {
+                const parts = str.split('.');
+                if (parts.length === 3) {
+                    const day = Number(parts[0]);
+                    const month = Number(parts[1]) - 1; // месяцы 0-11
+                    const year = Number(parts[2]);
+                    const date = new Date(year, month, day);
+                    if (!isNaN(date.getTime())) return date;
+                }
+            }
+            
+            // Пробуем ISO формат (yyyy-mm-dd или полный ISO)
+            if (str.includes('-') || str.includes('T')) {
+                const date = new Date(str);
+                if (!isNaN(date.getTime())) return date;
+            }
+            
+            return null;
+        }
+
+        // Форматирование даты регистрации для отображения
+        function formatRegDate(dateStr) {
+            const date = parseRegDate(dateStr);
+            if (!date) return '';
+            
+            return date.toLocaleDateString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+        }
+
         // Рендер полного списка игроков из базы
         function renderDbPlayersList() {
             if (!dbPlayersList) return;
@@ -2095,40 +2134,108 @@
             const dbPlayers = fullTournamentData?.tournament?.players || [];
             dbPlayersList.innerHTML = '';
             
-            // Сортируем по никнейму
+            // Сортируем по дате регистрации (reg_date), если нет - по ID
             const sortedPlayers = [...dbPlayers].sort((a, b) => {
-                const nickA = (a.nickname || '').toLowerCase();
-                const nickB = (b.nickname || '').toLowerCase();
-                return nickA.localeCompare(nickB);
+                const dateA = parseRegDate(a.reg_date);
+                const dateB = parseRegDate(b.reg_date);
+                
+                // Если обе даты есть - сортируем по ним (раньше = выше)
+                if (dateA && dateB) {
+                    return dateA.getTime() - dateB.getTime();
+                }
+                
+                // Если только одна дата есть - она выше
+                if (dateA && !dateB) return -1;
+                if (!dateA && dateB) return 1;
+                
+                // Если дат нет - сортируем по ID
+                return (a.id || 0) - (b.id || 0);
             });
             
-            sortedPlayers.forEach(player => {
+            sortedPlayers.forEach((player, index) => {
                 const button = document.createElement('button');
                 button.classList.add('player-button');
                 
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-                const ratingDisplay = player.rating ? `Рейтинг: ${player.rating}` : '';
+                const ratingDisplay = player.rating ? `${player.rating}` : '0';
+                const regDateDisplay = formatRegDate(player.reg_date);
+                
+                // Определяем статус игрока
+                const isRegistered = player.isRegistered === true;
+                const statusClass = isRegistered ? 'playing' : 'finished';
+                
+                // Формируем строку с информацией
+                let infoLine = `Рейтинг: ${ratingDisplay}`;
+                if (regDateDisplay) {
+                    infoLine = `${regDateDisplay} • ${infoLine}`;
+                }
                 
                 button.innerHTML = `
-                    <div class="position-indicator playing">
-                        ${nicknameDisplay.charAt(0).toUpperCase()}
+                    <div class="position-indicator ${statusClass}">
+                        ${index + 1}
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
-                        <div class="player-name">${playerName}${ratingDisplay ? ' • ' + ratingDisplay : ''}</div>
+                        <div class="player-name">${playerName} • ${infoLine}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
                 
-                // Клик по игроку из базы - пока просто показываем информацию
+                // Клик по игроку из базы - показываем попап с информацией
                 button.addEventListener('click', () => {
-                    // В будущем можно добавить детальную карточку игрока из базы
-                    console.log('Выбран игрок из базы:', player);
+                    showDbPlayerInfo(player);
                 });
                 
                 dbPlayersList.appendChild(button);
             });
+        }
+
+        // Показать информацию об игроке из базы
+        function showDbPlayerInfo(player) {
+            const nickname = player.nickname || 'Неизвестно';
+            const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+            const rating = player.rating || 0;
+            const username = player.username || '';
+            const isRegistered = player.isRegistered ? 'Да' : 'Нет';
+            const isAdmin = player.isAdmin ? 'Да' : 'Нет';
+            const regDate = formatRegDate(player.reg_date) || 'Не указана';
+            
+            const message = `${fullName}\nРейтинг: ${rating}\nРегистрация: ${regDate}\nВ турнире: ${isRegistered}\nАдмин: ${isAdmin}`;
+            
+            // Кнопки для попапа
+            const buttons = [];
+            
+            // Если есть username - добавляем кнопку "Написать"
+            if (username) {
+                buttons.push({
+                    id: 'message',
+                    type: 'default',
+                    text: 'Написать в Telegram'
+                });
+            }
+            
+            buttons.push({ type: 'close', text: 'Закрыть' });
+            
+            try {
+                if (tg && typeof tg.showPopup === 'function') {
+                    tg.showPopup({
+                        title: nickname,
+                        message: message,
+                        buttons: buttons
+                    }, (buttonId) => {
+                        if (buttonId === 'message' && username) {
+                            const cleanUsername = username.replace(/^@+/, '');
+                            tg.openTelegramLink(`https://t.me/${encodeURIComponent(cleanUsername)}`);
+                        }
+                    });
+                } else {
+                    alert(`${nickname}\n\n${message}`);
+                }
+            } catch (e) {
+                console.error('Popup error:', e);
+                alert(`${nickname}\n\n${message}`);
+            }
         }
 
         function updateTournamentStatsDisplay() {
