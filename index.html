@@ -853,7 +853,9 @@
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
         </div>
         <div class="players-list-container tables-section-block">
-            <div class="tables-active-title tables-section-padding">Активные столы</div>
+            <div class="tables-active-title tables-section-padding">Все игроки</div>
+            <div class="players-list" id="allPlayersPreviewList"></div>
+            <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
             <div class="tables-progress-title tables-section-padding">Активные игроки</div>
             <div class="tables-progress tables-section-padding">
@@ -868,6 +870,22 @@
                 <button class="tables-action-button" id="changeDealerButton">Сменить дилера</button>
                 <button class="tables-action-button" id="tournamentTimerToggleButton">Остановить таймер</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Экран всех игроков (для админа) -->
+    <div id="allPlayersScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="allPlayersTournamentTitle">King & Joker Tournament</div>
+                    <div class="tournament-date" id="allPlayersInfo">Все игроки турнира</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="allPlayersList"></div>
         </div>
     </div>
 
@@ -1041,6 +1059,7 @@
         let selectedBox = null;
         let currentBoxes = null;
         let pendingOperations = new Set();
+        let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1049,6 +1068,7 @@
         const loadingScreen = document.getElementById('loadingScreen');
         const errorScreen = document.getElementById('errorScreen');
         const tablesScreen = document.getElementById('tablesScreen');
+        const allPlayersScreen = document.getElementById('allPlayersScreen');
         const playerSelectionScreen = document.getElementById('playerSelectionScreen');
         const actionScreen = document.getElementById('actionScreen');
         const tournamentTitle = document.getElementById('tournamentTitle');
@@ -1060,6 +1080,10 @@
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
         const tablesList = document.getElementById('tablesList');
+        const allPlayersPreviewList = document.getElementById('allPlayersPreviewList');
+        const allPlayersList = document.getElementById('allPlayersList');
+        const allPlayersTournamentTitle = document.getElementById('allPlayersTournamentTitle');
+        const allPlayersInfo = document.getElementById('allPlayersInfo');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
         const selectedPlayerRoleBadge = document.getElementById('selectedPlayerRoleBadge');
         const selectedPlayerRating = document.getElementById('selectedPlayerRating');
@@ -1590,6 +1614,7 @@
             errorScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
+            allPlayersScreen.classList.add('hidden');
             tablesScreen.classList.remove('hidden');
 
             // На корневом экране админа (список столов) системная кнопка "Назад" скрыта
@@ -1707,6 +1732,7 @@
                 `;
 
                 button.addEventListener('click', () => {
+                    cameFromAllPlayers = false; // Сбрасываем флаг при переходе со списка столов
                     currentTableId = table.id;
                     applySnapshotToUI();
                     updatePlayersList();
@@ -1729,6 +1755,225 @@
                 });
 
                 tablesList.appendChild(button);
+            });
+
+            // Рендерим превью списка всех игроков
+            renderAllPlayersPreview();
+        }
+
+        // Получить всех игроков турнира из всех столов
+        function getAllTournamentPlayers() {
+            if (!fullTournamentData || !fullTournamentData.tournament) return [];
+            
+            const tables = fullTournamentData.tournament.tables || [];
+            const allPlayers = [];
+            
+            tables.forEach(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                players.forEach(player => {
+                    // Добавляем информацию о столе к игроку
+                    allPlayers.push({
+                        ...player,
+                        tableId: table.id
+                    });
+                });
+            });
+            
+            // Сортировка: активные игроки сверху, завершившие - снизу по времени финиша
+            allPlayers.sort((a, b) => {
+                const aFinished = !!a.finishTime;
+                const bFinished = !!b.finishTime;
+                
+                if (aFinished && !bFinished) return 1;
+                if (!aFinished && bFinished) return -1;
+                
+                if (aFinished && bFinished) {
+                    return new Date(a.finishTime) - new Date(b.finishTime);
+                }
+                
+                // Оба активные - сортируем по столу, потом по боксу
+                if (a.tableId !== b.tableId) return a.tableId - b.tableId;
+                return (a.box || 0) - (b.box || 0);
+            });
+            
+            return allPlayers;
+        }
+
+        // Рендер превью списка всех игроков на экране столов (кнопка для перехода)
+        function renderAllPlayersPreview() {
+            if (!allPlayersPreviewList) return;
+            
+            const allPlayers = getAllTournamentPlayers();
+            const activePlayers = allPlayers.filter(p => !p.finishTime);
+            const finishedPlayers = allPlayers.filter(p => !!p.finishTime);
+            
+            allPlayersPreviewList.innerHTML = '';
+            
+            const button = document.createElement('button');
+            button.classList.add('player-button');
+            
+            button.innerHTML = `
+                <div class="table-indicator">${allPlayers.length}</div>
+                <div class="player-info">
+                    <div class="player-nickname">Все игроки турнира</div>
+                    <div class="player-name">В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            
+            button.addEventListener('click', () => {
+                showAllPlayersScreen();
+            });
+            
+            allPlayersPreviewList.appendChild(button);
+        }
+
+        // Показать экран со всеми игроками
+        function showAllPlayersScreen() {
+            if (!fullTournamentData || !fullTournamentData.tournament) {
+                return;
+            }
+            
+            loadingScreen.classList.add('hidden');
+            errorScreen.classList.add('hidden');
+            tablesScreen.classList.add('hidden');
+            playerSelectionScreen.classList.add('hidden');
+            actionScreen.classList.add('hidden');
+            allPlayersScreen.classList.remove('hidden');
+            
+            // Заголовок
+            if (allPlayersTournamentTitle) {
+                allPlayersTournamentTitle.textContent = fullTournamentData.tournament.title || 'Турнир';
+            }
+            
+            const allPlayers = getAllTournamentPlayers();
+            const activePlayers = allPlayers.filter(p => !p.finishTime);
+            const finishedPlayers = allPlayers.filter(p => !!p.finishTime);
+            
+            if (allPlayersInfo) {
+                allPlayersInfo.textContent = `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
+            }
+            
+            renderAllPlayersList();
+            
+            // Кнопка назад ведёт к списку столов
+            showTelegramBackButton(backToTablesFromAllPlayers);
+        }
+
+        // Возврат с экрана всех игроков к списку столов
+        function backToTablesFromAllPlayers() {
+            allPlayersScreen.classList.add('hidden');
+            showTablesScreen();
+        }
+
+        // Рендер полного списка всех игроков
+        function renderAllPlayersList() {
+            if (!allPlayersList) return;
+            
+            const allPlayers = getAllTournamentPlayers();
+            allPlayersList.innerHTML = '';
+            
+            allPlayers.forEach(player => {
+                const button = document.createElement('button');
+                button.classList.add('player-button');
+                
+                const isFinished = !!player.finishTime;
+                const nicknameDisplay = player.nickname || 'Игрок';
+                const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+                
+                const positionClass = isFinished
+                    ? 'finished'
+                    : player.dealer
+                        ? 'dealer'
+                        : 'playing';
+                
+                // Показываем номер стола и бокс
+                const tableBoxInfo = `Стол ${player.tableId}, бокс ${player.box || '?'}`;
+                
+                button.innerHTML = `
+                    <div class="position-indicator ${positionClass}">
+                        ${player.box || '?'}
+                    </div>
+                    <div class="player-info">
+                        <div class="player-nickname">${nicknameDisplay}</div>
+                        <div class="player-name">${playerName} • ${tableBoxInfo}</div>
+                    </div>
+                    <div class="player-rebuys"></div>
+                    <div class="chevron"></div>
+                `;
+                
+                const rebuysElement = button.querySelector('.player-rebuys');
+                
+                if (isFinished) {
+                    // Для завершенных игроков показываем место
+                    if (rebuysElement) {
+                        rebuysElement.style.display = 'none';
+                    }
+                    const globalPlace = globalFinishPlaces.get(player.id) || '?';
+                    const finishTime = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : 'неизвестно';
+                    
+                    const finishInfoContainer = document.createElement('div');
+                    finishInfoContainer.className = 'player-finish-info';
+                    const place = Number(globalPlace);
+                    let badgeClass = 'player-position-badge';
+                    if (place === 1) badgeClass += ' gold';
+                    else if (place === 2) badgeClass += ' silver';
+                    else if (place === 3) badgeClass += ' bronze';
+
+                    finishInfoContainer.innerHTML = `
+                        <div class="player-position"><span class="${badgeClass}">${globalPlace}</span> место</div>
+                        <div class="finish-time">${finishTime}</div>
+                    `;
+                    const chevron = button.querySelector('.chevron');
+                    button.insertBefore(finishInfoContainer, chevron);
+                    button.style.opacity = '0.5';
+                } else {
+                    // Активный игрок - показываем ребаи
+                    if (rebuysElement) {
+                        rebuysElement.style.display = 'flex';
+                        rebuysElement.innerHTML = '';
+                        const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
+                        for (let i = 0; i < 2; i++) {
+                            const dot = document.createElement('div');
+                            dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                            rebuysElement.appendChild(dot);
+                        }
+                    }
+                }
+                
+                // Клик по игроку - переход к его столу и карточке
+                button.addEventListener('click', () => {
+                    // Устанавливаем флаг, что пришли с экрана всех игроков
+                    cameFromAllPlayers = true;
+                    
+                    // Устанавливаем стол игрока и открываем его карточку
+                    currentTableId = player.tableId;
+                    applySnapshotToUI();
+                    updatePlayersList();
+                    
+                    // Скрываем экран всех игроков
+                    allPlayersScreen.classList.add('hidden');
+                    
+                    // Скрываем кнопки ребай/финиш для админа (если он не дилер этого стола)
+                    const selectedTable = getSelectedTable();
+                    const isViewerDealerHere = selectedTable && Array.isArray(selectedTable.players) 
+                        ? selectedTable.players.some(p => String(p.id) === String(viewerChatId) && p.dealer)
+                        : false;
+                    
+                    if (rebuyButton) {
+                        rebuyButton.style.display = isViewerDealerHere ? '' : 'none';
+                    }
+                    if (finishButton) {
+                        finishButton.style.display = isViewerDealerHere ? '' : 'none';
+                    }
+                    
+                    // Открываем карточку игрока
+                    if (player.box) {
+                        selectBox(player.box);
+                    }
+                });
+                
+                allPlayersList.appendChild(button);
             });
         }
 
@@ -2047,10 +2292,23 @@
             }
 
             if (isPrivilegedHere) {
-                showTelegramBackButton(backToPlayerList);
+                // Если пришли с экрана всех игроков - кнопка назад ведёт туда
+                if (cameFromAllPlayers) {
+                    showTelegramBackButton(backToAllPlayersFromAction);
+                } else {
+                    showTelegramBackButton(backToPlayerList);
+                }
             } else {
                 hideTelegramBackButton();
             }
+        }
+
+        // Возврат с карточки игрока к экрану всех игроков
+        function backToAllPlayersFromAction() {
+            actionScreen.classList.add('hidden');
+            cameFromAllPlayers = false;
+            selectedBox = null;
+            showAllPlayersScreen();
         }
 
         // Новые функции обновления состояния кнопок для player из API
@@ -2080,6 +2338,8 @@
         function showLoading() {
             loadingScreen.classList.remove('hidden');
             errorScreen.classList.add('hidden');
+            tablesScreen.classList.add('hidden');
+            allPlayersScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
         }
@@ -2088,6 +2348,8 @@
             errorText.textContent = message;
             loadingScreen.classList.add('hidden');
             errorScreen.classList.remove('hidden');
+            tablesScreen.classList.add('hidden');
+            allPlayersScreen.classList.add('hidden');
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
         }
@@ -2095,6 +2357,8 @@
         function showPlayerSelection() {
             loadingScreen.classList.add('hidden');
             errorScreen.classList.add('hidden');
+            tablesScreen.classList.add('hidden');
+            allPlayersScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
             actionScreen.classList.add('hidden');
 
@@ -2179,6 +2443,7 @@
             actionScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
             selectedBox = null;
+            cameFromAllPlayers = false; // Сбрасываем флаг
 
             // После возврата к списку игроков у админа кнопка Telegram ведёт обратно к списку столов
             if (viewerIsAdmin) {
