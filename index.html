@@ -1971,6 +1971,11 @@
                 const button = document.createElement('button');
                 button.classList.add('player-button');
                 
+                // Подсветка вызывающего админа игрока
+                if (player.adminCall) {
+                    button.classList.add('admin-call-active');
+                }
+                
                 const isFinished = !!player.finishTime;
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
@@ -2548,6 +2553,11 @@
                     
                     // Проверяем, есть ли активная операция для этого бокса
                     const isPending = pendingOperations.has(box);
+                    
+                    // Подсветка вызывающего админа игрока
+                    if (player.adminCall) {
+                        button.classList.add('admin-call-active');
+                    }
 
                     const positionClass = isFinished
                         ? 'finished'
