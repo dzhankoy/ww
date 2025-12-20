@@ -1123,6 +1123,7 @@
         let currentBoxes = null;
         let pendingOperations = new Set();
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
+        let previousAdminCalls = []; // Предыдущий список вызовов админа
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1429,6 +1430,9 @@
                 // Отладка: выводим в консоль что пришло от API
                 console.log('📦 API Response:', fullData);
                 console.log('👥 Players from DB:', fullData.players);
+                
+                // Обработка вызовов админа
+                handleAdminCalls(fullData.tournament.adminCalls || []);
                 
                 recalculateGlobalFinishPlaces();
                 applySnapshotToUI();
@@ -1851,6 +1855,7 @@
             if (!fullTournamentData || !fullTournamentData.tournament) return [];
             
             const tables = fullTournamentData.tournament.tables || [];
+            const adminCalls = fullTournamentData.tournament.adminCalls || [];
             const allPlayers = [];
             
             tables.forEach(table => {
@@ -1859,7 +1864,8 @@
                     // Добавляем информацию о столе к игроку
                     allPlayers.push({
                         ...player,
-                        tableId: table.id
+                        tableId: table.id,
+                        adminCall: adminCalls.includes(player.id)
                     });
                 });
             });
@@ -2671,6 +2677,11 @@
                 console.error('No player in box', box);
                 return;
             }
+            
+            // Если у игрока активен вызов админа - снимаем его
+            if (player.adminCall && viewerIsAdmin) {
+                clearAdminCall(player.id);
+            }
 
             selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
             const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
@@ -3112,19 +3123,59 @@
 
         // Звуковой сигнал
         const signalSound = new Audio('UVB-76.ogg');
-        signalSound.loop = true;
+        
+        function playAdminCallSound() {
+            signalSound.play().catch(err => console.log('Sound play failed:', err));
+        }
+        
         if (playSoundButton) {
             playSoundButton.addEventListener('click', () => {
-                if (signalSound.paused) {
-                    signalSound.currentTime = 0;
-                    signalSound.play();
-                    playSoundButton.textContent = '🔇 Стоп';
-                } else {
-                    signalSound.pause();
-                    signalSound.currentTime = 0;
-                    playSoundButton.textContent = '🔊 Сигнал';
-                }
+                playAdminCallSound();
             });
+        }
+        
+        // Обработка вызовов админа
+        function handleAdminCalls(newAdminCalls) {
+            // Проверяем есть ли новые вызовы
+            const newCalls = newAdminCalls.filter(chatId => !previousAdminCalls.includes(chatId));
+            
+            // Если есть новые вызовы и пользователь админ - запускаем мелодию
+            if (newCalls.length > 0 && viewerIsAdmin) {
+                console.log('🔔 Новый вызов админа от:', newCalls);
+                playAdminCallSound();
+            }
+            
+            // Сохраняем текущий список для следующего сравнения
+            previousAdminCalls = [...newAdminCalls];
+        }
+        
+        // Снятие вызова админа
+        async function clearAdminCall(playerId) {
+            try {
+                const event = {
+                    type: 'clear_admin_call',
+                    userId: tgInitData.user?.id,
+                    chatId: playerId,
+                    data: { player_id: playerId }
+                };
+                
+                const response = await fetch(CONFIG.TOURNAMENT_EVENTS_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(event)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                console.log('✅ Вызов админа снят для игрока:', playerId);
+                
+            } catch (error) {
+                console.error('Ошибка при снятии вызова админа:', error);
+            }
         }
 
         retryButton.addEventListener('click', loadTournamentData);
