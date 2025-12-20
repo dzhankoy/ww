@@ -649,6 +649,7 @@
         }
         
         .player-photo {
+            position: relative;
             width: var(--photo-size-lg);
             height: var(--photo-size-lg);
             border-radius: calc(var(--photo-size-lg) / 2);
@@ -658,9 +659,20 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            border: 4px solid var(--card-bg);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid var(--bg-color);
             font-size: 80px;
+        }
+        
+        .player-photo::after {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: calc(var(--photo-size-lg) / 2 + 4px);
+            border: 2px solid var(--text-color);
+            pointer-events: none;
         }
         
         .action-info {
@@ -761,6 +773,10 @@
                 font-size: 90px;
             }
             
+            .player-photo::after {
+                border-radius: calc(var(--photo-size-md) / 2 + 4px);
+            }
+            
             .tournament-title,
             .player-title {
                 font-size: 24px;
@@ -818,6 +834,10 @@
                 height: var(--photo-size-sm);
                 border-radius: calc(var(--photo-size-sm) / 2);
                 font-size: 80px;
+            }
+            
+            .player-photo::after {
+                border-radius: calc(var(--photo-size-sm) / 2 + 4px);
             }
         }
     </style>
@@ -2777,11 +2797,15 @@
 
         function updateFinishButtonStateForPlayer(player) {
             const isFinished = !!player.finishTime;
+            const finishButtonText = finishButton.querySelector('span');
             if (isFinished) {
                 finishButton.disabled = true;
+                const place = globalFinishPlaces.get(player.id) || '?';
+                if (finishButtonText) finishButtonText.textContent = `Игрок занял ${place} место`;
                 finishInfo.textContent = formatFinishTimeInfo(player.finishTime);
             } else {
                 finishButton.disabled = false;
+                if (finishButtonText) finishButtonText.textContent = 'Игрок вылетел';
                 finishInfo.textContent = '';
             }
         }
