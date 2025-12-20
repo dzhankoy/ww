@@ -605,6 +605,56 @@
             background-color: var(--bronze);
             color: #fff;
         }
+
+        /* === Переопределения для светлой темы === */
+        body.light-theme .player-position-badge {
+            background-color: #333;
+            color: #fff;
+        }
+        
+        body.light-theme .player-position-badge.gold {
+            background-color: var(--gold);
+            color: #000;
+        }
+        
+        body.light-theme .player-position-badge.silver {
+            background-color: var(--silver);
+            color: #000;
+        }
+        
+        body.light-theme .player-position-badge.bronze {
+            background-color: var(--bronze);
+            color: #fff;
+        }
+        
+        body.light-theme .position-indicator::after {
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+        
+        body.light-theme .position-indicator.playing::after {
+            border-color: var(--green);
+        }
+        
+        body.light-theme .position-indicator.dealer::after {
+            border-color: var(--blue);
+        }
+        
+        body.light-theme .position-indicator.finished::after,
+        body.light-theme .position-indicator.empty::after {
+            border-color: var(--border-color);
+        }
+        
+        body.light-theme .position-indicator.gold::after {
+            border-color: var(--gold);
+        }
+        
+        body.light-theme .position-indicator.silver::after {
+            border-color: var(--silver);
+        }
+        
+        body.light-theme .position-indicator.bronze::after {
+            border-color: var(--bronze);
+        }
         
         .finish-time {
             font-size: 14px;
@@ -1023,6 +1073,15 @@
             root.style.setProperty('--text-color', textColor);
             root.style.setProperty('--secondary-text', secondaryText);
             root.style.setProperty('--border-color', borderColor);
+            
+            // Добавляем класс темы на body для CSS переопределений
+            if (colorScheme === 'light') {
+                document.body.classList.add('light-theme');
+                document.body.classList.remove('dark-theme');
+            } else {
+                document.body.classList.add('dark-theme');
+                document.body.classList.remove('light-theme');
+            }
         }
 
         applyTelegramTheme();
