@@ -1438,13 +1438,13 @@
                 console.log('📦 API Response:', fullData);
                 console.log('👥 Players from DB:', fullData.players);
                 
-                // Обработка вызовов админа
-                handleAdminCalls(fullData.tournament.adminCalls || []);
-                
                 recalculateGlobalFinishPlaces();
                 applySnapshotToUI();
                 updatePlayersList();
                 applyRoleBasedInitialView();
+                
+                // Обработка вызовов админа (после определения роли!)
+                handleAdminCalls(fullData.tournament.adminCalls || []);
                 
             } catch (error) {
                 console.error('Error loading tournament data:', error);
@@ -3168,7 +3168,7 @@
         
         // Обработка вызовов админа
         function handleAdminCalls(newAdminCalls) {
-            // Проверяем есть ли новые вызовы
+            // Проверяем есть ли новые вызовы (которых не было в предыдущем списке)
             const newCalls = newAdminCalls.filter(chatId => !previousAdminCalls.includes(chatId));
             
             // Если есть новые вызовы и пользователь админ - запускаем мелодию
