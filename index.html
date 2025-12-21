@@ -2691,6 +2691,9 @@
                 applySnapshotToUI();
                 updatePlayersList();
                 
+                // Обработка вызовов админа при обновлении данных
+                handleAdminCalls(fullData.tournament.adminCalls || []);
+                
             } catch (error) {
                 console.error('Error refreshing tournament data:', error);
             }
