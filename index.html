@@ -1446,6 +1446,9 @@
                 // Обработка вызовов админа (после определения роли!)
                 handleAdminCalls(fullData.tournament.adminCalls || []);
                 
+                // Обновляем состояние кнопок вызова админа
+                updateAdminButtonState();
+                
             } catch (error) {
                 console.error('Error loading tournament data:', error);
                 showError(`Не удалось загрузить данные: ${error.message}`);
@@ -2705,6 +2708,9 @@
                 // Обработка вызовов админа при обновлении данных
                 handleAdminCalls(fullData.tournament.adminCalls || []);
                 
+                // Обновляем состояние кнопок вызова админа
+                updateAdminButtonState();
+                
             } catch (error) {
                 console.error('Error refreshing tournament data:', error);
             }
@@ -3105,6 +3111,16 @@
 
         async function handleAdminCall() {
             try {
+                // Блокируем кнопки и меняем текст
+                if (adminButton) {
+                    adminButton.disabled = true;
+                    adminButton.textContent = 'Администратор вызван';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.disabled = true;
+                    playerAdminButton.textContent = 'Администратор вызван';
+                }
+                
                 const currentTableNumber = tableNumber.textContent;
                 const currentDealerName = dealerName.textContent;
                 
@@ -3133,6 +3149,15 @@
                 }
             } catch (error) {
                 console.error('Error calling admin:', error);
+                // В случае ошибки возвращаем кнопки в исходное состояние
+                if (adminButton) {
+                    adminButton.disabled = false;
+                    adminButton.textContent = 'Позвать администратора';
+                }
+                if (playerAdminButton) {
+                    playerAdminButton.disabled = false;
+                    playerAdminButton.textContent = 'Позвать администратора';
+                }
             }
         }
 
@@ -3178,6 +3203,36 @@
             playSoundButton.addEventListener('click', () => {
                 playAdminCallSound();
             });
+        }
+        
+        // Функция для обновления состояния кнопок вызова админа
+        function updateAdminButtonState() {
+            if (!viewerChatId || !fullTournamentData) return;
+            
+            const adminCalls = fullTournamentData?.tournament?.adminCalls || [];
+            const isCallingAdmin = adminCalls.includes(viewerChatId);
+            
+            // Обновляем кнопку на главном экране стола
+            if (adminButton) {
+                if (isCallingAdmin) {
+                    adminButton.disabled = true;
+                    adminButton.textContent = 'Администратор вызван';
+                } else {
+                    adminButton.disabled = false;
+                    adminButton.textContent = 'Позвать администратора';
+                }
+            }
+            
+            // Обновляем кнопку на карточке игрока
+            if (playerAdminButton) {
+                if (isCallingAdmin) {
+                    playerAdminButton.disabled = true;
+                    playerAdminButton.textContent = 'Администратор вызван';
+                } else {
+                    playerAdminButton.disabled = false;
+                    playerAdminButton.textContent = 'Позвать администратора';
+                }
+            }
         }
         
         // Обработка вызовов админа
