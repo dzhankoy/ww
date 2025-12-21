@@ -2691,6 +2691,17 @@
                 applySnapshotToUI();
                 updatePlayersList();
                 
+                // Обновляем списки если они открыты
+                if (!tablesScreen.classList.contains('hidden')) {
+                    renderTablesList();
+                }
+                if (!allPlayersScreen.classList.contains('hidden')) {
+                    renderAllPlayersList();
+                }
+                if (!dbPlayersScreen.classList.contains('hidden')) {
+                    renderDbPlayersList();
+                }
+                
                 // Обработка вызовов админа при обновлении данных
                 handleAdminCalls(fullData.tournament.adminCalls || []);
                 
