@@ -3195,7 +3195,26 @@
         // Звуковой сигнал
         const signalSound = new Audio('UVB-76.ogg');
         
+        function triggerAdminCallHaptic() {
+            try {
+                if (!tg || !tg.HapticFeedback) return;
+                
+                if (typeof tg.HapticFeedback.notificationOccurred === 'function') {
+                    tg.HapticFeedback.notificationOccurred('warning');
+                }
+                
+                if (typeof tg.HapticFeedback.impactOccurred === 'function') {
+                    setTimeout(() => tg.HapticFeedback.impactOccurred('heavy'), 120);
+                    setTimeout(() => tg.HapticFeedback.impactOccurred('heavy'), 360);
+                    setTimeout(() => tg.HapticFeedback.impactOccurred('heavy'), 600);
+                }
+            } catch (err) {
+                console.log('Haptic feedback failed:', err);
+            }
+        }
+        
         function playAdminCallSound() {
+            triggerAdminCallHaptic();
             signalSound.play().catch(err => console.log('Sound play failed:', err));
         }
         
