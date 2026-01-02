@@ -2812,20 +2812,26 @@
             }
             
             // Фото игрока
-            const testPhotoUrl = 'avatar.png';
+            const playerPhotoUrl = `http://194.87.133.77/${player.id}.jpg`;
             if (playerPhotoImage) {
                 playerPhotoImage.style.display = 'none';
                 playerPhotoImage.onload = () => {
                     playerPhotoImage.style.display = 'block';
+                    if (playerEmoji) {
+                        playerEmoji.style.display = 'none';
+                    }
                 };
                 playerPhotoImage.onerror = () => {
                     playerPhotoImage.style.display = 'none';
+                    if (playerEmoji) {
+                        playerEmoji.style.display = 'block';
+                    }
                 };
-                playerPhotoImage.src = testPhotoUrl;
+                playerPhotoImage.src = playerPhotoUrl;
             }
 
-            if (playerEmoji) {
-                playerEmoji.style.display = 'none';
+            if (playerEmoji && (!playerPhotoImage || !playerPhotoImage.src)) {
+                playerEmoji.style.display = 'block';
             }
             
             updateRebuyButtonStateForPlayer(player);
