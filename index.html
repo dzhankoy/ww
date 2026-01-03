@@ -1084,6 +1084,7 @@
         const CONFIG = {
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
             TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
+            PHOTOS_BASE_URL: 'https://194.87.133.77',
             REFRESH_INTERVAL: 30000,
             REQUEST_TIMEOUT: 10000
         };
@@ -2810,7 +2811,7 @@
             }
             
             // Фото игрока
-            const playerPhotoUrl = `https://194.87.133.77/${player.id}.jpg`;
+            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg`;
             if (playerPhotoImage) {
                 let fallbackApplied = false;
                 playerPhotoImage.style.display = 'none';
