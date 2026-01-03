@@ -985,7 +985,6 @@
         </div>
         <div class="player-photo">
             <img id="playerPhotoImage" src="" alt="Фото игрока" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-            <span id="playerEmoji">👤</span>
         </div>
         <div class="action-buttons">
             <button class="action-button rebuy" id="rebuyButton">
@@ -1171,7 +1170,6 @@
         const dateTimeFooterElement = document.getElementById('dateTimeFooter');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
-        const playerEmoji = document.getElementById('playerEmoji');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
         const rebuyButton = document.getElementById('rebuyButton');
         const finishButton = document.getElementById('finishButton');
@@ -2814,24 +2812,21 @@
             // Фото игрока
             const playerPhotoUrl = `https://194.87.133.77/${player.id}.jpg`;
             if (playerPhotoImage) {
+                let fallbackApplied = false;
                 playerPhotoImage.style.display = 'none';
                 playerPhotoImage.onload = () => {
                     playerPhotoImage.style.display = 'block';
-                    if (playerEmoji) {
-                        playerEmoji.style.display = 'none';
-                    }
                 };
                 playerPhotoImage.onerror = () => {
-                    playerPhotoImage.style.display = 'none';
-                    if (playerEmoji) {
-                        playerEmoji.style.display = 'block';
+                    if (fallbackApplied) {
+                        playerPhotoImage.style.display = 'block';
+                        return;
                     }
+                    fallbackApplied = true;
+                    playerPhotoImage.src = 'avatar.png';
+                    playerPhotoImage.style.display = 'block';
                 };
                 playerPhotoImage.src = playerPhotoUrl;
-            }
-
-            if (playerEmoji && (!playerPhotoImage || !playerPhotoImage.src)) {
-                playerEmoji.style.display = 'block';
             }
             
             updateRebuyButtonStateForPlayer(player);
