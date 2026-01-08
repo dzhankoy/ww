@@ -2246,21 +2246,17 @@
             const dbPlayers = fullTournamentData?.tournament?.players || [];
             dbPlayersList.innerHTML = '';
             
-            // Сортируем по дате регистрации (reg_date), если нет - по ID
+            // Сортируем по рейтингу (по убыванию), если рейтинг одинаковый - по ID
             const sortedPlayers = [...dbPlayers].sort((a, b) => {
-                const dateA = parseRegDate(a.reg_date);
-                const dateB = parseRegDate(b.reg_date);
+                const ratingA = a.rating || 0;
+                const ratingB = b.rating || 0;
                 
-                // Если обе даты есть - сортируем по ним (раньше = выше)
-                if (dateA && dateB) {
-                    return dateA.getTime() - dateB.getTime();
+                // Сортируем по рейтингу (больший рейтинг = выше)
+                if (ratingB !== ratingA) {
+                    return ratingB - ratingA;
                 }
                 
-                // Если только одна дата есть - она выше
-                if (dateA && !dateB) return -1;
-                if (!dateA && dateB) return 1;
-                
-                // Если дат нет - сортируем по ID
+                // Если рейтинг одинаковый - по ID
                 return (a.id || 0) - (b.id || 0);
             });
             
