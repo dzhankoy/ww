@@ -1123,6 +1123,7 @@
         let gameStartTime = null;
         let currentTableId = null;
         let globalFinishPlaces = new Map();
+        let globalRatingPlaces = new Map();
         let tournamentStatsCache = null;
         let viewerIsAdmin = false;
         let viewerAdminName = '';
@@ -1445,6 +1446,7 @@
                 console.log('👥 Players from DB:', fullData.players);
                 
                 recalculateGlobalFinishPlaces();
+                recalculateGlobalRatingPlaces();
                 applySnapshotToUI();
                 updatePlayersList();
                 applyRoleBasedInitialView();
@@ -1527,6 +1529,31 @@
             sorted.forEach(([playerId], index) => {
                 const placeFromEnd = totalPlayers - index;
                 globalFinishPlaces.set(playerId, placeFromEnd);
+            });
+        }
+
+        function recalculateGlobalRatingPlaces() {
+            globalRatingPlaces.clear();
+
+            const dbPlayers = fullTournamentData?.tournament?.players || [];
+            if (dbPlayers.length === 0) return;
+
+            // Фильтруем игроков с рейтингом > 0 и сортируем по убыванию
+            const playersWithRating = dbPlayers
+                .filter(p => p.rating && p.rating > 0)
+                .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+            // Присваиваем места с учётом одинаковых рейтингов
+            let currentPlace = 0;
+            let previousRating = null;
+            let skipCount = 0;
+
+            playersWithRating.forEach((player, index) => {
+                if (player.rating !== previousRating) {
+                    currentPlace = index + 1;
+                    previousRating = player.rating;
+                }
+                globalRatingPlaces.set(player.id, currentPlace);
             });
         }
 
@@ -2244,6 +2271,8 @@
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                 const ratingDisplay = player.rating ? `${player.rating}` : '0';
+                const ratingPlace = globalRatingPlaces.get(player.id);
+                const ratingWithPlace = ratingPlace ? `${ratingDisplay} (#${ratingPlace})` : ratingDisplay;
                 const regDateDisplay = formatRegDate(player.reg_date);
                 
                 // Определяем статус игрока
@@ -2251,7 +2280,7 @@
                 const statusClass = isRegistered ? 'playing' : 'finished';
                 
                 // Формируем строку с информацией
-                let infoLine = `Рейтинг: ${ratingDisplay}`;
+                let infoLine = `Рейтинг: ${ratingWithPlace}`;
                 if (regDateDisplay) {
                     infoLine = `${regDateDisplay} • ${infoLine}`;
                 }
@@ -2287,12 +2316,14 @@
             const nickname = player.nickname || 'Неизвестно';
             const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
             const rating = player.rating || 0;
+            const ratingPlace = globalRatingPlaces.get(player.id);
+            const ratingWithPlace = ratingPlace ? `${rating} (#${ratingPlace})` : `${rating}`;
             const username = player.username || '';
             const isRegistered = player.isRegistered ? 'Да' : 'Нет';
             const isAdmin = player.isAdmin ? 'Да' : 'Нет';
             const regDate = formatRegDate(player.reg_date) || 'Не указана';
             
-            const message = `${fullName}\nРейтинг: ${rating}\nРегистрация: ${regDate}\nВ турнире: ${isRegistered}\nАдмин: ${isAdmin}`;
+            const message = `${fullName}\nРейтинг: ${ratingWithPlace}\nРегистрация: ${regDate}\nВ турнире: ${isRegistered}\nАдмин: ${isAdmin}`;
             
             // Кнопки для попапа
             const buttons = [];
@@ -2695,6 +2726,7 @@
 
                 fullTournamentData = fullData;
                 recalculateGlobalFinishPlaces();
+                recalculateGlobalRatingPlaces();
 
                 // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
                 applySnapshotToUI();
@@ -2802,7 +2834,9 @@
 
             if (selectedPlayerRating) {
                 if (ratingText) {
-                    selectedPlayerRating.textContent = ratingText;
+                    const ratingPlace = globalRatingPlaces.get(player.id);
+                    const ratingDisplayText = ratingPlace ? `${ratingText} (#${ratingPlace})` : ratingText;
+                    selectedPlayerRating.textContent = ratingDisplayText;
                     selectedPlayerRating.style.display = 'inline-flex';
                 } else {
                     selectedPlayerRating.textContent = '';
