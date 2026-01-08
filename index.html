@@ -1906,18 +1906,20 @@
 
         // Рендер списка вызовов админа на главном экране
         function renderAdminCallsList() {
-            if (!adminCallsSection || !adminCallsList) return;
+            const section = document.getElementById('adminCallsSection');
+            const list = document.getElementById('adminCallsList');
+            if (!section || !list) return;
             
             const adminCalls = fullTournamentData?.tournament?.adminCalls || [];
             
             // Скрываем секцию если нет вызовов
             if (adminCalls.length === 0) {
-                adminCallsSection.style.display = 'none';
+                section.style.display = 'none';
                 return;
             }
             
-            adminCallsSection.style.display = '';
-            adminCallsList.innerHTML = '';
+            section.style.display = 'block';
+            list.innerHTML = '';
             
             // Получаем данные игроков с вызовами
             const tables = fullTournamentData?.tournament?.tables || [];
@@ -1966,7 +1968,7 @@
                     selectBox(player.box);
                 });
                 
-                adminCallsList.appendChild(button);
+                list.appendChild(button);
             });
         }
 
