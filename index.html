@@ -873,6 +873,10 @@
             <div class="tables-aggregates-title">Статистика турнира</div>
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
         </div>
+        <div class="players-list-container tables-section-block" id="adminCallsSection" style="display: none;">
+            <div class="tables-active-title tables-section-padding" style="color: var(--yellow);">🔔 Вызовы</div>
+            <div class="players-list" id="adminCallsList"></div>
+        </div>
         <div class="players-list-container tables-section-block">
             <div class="tables-active-title tables-section-padding">Игроки турнира</div>
             <div class="players-list" id="allPlayersPreviewList"></div>
@@ -1153,6 +1157,8 @@
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
         const tablesList = document.getElementById('tablesList');
+        const adminCallsSection = document.getElementById('adminCallsSection');
+        const adminCallsList = document.getElementById('adminCallsList');
         const allPlayersPreviewList = document.getElementById('allPlayersPreviewList');
         const allPlayersList = document.getElementById('allPlayersList');
         const allPlayersTournamentTitle = document.getElementById('allPlayersTournamentTitle');
@@ -1893,6 +1899,75 @@
             
             // Рендерим превью списка турниров
             renderTournamentsPreview();
+            
+            // Рендерим список вызовов админа
+            renderAdminCallsList();
+        }
+
+        // Рендер списка вызовов админа на главном экране
+        function renderAdminCallsList() {
+            if (!adminCallsSection || !adminCallsList) return;
+            
+            const adminCalls = fullTournamentData?.tournament?.adminCalls || [];
+            
+            // Скрываем секцию если нет вызовов
+            if (adminCalls.length === 0) {
+                adminCallsSection.style.display = 'none';
+                return;
+            }
+            
+            adminCallsSection.style.display = '';
+            adminCallsList.innerHTML = '';
+            
+            // Получаем данные игроков с вызовами
+            const tables = fullTournamentData?.tournament?.tables || [];
+            const playersWithCalls = [];
+            
+            tables.forEach(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                players.forEach(player => {
+                    if (adminCalls.includes(player.id)) {
+                        playersWithCalls.push({
+                            ...player,
+                            tableId: table.id
+                        });
+                    }
+                });
+            });
+            
+            playersWithCalls.forEach(player => {
+                const button = document.createElement('button');
+                button.classList.add('player-button', 'admin-call-active');
+                
+                const nicknameDisplay = player.nickname || 'Игрок';
+                const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+                const tableBoxInfo = `Стол ${player.tableId}, бокс ${player.box || '?'}`;
+                
+                button.innerHTML = `
+                    <div class="position-indicator playing">
+                        ${player.box || '?'}
+                    </div>
+                    <div class="player-info">
+                        <div class="player-nickname">🔔 ${nicknameDisplay}</div>
+                        <div class="player-name">${playerName} • ${tableBoxInfo}</div>
+                    </div>
+                    <div class="chevron"></div>
+                `;
+                
+                // Клик по игроку - переход к его столу и карточке
+                button.addEventListener('click', () => {
+                    cameFromAllPlayers = false;
+                    currentTableId = player.tableId;
+                    applySnapshotToUI();
+                    updatePlayersList();
+                    tablesScreen.classList.add('hidden');
+                    
+                    // Показываем карточку игрока
+                    selectBox(player.box);
+                });
+                
+                adminCallsList.appendChild(button);
+            });
         }
 
         // Получить всех игроков турнира из всех столов
