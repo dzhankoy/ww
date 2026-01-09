@@ -3017,31 +3017,39 @@
             // Даты: день рождения и регистрация
             if (selectedPlayerDates) {
                 const dbPlayer = getDbPlayerById(player.id);
-                const datesParts = [];
+                const lines = [];
                 
+                // Строка 1: ДР и дата регистрации
+                const line1Parts = [];
                 if (dbPlayer?.birthday) {
                     const daysUntilBirthday = getDaysUntilDate(dbPlayer.birthday, false);
                     const birthdayText = daysUntilBirthday !== null 
                         ? `🎂 ${dbPlayer.birthday} (${daysUntilBirthday === 0 ? 'сегодня!' : daysUntilBirthday + ' дн.'})`
                         : `🎂 ${dbPlayer.birthday}`;
-                    datesParts.push(`<span class="table-label">${birthdayText}</span>`);
+                    line1Parts.push(birthdayText);
                 }
-                
                 if (dbPlayer?.reg_date) {
                     const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
-                    const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
                     let regText = `📅 ${dbPlayer.reg_date}`;
                     if (daysUntilAnniversary !== null) {
                         regText += ` (${daysUntilAnniversary === 0 ? 'годовщина!' : daysUntilAnniversary + ' дн.'})`;
                     }
-                    if (membershipDuration) {
-                        regText += ` • В клубе: ${membershipDuration}`;
-                    }
-                    datesParts.push(`<span class="table-label">${regText}</span>`);
+                    line1Parts.push(regText);
+                }
+                if (line1Parts.length > 0) {
+                    lines.push(`<span class="table-label">${line1Parts.join('  ')}</span>`);
                 }
                 
-                selectedPlayerDates.innerHTML = datesParts.join('<br>');
-                selectedPlayerDates.style.display = datesParts.length > 0 ? '' : 'none';
+                // Строка 2: стаж членства
+                if (dbPlayer?.reg_date) {
+                    const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
+                    if (membershipDuration) {
+                        lines.push(`<span class="table-label">В клубе: ${membershipDuration}</span>`);
+                    }
+                }
+                
+                selectedPlayerDates.innerHTML = lines.join('<br>');
+                selectedPlayerDates.style.display = lines.length > 0 ? '' : 'none';
             }
             
             // Фото игрока
