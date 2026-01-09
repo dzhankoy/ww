@@ -2363,6 +2363,56 @@
             return dbPlayers.find(p => p.id === playerId) || null;
         }
 
+        // Расчёт стажа членства в клубе (лет, месяцев, недель, дней)
+        function getMembershipDuration(regDateStr) {
+            if (!regDateStr) return null;
+            
+            const parts = regDateStr.split('.');
+            if (parts.length < 3) return null;
+            
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            
+            if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+            
+            const regDate = new Date(year, month, day);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (regDate > today) return null;
+            
+            let years = today.getFullYear() - regDate.getFullYear();
+            let months = today.getMonth() - regDate.getMonth();
+            let days = today.getDate() - regDate.getDate();
+            
+            // Корректировка дней
+            if (days < 0) {
+                months--;
+                const prevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            
+            // Корректировка месяцев
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            
+            // Разбиваем оставшиеся дни на недели
+            const weeks = Math.floor(days / 7);
+            days = days % 7;
+            
+            // Формируем строку
+            const parts_out = [];
+            if (years > 0) parts_out.push(`${years} г.`);
+            if (months > 0) parts_out.push(`${months} мес.`);
+            if (weeks > 0) parts_out.push(`${weeks} нед.`);
+            if (days > 0 || parts_out.length === 0) parts_out.push(`${days} дн.`);
+            
+            return parts_out.join(' ');
+        }
+
         // Рендер полного списка игроков из базы
         function renderDbPlayersList() {
             if (!dbPlayersList) return;
@@ -2979,13 +3029,18 @@
                 
                 if (dbPlayer?.reg_date) {
                     const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
-                    const regText = daysUntilAnniversary !== null
-                        ? `📅 ${dbPlayer.reg_date} (${daysUntilAnniversary === 0 ? 'сегодня!' : daysUntilAnniversary + ' дн.'})`
-                        : `📅 ${dbPlayer.reg_date}`;
+                    const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
+                    let regText = `📅 ${dbPlayer.reg_date}`;
+                    if (daysUntilAnniversary !== null) {
+                        regText += ` (${daysUntilAnniversary === 0 ? 'годовщина!' : daysUntilAnniversary + ' дн.'})`;
+                    }
+                    if (membershipDuration) {
+                        regText += ` • В клубе: ${membershipDuration}`;
+                    }
                     datesParts.push(`<span class="table-label">${regText}</span>`);
                 }
                 
-                selectedPlayerDates.innerHTML = datesParts.join(' ');
+                selectedPlayerDates.innerHTML = datesParts.join('<br>');
                 selectedPlayerDates.style.display = datesParts.length > 0 ? '' : 'none';
             }
             
