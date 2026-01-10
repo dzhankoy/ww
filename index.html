@@ -268,6 +268,50 @@
         .player-button.silver { background-color: rgba(192, 192, 192, 0.15); }
         .player-button.bronze { background-color: rgba(205, 127, 50, 0.15); }
         .player-button.empty { opacity: 0.5; cursor: not-allowed; }
+
+        /* Таблица для Телеграм - компактный вид с фото */
+        .telegram-table-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            min-height: 44px;
+        }
+        .telegram-table-photo {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            background-color: var(--border-color);
+        }
+        .telegram-table-info {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .telegram-table-nickname {
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .telegram-table-stats {
+            font-size: 13px;
+            color: var(--secondary-text);
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+        .telegram-table-place {
+            font-weight: 600;
+        }
+        .telegram-table-place.gold { color: var(--gold); }
+        .telegram-table-place.silver { color: var(--silver); }
+        .telegram-table-place.bronze { color: var(--bronze); }
         
         .players-list .player-button:first-child {
             border-top-left-radius: var(--border-radius);
@@ -918,6 +962,22 @@
         </div>
     </div>
 
+    <!-- Экран таблицы для Телеграм (для админа) -->
+    <div id="telegramTableScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="telegramTableTitle">King & Joker Tournament</div>
+                    <div class="tournament-date" id="telegramTableInfo">Таблица для Телеграм</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="telegramTableList"></div>
+        </div>
+    </div>
+
     <!-- Экран всех игроков из базы (для админа) -->
     <div id="dbPlayersScreen" class="screen hidden">
         <div class="header-content">
@@ -1172,6 +1232,10 @@
         const tournamentsScreen = document.getElementById('tournamentsScreen');
         const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
         const tournamentsList = document.getElementById('tournamentsList');
+        const telegramTableScreen = document.getElementById('telegramTableScreen');
+        const telegramTableList = document.getElementById('telegramTableList');
+        const telegramTableTitle = document.getElementById('telegramTableTitle');
+        const telegramTableInfo = document.getElementById('telegramTableInfo');
         const selectedPlayerNickname = document.getElementById('selectedPlayerNickname');
         const selectedPlayerRoleBadge = document.getElementById('selectedPlayerRoleBadge');
         const selectedPlayerRating = document.getElementById('selectedPlayerRating');
@@ -1208,7 +1272,7 @@
         function hideAllScreens() {
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
              dbPlayersScreen, tournamentsScreen, playerSelectionScreen, 
-             actionScreen].forEach(s => s?.classList.add('hidden'));
+             actionScreen, telegramTableScreen].forEach(s => s?.classList.add('hidden'));
         }
 
         // Сервис событий турнира
@@ -2049,6 +2113,25 @@
             });
             
             allPlayersPreviewList.appendChild(button);
+            
+            // Кнопка "Таблица для Телеграм"
+            const telegramButton = document.createElement('button');
+            telegramButton.classList.add('player-button');
+            
+            telegramButton.innerHTML = `
+                <div class="table-indicator">📋</div>
+                <div class="player-info">
+                    <div class="player-nickname">Таблица для Телеграм</div>
+                    <div class="player-name">Компактный вид с фото</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            
+            telegramButton.addEventListener('click', () => {
+                showTelegramTableScreen();
+            });
+            
+            allPlayersPreviewList.appendChild(telegramButton);
         }
 
         // Показать экран со всеми игроками турнира
@@ -2199,6 +2282,113 @@
                 });
                 
                 allPlayersList.appendChild(button);
+            });
+        }
+
+        // Показать экран "Таблица для Телеграм"
+        function showTelegramTableScreen() {
+            if (!fullTournamentData || !fullTournamentData.tournament) {
+                return;
+            }
+            
+            hideAllScreens();
+            telegramTableScreen.classList.remove('hidden');
+            
+            if (telegramTableTitle) {
+                telegramTableTitle.textContent = getTournament().title || 'Турнир';
+            }
+            
+            const allPlayers = getAllTournamentPlayers();
+            const activePlayers = allPlayers.filter(p => !p.finishTime);
+            const finishedPlayers = allPlayers.filter(p => !!p.finishTime);
+            
+            if (telegramTableInfo) {
+                telegramTableInfo.textContent = `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
+            }
+            
+            renderTelegramTable();
+            showTelegramBackButton(backToTablesFromTelegramTable);
+        }
+
+        // Возврат с экрана таблицы для Телеграм
+        function backToTablesFromTelegramTable() {
+            telegramTableScreen.classList.add('hidden');
+            showTablesScreen();
+        }
+
+        // Рендер таблицы для Телеграм (компактный вид с фото)
+        function renderTelegramTable() {
+            if (!telegramTableList) return;
+            
+            const allPlayers = getAllTournamentPlayers();
+            telegramTableList.innerHTML = '';
+            
+            // Сортируем: сначала вылетевшие по месту (1,2,3...), потом активные
+            const sortedPlayers = [...allPlayers].sort((a, b) => {
+                const aFinished = !!a.finishTime;
+                const bFinished = !!b.finishTime;
+                
+                if (aFinished && !bFinished) return -1;
+                if (!aFinished && bFinished) return 1;
+                
+                if (aFinished && bFinished) {
+                    const placeA = globalFinishPlaces.get(a.id) || 999;
+                    const placeB = globalFinishPlaces.get(b.id) || 999;
+                    return placeA - placeB;
+                }
+                
+                return 0;
+            });
+            
+            sortedPlayers.forEach(player => {
+                const button = document.createElement('button');
+                button.classList.add('player-button');
+                
+                const isFinished = !!player.finishTime;
+                const nickname = player.nickname || 'Игрок';
+                const photoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg`;
+                
+                // Получаем рейтинг из базы игроков
+                const dbPlayer = getDbPlayerById(player.id);
+                const rating = dbPlayer?.rating || 0;
+                const ratingPlace = globalRatingPlaces.get(player.id);
+                const ratingDisplay = rating > 0 ? `⭐ ${rating}${ratingPlace ? ` (#${ratingPlace})` : ''}` : '';
+                
+                // Место и время вылета для завершивших
+                let placeDisplay = '';
+                let finishTimeDisplay = '';
+                
+                if (isFinished) {
+                    const place = globalFinishPlaces.get(player.id) || '?';
+                    let placeClass = 'telegram-table-place';
+                    if (place === 1) placeClass += ' gold';
+                    else if (place === 2) placeClass += ' silver';
+                    else if (place === 3) placeClass += ' bronze';
+                    placeDisplay = `<span class="${placeClass}">${place} место</span>`;
+                    
+                    if (player.finishTime) {
+                        finishTimeDisplay = formatFinishTime(new Date(player.finishTime));
+                    }
+                    button.style.opacity = '0.6';
+                } else {
+                    placeDisplay = '<span style="color: var(--green);">в игре</span>';
+                }
+                
+                button.innerHTML = `
+                    <div class="telegram-table-item">
+                        <img class="telegram-table-photo" src="${photoUrl}" alt="" onerror="this.src='avatar.png'">
+                        <div class="telegram-table-info">
+                            <div class="telegram-table-nickname">${nickname}</div>
+                            <div class="telegram-table-stats">
+                                ${placeDisplay}
+                                ${finishTimeDisplay ? `<span>${finishTimeDisplay}</span>` : ''}
+                                ${ratingDisplay ? `<span>${ratingDisplay}</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                telegramTableList.appendChild(button);
             });
         }
 
