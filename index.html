@@ -1433,49 +1433,48 @@
             updateGameTime();
         }
 
+        // Общая функция для запроса данных турнира
+        async function fetchTournamentData() {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+            
+            const initData = window.Telegram.WebApp.initDataUnsafe || {};
+            const chatId = initData.chat?.id || initData.user?.id || null;
+            const url = new URL(CONFIG.TOURNAMENT_API_URL);
+            if (chatId) {
+                url.searchParams.set('chat_id', chatId);
+            }
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            let responseData = await response.json();
+            let fullData = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+
+            if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
+                throw new Error('Invalid data format from server');
+            }
+
+            return fullData;
+        }
+
         async function loadTournamentData() {
             try {
                 showLoading();
                 
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
-                
-                // Добавляем chat_id (chat.id или user.id) как query-параметр к запросу турнира
-                const initData = window.Telegram.WebApp.initDataUnsafe || {};
-                const chatId = initData.chat?.id || initData.user?.id || null;
-                const url = new URL(CONFIG.TOURNAMENT_API_URL);
-                if (chatId) {
-                    url.searchParams.set('chat_id', chatId);
-                }
-
-                const response = await fetch(url.toString(), {
-                    method: 'GET',
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                let responseData = await response.json();
-
-                let fullData;
-                if (Array.isArray(responseData) && responseData.length > 0) {
-                    fullData = responseData[0];
-                } else {
-                    fullData = responseData;
-                }
-
-                if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
-                    throw new Error('Invalid data format from server');
-                }
-
+                const fullData = await fetchTournamentData();
                 fullTournamentData = fullData;
                 
                 recalculateGlobalFinishPlaces();
@@ -1484,10 +1483,7 @@
                 updatePlayersList();
                 applyRoleBasedInitialView();
                 
-                // Обработка вызовов админа (после определения роли!)
                 handleAdminCalls(fullData.tournament.adminCalls || []);
-                
-                // Обновляем состояние кнопок вызова админа
                 updateAdminButtonState();
                 
             } catch (error) {
@@ -1624,6 +1620,25 @@
             return foundPlayer;
         }
 
+        // Хелпер для управления видимостью кнопок
+        function setButtonsVisibility({ rebuy = null, finish = null, admin = null, playerAdmin = null } = {}) {
+            if (rebuyButton && rebuy !== null) rebuyButton.style.display = rebuy;
+            if (finishButton && finish !== null) finishButton.style.display = finish;
+            if (adminButton && admin !== null) adminButton.style.display = admin;
+            if (playerAdminButton && playerAdmin !== null) playerAdminButton.style.display = playerAdmin;
+        }
+
+        // Хелпер для рендера точек ребаев
+        function renderRebuyDots(container, rebuysLeft) {
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < 2; i++) {
+                const dot = document.createElement('div');
+                dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                container.appendChild(dot);
+            }
+        }
+
         // Начальное отображение в зависимости от роли текущего игрока
         // - для обычного игрока: сразу его карточка, без доступа к списку игроков
         // - для дилера: стандартный экран выбора игроков
@@ -1655,21 +1670,8 @@
 
             // ПРИОРИТЕТ 1: Дилер (даже если он админ) — экран списка игроков своего стола
             if (viewerPlayer && viewerPlayer.dealer) {
-                // Дилер работает со своим столом, показываем список игроков
                 hideTelegramBackButton();
-                if (rebuyButton) {
-                    rebuyButton.style.display = '';
-                }
-                if (finishButton) {
-                    finishButton.style.display = '';
-                }
-                // Дилеру нужна кнопка "Позвать администратора", только если он не админ
-                if (adminButton) {
-                    adminButton.style.display = isTournamentAdmin ? 'none' : '';
-                }
-                if (playerAdminButton) {
-                    playerAdminButton.style.display = 'none';
-                }
+                setButtonsVisibility({ rebuy: '', finish: '', admin: isTournamentAdmin ? 'none' : '', playerAdmin: 'none' });
                 showPlayerSelection();
                 return;
             }
@@ -1678,36 +1680,15 @@
             if (isTournamentAdmin) {
                 currentTableId = null;
                 hideTelegramBackButton();
-                if (rebuyButton) {
-                    rebuyButton.style.display = 'none';
-                }
-                if (finishButton) {
-                    finishButton.style.display = 'none';
-                }
-                // Админу не нужна кнопка "Позвать администратора"
-                if (adminButton) {
-                    adminButton.style.display = 'none';
-                }
-                if (playerAdminButton) {
-                    playerAdminButton.style.display = 'none';
-                }
+                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
                 showTablesScreen();
                 return;
             }
 
             // ПРИОРИТЕТ 3: Обычный игрок (не админ и не дилер)
             if (viewerPlayer) {
-                // Сразу его карточка
                 hideTelegramBackButton();
-                if (rebuyButton) {
-                    rebuyButton.style.display = 'none';
-                }
-                if (finishButton) {
-                    finishButton.style.display = 'none';
-                }
-                if (playerAdminButton) {
-                    playerAdminButton.style.display = '';
-                }
+                setButtonsVisibility({ rebuy: 'none', finish: 'none', playerAdmin: '' });
                 
                 // Находим бокс игрока и открываем его карточку
                 if (currentBoxes) {
@@ -1728,33 +1709,13 @@
                 viewerAdminName = 'Debug Admin';
                 currentTableId = null;
                 hideTelegramBackButton();
-                if (rebuyButton) {
-                    rebuyButton.style.display = 'none';
-                }
-                if (finishButton) {
-                    finishButton.style.display = 'none';
-                }
-                // Админу не нужна кнопка "Позвать администратора"
-                if (adminButton) {
-                    adminButton.style.display = 'none';
-                }
-                if (playerAdminButton) {
-                    playerAdminButton.style.display = 'none';
-                }
+                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
                 showTablesScreen();
                 return;
             }
 
             hideTelegramBackButton();
-            if (rebuyButton) {
-                rebuyButton.style.display = '';
-            }
-            if (finishButton) {
-                finishButton.style.display = '';
-            }
-            if (adminButton) {
-                adminButton.style.display = '';
-            }
+            setButtonsVisibility({ rebuy: '', finish: '', admin: '' });
             showPlayerSelection();
         }
 
@@ -2185,27 +2146,17 @@
                     // Активный игрок - показываем ребаи
                     if (rebuysElement) {
                         rebuysElement.style.display = 'flex';
-                        rebuysElement.innerHTML = '';
                         const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-                        for (let i = 0; i < 2; i++) {
-                            const dot = document.createElement('div');
-                            dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
-                            rebuysElement.appendChild(dot);
-                        }
+                        renderRebuyDots(rebuysElement, rebuysLeft);
                     }
                 }
                 
                 // Клик по игроку - переход к его столу и карточке
                 button.addEventListener('click', () => {
-                    // Устанавливаем флаг, что пришли с экрана всех игроков
                     cameFromAllPlayers = true;
-                    
-                    // Устанавливаем стол игрока и открываем его карточку
                     currentTableId = player.tableId;
                     applySnapshotToUI();
                     updatePlayersList();
-                    
-                    // Скрываем экран всех игроков
                     allPlayersScreen.classList.add('hidden');
                     
                     // Скрываем кнопки ребай/финиш для админа (если он не дилер этого стола)
@@ -2213,15 +2164,8 @@
                     const isViewerDealerHere = selectedTable && Array.isArray(selectedTable.players) 
                         ? selectedTable.players.some(p => String(p.id) === String(viewerChatId) && p.dealer)
                         : false;
+                    setButtonsVisibility({ rebuy: isViewerDealerHere ? '' : 'none', finish: isViewerDealerHere ? '' : 'none' });
                     
-                    if (rebuyButton) {
-                        rebuyButton.style.display = isViewerDealerHere ? '' : 'none';
-                    }
-                    if (finishButton) {
-                        finishButton.style.display = isViewerDealerHere ? '' : 'none';
-                    }
-                    
-                    // Открываем карточку игрока
                     if (player.box) {
                         selectBox(player.box);
                     }
@@ -2970,13 +2914,8 @@
                         // Активный игрок - показываем ребаи
                         if (rebuysElement) {
                             rebuysElement.style.display = 'flex';
-                            rebuysElement.innerHTML = '';
                             const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-                            for (let i = 0; i < 2; i++) {
-                                const dot = document.createElement('div');
-                                dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
-                                rebuysElement.appendChild(dot);
-                            }
+                            renderRebuyDots(rebuysElement, rebuysLeft);
                         }
                     }
                 }
@@ -2986,42 +2925,11 @@
 
         async function refreshTournamentData() {
             try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
-                
-                // Добавляем chat_id (chat.id или user.id) как query-параметр к запросу турнира при обновлении
-                const initData = window.Telegram.WebApp.initDataUnsafe || {};
-                const chatId = initData.chat?.id || initData.user?.id || null;
-                const url = new URL(CONFIG.TOURNAMENT_API_URL);
-                if (chatId) {
-                    url.searchParams.set('chat_id', chatId);
-                }
-
-                const response = await fetch(url.toString(), {
-                    method: 'GET',
-                    signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const fullData = await response.json();
-
-                if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
-                    throw new Error('Invalid data format from server');
-                }
-
+                const fullData = await fetchTournamentData();
                 fullTournamentData = fullData;
+                
                 recalculateGlobalFinishPlaces();
                 recalculateGlobalRatingPlaces();
-
                 applySnapshotToUI();
                 updatePlayersList();
                 
@@ -3036,10 +2944,7 @@
                     renderDbPlayersList();
                 }
                 
-                // Обработка вызовов админа при обновлении данных
                 handleAdminCalls(fullData.tournament.adminCalls || []);
-                
-                // Обновляем состояние кнопок вызова админа
                 updateAdminButtonState();
                 
             } catch (error) {
@@ -3569,6 +3474,13 @@
             });
         }
         
+        // Хелпер для установки состояния кнопки вызова админа
+        function setAdminBtnState(btn, isCalling) {
+            if (!btn) return;
+            btn.disabled = isCalling;
+            btn.textContent = isCalling ? 'Администратор вызван' : 'Позвать администратора';
+        }
+
         // Функция для обновления состояния кнопок вызова админа
         function updateAdminButtonState() {
             if (!viewerChatId || !fullTournamentData) return;
@@ -3576,27 +3488,8 @@
             const adminCalls = getTournament().adminCalls || [];
             const isCallingAdmin = adminCalls.includes(viewerChatId);
             
-            // Обновляем кнопку на главном экране стола
-            if (adminButton) {
-                if (isCallingAdmin) {
-                    adminButton.disabled = true;
-                    adminButton.textContent = 'Администратор вызван';
-                } else {
-                    adminButton.disabled = false;
-                    adminButton.textContent = 'Позвать администратора';
-                }
-            }
-            
-            // Обновляем кнопку на карточке игрока
-            if (playerAdminButton) {
-                if (isCallingAdmin) {
-                    playerAdminButton.disabled = true;
-                    playerAdminButton.textContent = 'Администратор вызван';
-                } else {
-                    playerAdminButton.disabled = false;
-                    playerAdminButton.textContent = 'Позвать администратора';
-                }
-            }
+            setAdminBtnState(adminButton, isCallingAdmin);
+            setAdminBtnState(playerAdminButton, isCallingAdmin);
         }
         
         // Обработка вызовов админа
