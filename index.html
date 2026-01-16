@@ -943,6 +943,7 @@
             </div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
             <div class="players-list" id="dbPlayersPreviewList"></div>
+            <div class="players-list" id="birthdaysPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Турниры</div>
@@ -1003,6 +1004,22 @@
         </div>
         <div class="players-list-container">
             <div class="players-list" id="dbPlayersList"></div>
+        </div>
+    </div>
+
+    <!-- Экран дней рождения (для админа) -->
+    <div id="birthdaysScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
+                <div class="tournament-header-text">
+                    <div class="tournament-title">Дни рождения</div>
+                    <div class="tournament-date" id="birthdaysInfo">Ближайшие 12 месяцев</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="birthdaysList"></div>
         </div>
     </div>
 
@@ -1261,6 +1278,10 @@
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
         const dbPlayersInfo = document.getElementById('dbPlayersInfo');
+        const birthdaysPreviewList = document.getElementById('birthdaysPreviewList');
+        const birthdaysScreen = document.getElementById('birthdaysScreen');
+        const birthdaysList = document.getElementById('birthdaysList');
+        const birthdaysInfo = document.getElementById('birthdaysInfo');
         const tournamentsScreen = document.getElementById('tournamentsScreen');
         const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
         const tournamentsList = document.getElementById('tournamentsList');
@@ -1311,7 +1332,7 @@
         // Скрытие всех экранов
         function hideAllScreens() {
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
-             dbPlayersScreen, tournamentsScreen, playerSelectionScreen, 
+             dbPlayersScreen, birthdaysScreen, tournamentsScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => s?.classList.add('hidden'));
         }
 
@@ -1960,6 +1981,9 @@
             // Рендерим превью списка игроков из базы
             renderDbPlayersPreview();
             
+            // Рендерим превью дней рождения
+            renderBirthdaysPreview();
+            
             // Рендерим превью списка турниров
             renderTournamentsPreview();
             
@@ -2438,6 +2462,192 @@
         function backToTablesFromDbPlayers() {
             dbPlayersScreen.classList.add('hidden');
             showTablesScreen();
+        }
+
+        // Рендер превью кнопки дней рождения
+        function renderBirthdaysPreview() {
+            if (!birthdaysPreviewList) return;
+            
+            const dbPlayers = getTournament().players || [];
+            const playersWithBirthday = dbPlayers.filter(p => p.birthday);
+            
+            birthdaysPreviewList.innerHTML = '';
+            
+            const button = document.createElement('button');
+            button.classList.add('player-button');
+            
+            button.innerHTML = `
+                <div class="table-indicator" style="background-color: var(--orange, #ff9500);">🎂</div>
+                <div class="player-info">
+                    <div class="player-nickname">Дни рождения</div>
+                    <div class="player-name">${playersWithBirthday.length} игроков с указанной датой</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            
+            button.addEventListener('click', () => {
+                showBirthdaysScreen();
+            });
+            
+            birthdaysPreviewList.appendChild(button);
+        }
+
+        // Показать экран дней рождения
+        function showBirthdaysScreen() {
+            if (!fullTournamentData) return;
+            
+            hideAllScreens();
+            birthdaysScreen.classList.remove('hidden');
+            
+            renderBirthdaysList();
+            
+            showTelegramBackButton(backToTablesFromBirthdays);
+        }
+
+        // Возврат с экрана дней рождения к списку столов
+        function backToTablesFromBirthdays() {
+            birthdaysScreen.classList.add('hidden');
+            showTablesScreen();
+        }
+
+        // Получить название месяца на русском
+        function getMonthName(monthIndex) {
+            const months = [
+                'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+                'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+            ];
+            return months[monthIndex];
+        }
+
+        // Рендер списка дней рождения по месяцам
+        function renderBirthdaysList() {
+            if (!birthdaysList) return;
+            
+            const dbPlayers = getTournament().players || [];
+            const playersWithBirthday = dbPlayers.filter(p => p.birthday);
+            
+            birthdaysList.innerHTML = '';
+            
+            if (playersWithBirthday.length === 0) {
+                birthdaysList.innerHTML = '<div style="padding: var(--spacing-md); color: var(--secondary-text); text-align: center;">Нет игроков с указанной датой рождения</div>';
+                return;
+            }
+            
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentDay = now.getDate();
+            
+            // Группируем игроков по месяцам (начиная с текущего)
+            const monthGroups = {};
+            for (let i = 0; i < 12; i++) {
+                const monthIndex = (currentMonth + i) % 12;
+                monthGroups[monthIndex] = [];
+            }
+            
+            // Парсим дни рождения и распределяем по месяцам
+            playersWithBirthday.forEach(player => {
+                const birthday = player.birthday;
+                if (!birthday) return;
+                
+                let day, month;
+                if (birthday.includes('.')) {
+                    const parts = birthday.split('.');
+                    day = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1; // 0-indexed
+                } else if (birthday.includes('-')) {
+                    const parts = birthday.split('-');
+                    if (parts[0].length === 4) {
+                        month = parseInt(parts[1], 10) - 1;
+                        day = parseInt(parts[2], 10);
+                    } else {
+                        day = parseInt(parts[0], 10);
+                        month = parseInt(parts[1], 10) - 1;
+                    }
+                } else {
+                    return;
+                }
+                
+                if (isNaN(day) || isNaN(month) || month < 0 || month > 11) return;
+                
+                // Проверяем, что день рождения в ближайшие 12 месяцев
+                const isCurrentMonth = month === currentMonth;
+                const isPastInCurrentMonth = isCurrentMonth && day < currentDay;
+                
+                // Если в текущем месяце и день уже прошёл — добавляем в конец (через год)
+                if (isPastInCurrentMonth) {
+                    // Этот день рождения будет через ~год, но мы всё равно его показываем
+                }
+                
+                if (monthGroups[month] !== undefined) {
+                    monthGroups[month].push({ player, day, month });
+                }
+            });
+            
+            // Сортируем игроков внутри каждого месяца по дню
+            Object.keys(monthGroups).forEach(monthKey => {
+                monthGroups[monthKey].sort((a, b) => a.day - b.day);
+            });
+            
+            // Рендерим месяцы начиная с текущего
+            let totalPlayers = 0;
+            for (let i = 0; i < 12; i++) {
+                const monthIndex = (currentMonth + i) % 12;
+                const players = monthGroups[monthIndex];
+                
+                if (players.length === 0) continue;
+                
+                // Заголовок месяца
+                const monthHeader = document.createElement('div');
+                monthHeader.className = 'tables-active-title tables-section-padding';
+                monthHeader.style.marginTop = totalPlayers > 0 ? 'var(--spacing-lg)' : '0';
+                monthHeader.textContent = getMonthName(monthIndex);
+                birthdaysList.appendChild(monthHeader);
+                
+                // Игроки месяца
+                players.forEach(({ player, day }) => {
+                    const button = document.createElement('button');
+                    button.classList.add('player-button');
+                    
+                    const now = new Date();
+                    const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
+                    
+                    const nickname = player.nickname || 'Неизвестно';
+                    const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || '';
+                    const dayStr = String(day).padStart(2, '0');
+                    
+                    // Определяем сколько дней до дня рождения
+                    const daysUntil = getDaysUntilDate(player.birthday, false);
+                    let daysLabel = '';
+                    if (daysUntil === 0) {
+                        daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня! 🎉</span>';
+                    } else if (daysUntil !== null && daysUntil <= 7) {
+                        daysLabel = `<span style="color: var(--orange, #ff9500);">через ${daysUntil} дн.</span>`;
+                    } else if (daysUntil !== null) {
+                        daysLabel = `через ${daysUntil} дн.`;
+                    }
+                    
+                    button.innerHTML = `
+                        <img src="${playerPhotoUrl}" alt="${nickname}" class="player-photo" onerror="this.src='avatar.png'">
+                        <div class="player-info">
+                            <div class="player-nickname">${dayStr} — ${nickname}</div>
+                            <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
+                        </div>
+                        <div class="chevron"></div>
+                    `;
+                    
+                    button.addEventListener('click', () => {
+                        showDbPlayerCard(player);
+                    });
+                    
+                    birthdaysList.appendChild(button);
+                    totalPlayers++;
+                });
+            }
+            
+            if (birthdaysInfo) {
+                birthdaysInfo.textContent = `${totalPlayers} игроков с днём рождения`;
+            }
         }
 
         // Парсинг даты регистрации (поддержка dd.mm.yyyy и ISO)
