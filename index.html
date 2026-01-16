@@ -2868,17 +2868,23 @@
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                 const ratingDisplay = player.rating ? `${player.rating}` : '0';
                 const ratingPlace = globalRatingPlaces.get(player.id);
-                const ratingWithPlace = ratingPlace ? `${ratingDisplay} (#${ratingPlace})` : ratingDisplay;
-                const regDateDisplay = formatRegDate(player.reg_date);
                 
                 // Определяем статус игрока
                 const isRegistered = player.isRegistered === true;
                 const statusClass = isRegistered ? 'playing' : 'finished';
                 
-                // Формируем строку с информацией
-                let infoLine = `Рейтинг: ${ratingWithPlace}`;
-                if (regDateDisplay) {
-                    infoLine = `${regDateDisplay} • ${infoLine}`;
+                // Формируем строку с информацией: ⭐ рейтинг • # позиция (с подсветкой топ-3)
+                let infoLine = `⭐ ${ratingDisplay}`;
+                if (ratingPlace) {
+                    let placeText = `#️⃣ ${ratingPlace}`;
+                    if (ratingPlace === 1) {
+                        placeText = `<span style="color: var(--gold, #FFD700);">#️⃣ ${ratingPlace}</span>`;
+                    } else if (ratingPlace === 2) {
+                        placeText = `<span style="color: var(--silver, #C0C0C0);">#️⃣ ${ratingPlace}</span>`;
+                    } else if (ratingPlace === 3) {
+                        placeText = `<span style="color: var(--bronze, #CD7F32);">#️⃣ ${ratingPlace}</span>`;
+                    }
+                    infoLine += ` • ${placeText}`;
                 }
                 
                 button.innerHTML = `
