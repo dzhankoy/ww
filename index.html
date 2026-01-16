@@ -1197,7 +1197,6 @@
         const selectedPlayerName = document.getElementById('selectedPlayerName');
         const selectedPlayerTableInfo = document.getElementById('selectedPlayerTableInfo');
         const selectedPlayerDates = document.getElementById('selectedPlayerDates');
-        const dateTimeFooterElement = document.getElementById('dateTimeFooter');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
@@ -1573,7 +1572,6 @@
             // Присваиваем места с учётом одинаковых рейтингов
             let currentPlace = 0;
             let previousRating = null;
-            let skipCount = 0;
 
             playersWithRating.forEach((player, index) => {
                 if (player.rating !== previousRating) {
@@ -1827,12 +1825,13 @@
 
                 // Подсветка стола если в нём есть игрок, вызывающий админа
                 const adminCalls = fullTournamentData.tournament.adminCalls || [];
-                const hasAdminCall = table.players.some(p => adminCalls.includes(p.id));
+                const hasAdminCall = Array.isArray(table.players) && table.players.some(p => adminCalls.some(id => String(id) === String(p.id)));
                 if (hasAdminCall) {
                     button.classList.add('admin-call-active');
                 }
 
-                const indicatorWarningClass = (index === 1) ? ' warning' : '';
+                const dealerExists = players.some(p => p.dealer);
+                const indicatorWarningClass = !dealerExists ? ' warning' : '';
 
                 button.innerHTML = `
                     <div class="table-indicator${indicatorWarningClass}">${table.id}</div>
@@ -3253,15 +3252,6 @@
         }
 
         function updateCurrentTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString('ru-RU', {
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            });
-            const dateString = now.toLocaleDateString('ru-RU', {
-                day: '2-digit', month: '2-digit', year: 'numeric'
-            });
-            dateTimeFooterElement.textContent = `Дата ${dateString}, время ${timeString}`;
-
             updateTournamentStatsDisplay();
         }
 
@@ -3297,11 +3287,14 @@
                 return;
             }
 
+            // Сохраняем бокс до сброса в backToPlayerList
+            const boxToUpdate = selectedBox;
+
             // 1. Сразу переходим на список игроков
             backToPlayerList();
             
             // 2. Добавляем бокс в pending и показываем индикатор
-            pendingOperations.add(selectedBox);
+            pendingOperations.add(boxToUpdate);
             updatePlayersList();
             
             // 3. Отправляем запрос на сервер
@@ -3313,7 +3306,7 @@
                 await refreshTournamentData();
                 
                 // 5. Убираем индикатор и обновляем список
-                pendingOperations.delete(selectedBox);
+                pendingOperations.delete(boxToUpdate);
                 updatePlayersList();
             }
         });
@@ -3328,11 +3321,14 @@
                 return;
             }
 
+            // Сохраняем бокс до сброса в backToPlayerList
+            const boxToUpdate = selectedBox;
+
             // 1. Сразу переходим на список игроков
             backToPlayerList();
             
             // 2. Добавляем бокс в pending и показываем индикатор
-            pendingOperations.add(selectedBox);
+            pendingOperations.add(boxToUpdate);
             updatePlayersList();
             
             // 3. Отправляем запрос на сервер
@@ -3344,7 +3340,7 @@
                 await refreshTournamentData();
                 
                 // 5. Убираем индикатор и обновляем список
-                pendingOperations.delete(selectedBox);
+                pendingOperations.delete(boxToUpdate);
                 updatePlayersList();
             }
         });
@@ -3486,7 +3482,7 @@
             if (!viewerChatId || !fullTournamentData) return;
             
             const adminCalls = getTournament().adminCalls || [];
-            const isCallingAdmin = adminCalls.includes(viewerChatId);
+            const isCallingAdmin = adminCalls.some(id => String(id) === String(viewerChatId));
             
             setAdminBtnState(adminButton, isCallingAdmin);
             setAdminBtnState(playerAdminButton, isCallingAdmin);
@@ -3495,7 +3491,7 @@
         // Обработка вызовов админа
         function handleAdminCalls(newAdminCalls) {
             // Проверяем есть ли новые вызовы (которых не было в предыдущем списке)
-            const newCalls = newAdminCalls.filter(chatId => !previousAdminCalls.includes(chatId));
+            const newCalls = newAdminCalls.filter(chatId => !previousAdminCalls.some(id => String(id) === String(chatId)));
             
             // Если есть новые вызовы и пользователь админ - запускаем мелодию
             if (newCalls.length > 0 && viewerIsAdmin) {
