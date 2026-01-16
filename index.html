@@ -947,7 +947,6 @@
             </div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
             <div class="players-list" id="dbPlayersPreviewList"></div>
-            <div class="players-list" id="birthdaysPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Турниры</div>
@@ -1292,7 +1291,6 @@
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
         const dbPlayersInfo = document.getElementById('dbPlayersInfo');
-        const birthdaysPreviewList = document.getElementById('birthdaysPreviewList');
         const birthdaysScreen = document.getElementById('birthdaysScreen');
         const birthdaysList = document.getElementById('birthdaysList');
         const birthdaysInfo = document.getElementById('birthdaysInfo');
@@ -2482,14 +2480,12 @@
             showTablesScreen();
         }
 
-        // Рендер превью кнопки дней рождения
+        // Рендер превью кнопки дней рождения (добавляется в dbPlayersPreviewList)
         function renderBirthdaysPreview() {
-            if (!birthdaysPreviewList) return;
+            if (!dbPlayersPreviewList) return;
             
             const dbPlayers = getTournament().players || [];
             const playersWithBirthday = dbPlayers.filter(p => p.birthday);
-            
-            birthdaysPreviewList.innerHTML = '';
             
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -2507,7 +2503,7 @@
                 showBirthdaysScreen();
             });
             
-            birthdaysPreviewList.appendChild(button);
+            dbPlayersPreviewList.appendChild(button);
         }
 
         // Показать экран дней рождения
@@ -2649,7 +2645,7 @@
                     }
                     
                     button.innerHTML = `
-                        <img src="${playerPhotoUrl}" alt="${nickname}" class="player-photo" onerror="this.src='avatar.png'">
+                        <img src="${playerPhotoUrl}" alt="${nickname}" class="player-photo" style="width: 40px; height: 40px; border-radius: 20px;" onerror="this.src='avatar.png'">
                         <div class="player-info">
                             <div class="player-nickname">${dayStr} — ${nickname}</div>
                             <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
@@ -2658,7 +2654,7 @@
                     `;
                     
                     button.addEventListener('click', () => {
-                        showDbPlayerCard(player);
+                        showDbPlayerCardFromBirthdays(player);
                     });
                     
                     birthdaysList.appendChild(button);
@@ -2932,12 +2928,26 @@
             }
         }
 
-        // Флаг: пришли с экрана игроков из базы
+        // Флаг: пришли с экрана игроков из базы или дней рождения
         let cameFromDbPlayers = false;
+        let cameFromBirthdays = false;
         let currentDbPlayer = null; // Текущий игрок из БД для кнопки "Написать"
+
+        // Показать карточку игрока из списка дней рождения
+        function showDbPlayerCardFromBirthdays(player) {
+            cameFromBirthdays = true;
+            cameFromDbPlayers = false;
+            showDbPlayerCardInternal(player, backToBirthdaysFromAction);
+        }
 
         // Показать карточку игрока из базы данных
         function showDbPlayerCard(player) {
+            cameFromBirthdays = false;
+            showDbPlayerCardInternal(player, backToDbPlayersFromAction);
+        }
+
+        // Внутренняя функция показа карточки игрока
+        function showDbPlayerCardInternal(player, backHandler) {
             currentDbPlayer = player;
             cameFromDbPlayers = true;
             selectedBox = null;
@@ -3113,8 +3123,18 @@
                 playerAdminButton.style.display = 'none';
             }
             
-            // Кнопка назад ведёт к списку игроков из базы
-            showTelegramBackButton(backToDbPlayersFromAction);
+            // Кнопка назад ведёт к нужному экрану
+            showTelegramBackButton(backHandler);
+        }
+
+        // Возврат с карточки игрока к экрану дней рождения
+        function backToBirthdaysFromAction() {
+            actionScreen.classList.add('hidden');
+            cameFromBirthdays = false;
+            cameFromDbPlayers = false;
+            selectedBox = null;
+            currentDbPlayer = null;
+            showBirthdaysScreen();
         }
 
         // Возврат с карточки игрока к экрану игроков из базы
