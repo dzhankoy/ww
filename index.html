@@ -1131,7 +1131,6 @@
                     alert(message);
                 }
             } catch (e) {
-                console.error('Popup error:', e);
                 alert(message);
             }
         }
@@ -1280,7 +1279,6 @@
                     return actualResult;
                     
                 } catch (error) {
-                    console.error('Event sending error:', error);
                     throw error;
                 }
             }
@@ -1401,7 +1399,6 @@
         function applySnapshotToUI() {
             const selectedTable = getSelectedTable();
             if (!selectedTable) {
-                console.error('No table selected or available');
                 return;
             }
 
@@ -1468,7 +1465,6 @@
                 
                 let responseData = await response.json();
 
-                // ИСПРАВЛЕНИЕ: Обрабатываем ответ в формате массива от n8n
                 let fullData;
                 if (Array.isArray(responseData) && responseData.length > 0) {
                     fullData = responseData[0];
@@ -1481,10 +1477,6 @@
                 }
 
                 fullTournamentData = fullData;
-                
-                // Отладка: выводим в консоль что пришло от API
-                console.log('📦 API Response:', fullData);
-                console.log('👥 Players from DB:', fullData.players);
                 
                 recalculateGlobalFinishPlaces();
                 recalculateGlobalRatingPlaces();
@@ -1499,7 +1491,6 @@
                 updateAdminButtonState();
                 
             } catch (error) {
-                console.error('Error loading tournament data:', error);
                 showError(`Не удалось загрузить данные: ${error.message}`);
             }
         }
@@ -1526,7 +1517,6 @@
                 }
                 return date.toISOString();
             } catch (e) {
-                console.error('Error building startTime ISO from', dateStr, timeStr, e);
                 return new Date().toISOString();
             }
         }
@@ -2357,8 +2347,6 @@
             // players находится внутри tournament, а не на верхнем уровне
             const dbPlayers = getTournament().players || [];
             
-            console.log('🔍 renderDbPlayersPreview - players count:', dbPlayers.length);
-            
             dbPlayersPreviewList.innerHTML = '';
             
             const button = document.createElement('button');
@@ -2668,7 +2656,6 @@
                     alert(`${nickname}\n\n${message}`);
                 }
             } catch (e) {
-                console.error('Popup error:', e);
                 alert(`${nickname}\n\n${message}`);
             }
         }
@@ -2830,15 +2817,13 @@
                         buttons: buttons
                     }, (buttonId) => {
                         if (buttonId === 'open') {
-                            // TODO: Переключиться на этот турнир
-                            console.log('Открыть турнир:', tournament.id);
+                            
                         }
                     });
                 } else {
                     alert(`${tournament.title}\n\n${message}`);
                 }
             } catch (e) {
-                console.error('Popup error:', e);
                 alert(`${tournament.title}\n\n${message}`);
             }
         }
@@ -3037,7 +3022,6 @@
                 recalculateGlobalFinishPlaces();
                 recalculateGlobalRatingPlaces();
 
-                // ===== БЛОК 6: Используем новый путь через applySnapshotToUI =====
                 applySnapshotToUI();
                 updatePlayersList();
                 
@@ -3059,7 +3043,6 @@
                 updateAdminButtonState();
                 
             } catch (error) {
-                console.error('Error refreshing tournament data:', error);
             }
         }
 
@@ -3068,7 +3051,6 @@
             const player = getPlayerByBox(box);
             
             if (!player) {
-                console.error('No player in box', box);
                 return;
             }
             
@@ -3399,8 +3381,6 @@
             showTablesScreen();
         }
 
-        // ===== БЛОК 5: Новые обработчики rebuy/finish (вариант В) =====
-        
         // Обработчик ребая с использованием selectedBox
         rebuyButton.addEventListener('click', async () => {
             const player = getPlayerByBox(selectedBox);
@@ -3422,9 +3402,7 @@
             // 3. Отправляем запрос на сервер
             try {
                 await eventService.playerRebuy(player.id);
-                console.log('✅ Rebuy successful on server');
             } catch (error) {
-                console.error('💥 Rebuy error:', error);
             } finally {
                 // 4. Обновляем данные с сервера
                 await refreshTournamentData();
@@ -3455,9 +3433,7 @@
             // 3. Отправляем запрос на сервер
             try {
                 await eventService.playerFinish(player.id);
-                console.log('✅ Finish successful on server');
             } catch (error) {
-                console.error('❌ Finish error:', error);
             } finally {
                 // 4. Обновляем данные с сервера
                 await refreshTournamentData();
@@ -3467,8 +3443,6 @@
                 updatePlayersList();
             }
         });
-
-        // ===== КОНЕЦ БЛОКА 5 =====
 
         // Кнопка "Написать игроку" — открыть чат в Telegram по username через https://t.me/
         if (messagePlayerButton) {
@@ -3518,11 +3492,9 @@
                         alert('Администратор вызван. Ожидайте, он уже идёт к вашему столу.');
                     }
                 } catch (popupError) {
-                    console.error('Error showing admin call popup:', popupError);
                     alert('Администратор вызван. Ожидайте, он уже идёт к вашему столу.');
                 }
             } catch (error) {
-                console.error('Error calling admin:', error);
                 // В случае ошибки возвращаем кнопки в исходное состояние
                 if (adminButton) {
                     adminButton.disabled = false;
@@ -3583,13 +3555,12 @@
                     setTimeout(() => tg.HapticFeedback.impactOccurred('heavy'), 600);
                 }
             } catch (err) {
-                console.log('Haptic feedback failed:', err);
             }
         }
         
         function playAdminCallSound() {
             triggerAdminCallHaptic();
-            signalSound.play().catch(err => console.log('Sound play failed:', err));
+            signalSound.play().catch(() => {});
         }
         
         if (playSoundButton) {
@@ -3635,7 +3606,6 @@
             
             // Если есть новые вызовы и пользователь админ - запускаем мелодию
             if (newCalls.length > 0 && viewerIsAdmin) {
-                console.log('🔔 Новый вызов админа от:', newCalls);
                 playAdminCallSound();
             }
             
@@ -3665,8 +3635,6 @@
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                console.log('✅ Вызов админа снят для игрока:', playerId);
-                
                 // Обновляем локальные данные сразу
                 if (fullTournamentData?.tournament?.adminCalls) {
                     const index = fullTournamentData.tournament.adminCalls.indexOf(playerId);
@@ -3679,7 +3647,6 @@
                 renderAdminCallsList();
                 
             } catch (error) {
-                console.error('Ошибка при снятии вызова админа:', error);
             }
         }
 
