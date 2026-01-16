@@ -159,7 +159,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             min-height: 90px;
             text-align: center;
         }
@@ -1091,6 +1091,11 @@
                     <div class="info-box-value" id="ratingBoxValue">—</div>
                     <div class="info-box-label" id="ratingBoxLabel">Рейтинг</div>
                 </div>
+                <div class="info-box" id="gamesBox">
+                    <div class="info-box-icon">🎮</div>
+                    <div class="info-box-value" id="gamesBoxValue">—</div>
+                    <div class="info-box-label" id="gamesBoxLabel">Игр</div>
+                </div>
             </div>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
@@ -1276,6 +1281,8 @@
         const registrationLabel = document.getElementById('registrationLabel');
         const ratingBoxValue = document.getElementById('ratingBoxValue');
         const ratingBoxLabel = document.getElementById('ratingBoxLabel');
+        const gamesBoxValue = document.getElementById('gamesBoxValue');
+        const gamesBoxLabel = document.getElementById('gamesBoxLabel');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
@@ -2811,6 +2818,13 @@
                     }
                 }
                 
+                // Количество игр
+                if (gamesBoxValue && gamesBoxLabel) {
+                    const gamesPlayed = player.games_played || 0;
+                    gamesBoxValue.textContent = gamesPlayed;
+                    gamesBoxLabel.textContent = 'Игр сыграно';
+                }
+                
                 playerInfoBoxes.style.display = 'flex';
             }
             
@@ -3364,6 +3378,13 @@
                         ratingBoxValue.textContent = '0';
                         ratingBoxLabel.textContent = 'Без рейтинга';
                     }
+                }
+                
+                // Количество игр
+                if (gamesBoxValue && gamesBoxLabel) {
+                    const gamesPlayed = dbPlayer?.games_played || 0;
+                    gamesBoxValue.textContent = gamesPlayed;
+                    gamesBoxLabel.textContent = 'Игр сыграно';
                 }
                 
                 // Всегда показываем блок с информацией
