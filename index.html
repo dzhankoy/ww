@@ -147,12 +147,15 @@
         /* Apple-style info boxes */
         .info-boxes-row {
             display: flex;
+            flex-wrap: wrap;
             gap: var(--spacing-md);
             margin-top: var(--spacing-sm);
         }
         
         .info-box {
-            flex: 1;
+            flex: 1 1 calc(33.333% - var(--spacing-md));
+            min-width: calc(33.333% - var(--spacing-md));
+            max-width: calc(33.333% - var(--spacing-md));
             background-color: var(--card-bg);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -162,6 +165,7 @@
             justify-content: flex-start;
             min-height: 90px;
             text-align: center;
+            box-sizing: border-box;
         }
         
         .info-box-icon {
@@ -1113,6 +1117,16 @@
                     <div class="info-box-value" id="gamesBoxValue">—</div>
                     <div class="info-box-label" id="gamesBoxLabel">Игр</div>
                 </div>
+                <div class="info-box" id="achievementsBox">
+                    <div class="info-box-icon">🏆</div>
+                    <div class="info-box-value" id="achievementsBoxValue">—</div>
+                    <div class="info-box-label" id="achievementsBoxLabel">Достижения</div>
+                </div>
+                <div class="info-box" id="ticketsBox">
+                    <div class="info-box-icon">🎟️</div>
+                    <div class="info-box-value" id="ticketsBoxValue">—</div>
+                    <div class="info-box-label" id="ticketsBoxLabel">Билеты</div>
+                </div>
             </div>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
@@ -1304,6 +1318,10 @@
         const ratingBoxLabel = document.getElementById('ratingBoxLabel');
         const gamesBoxValue = document.getElementById('gamesBoxValue');
         const gamesBoxLabel = document.getElementById('gamesBoxLabel');
+        const achievementsBoxValue = document.getElementById('achievementsBoxValue');
+        const achievementsBoxLabel = document.getElementById('achievementsBoxLabel');
+        const ticketsBoxValue = document.getElementById('ticketsBoxValue');
+        const ticketsBoxLabel = document.getElementById('ticketsBoxLabel');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
@@ -2619,12 +2637,15 @@
                     // Определяем сколько дней до дня рождения
                     const daysUntil = getDaysUntilDate(player.birthday, false);
                     let daysLabel = '';
+                    // Функция для склонения слова "день"
+                    const getDayWordLocal = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
+                    
                     if (daysUntil === 0) {
                         daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня! 🎉</span>';
                     } else if (daysUntil !== null && daysUntil <= 7) {
-                        daysLabel = `<span style="color: var(--orange, #ff9500);">через ${daysUntil} дн.</span>`;
+                        daysLabel = `<span style="color: var(--orange, #ff9500);">через ${daysUntil} ${getDayWordLocal(daysUntil)}</span>`;
                     } else if (daysUntil !== null) {
-                        daysLabel = `через ${daysUntil} дн.`;
+                        daysLabel = `через ${daysUntil} ${getDayWordLocal(daysUntil)}`;
                     }
                     
                     button.innerHTML = `
@@ -3033,6 +3054,20 @@
                     const gamesPlayed = player.games_played || 0;
                     gamesBoxValue.textContent = gamesPlayed;
                     gamesBoxLabel.textContent = 'Игр сыграно';
+                }
+                
+                // Достижения
+                if (achievementsBoxValue && achievementsBoxLabel) {
+                    const achievements = player.achievements || 0;
+                    achievementsBoxValue.textContent = achievements;
+                    achievementsBoxLabel.textContent = 'Достижения';
+                }
+                
+                // Билеты
+                if (ticketsBoxValue && ticketsBoxLabel) {
+                    const tickets = player.tickets || 0;
+                    ticketsBoxValue.textContent = tickets;
+                    ticketsBoxLabel.textContent = 'Билеты';
                 }
                 
                 playerInfoBoxes.style.display = 'flex';
@@ -3595,6 +3630,20 @@
                     const gamesPlayed = dbPlayer?.games_played || 0;
                     gamesBoxValue.textContent = gamesPlayed;
                     gamesBoxLabel.textContent = 'Игр сыграно';
+                }
+                
+                // Достижения
+                if (achievementsBoxValue && achievementsBoxLabel) {
+                    const achievements = dbPlayer?.achievements || 0;
+                    achievementsBoxValue.textContent = achievements;
+                    achievementsBoxLabel.textContent = 'Достижения';
+                }
+                
+                // Билеты
+                if (ticketsBoxValue && ticketsBoxLabel) {
+                    const tickets = dbPlayer?.tickets || 0;
+                    ticketsBoxValue.textContent = tickets;
+                    ticketsBoxLabel.textContent = 'Билеты';
                 }
                 
                 // Всегда показываем блок с информацией
