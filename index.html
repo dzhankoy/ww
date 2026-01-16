@@ -2867,18 +2867,17 @@
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                 const ratingDisplay = player.rating ? `${player.rating}` : '0';
-                const ratingPlace = globalRatingPlaces.get(player.id);
                 
                 // Определяем статус игрока
                 const isRegistered = player.isRegistered === true;
                 const statusClass = isRegistered ? 'playing' : 'finished';
                 
-                // Подсветка топ-3 по рейтингу
-                if (ratingPlace === 1) {
+                // Подсветка топ-3 по рейтингу (список уже отсортирован по рейтингу)
+                if (index === 0 && player.rating > 0) {
                     button.classList.add('gold');
-                } else if (ratingPlace === 2) {
+                } else if (index === 1 && player.rating > 0) {
                     button.classList.add('silver');
-                } else if (ratingPlace === 3) {
+                } else if (index === 2 && player.rating > 0) {
                     button.classList.add('bronze');
                 }
                 
