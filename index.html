@@ -2457,15 +2457,15 @@
             hideAllScreens();
             dbPlayersScreen.classList.remove('hidden');
             
-            // Заголовок
-            if (dbPlayersTournamentTitle) {
-                dbPlayersTournamentTitle.textContent = getTournament().title || 'Турнир';
-            }
-            
             const dbPlayers = getTournament().players || [];
             
+            // Заголовок
+            if (dbPlayersTournamentTitle) {
+                dbPlayersTournamentTitle.textContent = 'Все игроки клуба';
+            }
+            
             if (dbPlayersInfo) {
-                dbPlayersInfo.textContent = `Всего игроков в базе: ${dbPlayers.length}`;
+                dbPlayersInfo.textContent = `Всего игроков: ${dbPlayers.length}, активных: 15`;
             }
             
             renderDbPlayersList();
