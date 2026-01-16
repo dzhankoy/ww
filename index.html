@@ -1074,7 +1074,6 @@
             </button>
             <button class="action-button" id="messagePlayerButton" style="display:none;">
                 <span>Написать игроку</span>
-                <div class="action-info" id="messagePlayerInfo">Открыть чат</div>
             </button>
             <div class="info-boxes-row" id="playerInfoBoxes" style="display:none;">
                 <div class="info-box" id="birthdayBox">
@@ -1083,9 +1082,14 @@
                     <div class="info-box-label" id="birthdayLabel">День рождения</div>
                 </div>
                 <div class="info-box" id="registrationBox">
-                    <div class="info-box-icon">📅</div>
+                    <div class="info-box-icon">🕐</div>
                     <div class="info-box-value" id="registrationValue">—</div>
                     <div class="info-box-label" id="registrationLabel">В клубе</div>
+                </div>
+                <div class="info-box" id="ratingBox">
+                    <div class="info-box-icon">⭐</div>
+                    <div class="info-box-value" id="ratingBoxValue">—</div>
+                    <div class="info-box-label" id="ratingBoxLabel">Рейтинг</div>
                 </div>
             </div>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
@@ -1270,6 +1274,8 @@
         const birthdayLabel = document.getElementById('birthdayLabel');
         const registrationValue = document.getElementById('registrationValue');
         const registrationLabel = document.getElementById('registrationLabel');
+        const ratingBoxValue = document.getElementById('ratingBoxValue');
+        const ratingBoxLabel = document.getElementById('ratingBoxLabel');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
@@ -2551,12 +2557,24 @@
             const weeks = Math.floor(days / 7);
             days = days % 7;
             
-            // Формируем строку
+            // Формируем строку с полными словами
             const parts_out = [];
-            if (years > 0) parts_out.push(`${years} г.`);
-            if (months > 0) parts_out.push(`${months} мес.`);
-            if (weeks > 0) parts_out.push(`${weeks} нед.`);
-            if (days > 0 || parts_out.length === 0) parts_out.push(`${days} дн.`);
+            if (years > 0) {
+                const yearWord = years === 1 ? 'год' : (years >= 2 && years <= 4) ? 'года' : 'лет';
+                parts_out.push(`${years} ${yearWord}`);
+            }
+            if (months > 0) {
+                const monthWord = months === 1 ? 'месяц' : (months >= 2 && months <= 4) ? 'месяца' : 'месяцев';
+                parts_out.push(`${months} ${monthWord}`);
+            }
+            if (weeks > 0) {
+                const weekWord = weeks === 1 ? 'неделя' : (weeks >= 2 && weeks <= 4) ? 'недели' : 'недель';
+                parts_out.push(`${weeks} ${weekWord}`);
+            }
+            if (days > 0 || parts_out.length === 0) {
+                const dayWord = days === 1 ? 'день' : (days >= 2 && days <= 4) ? 'дня' : 'дней';
+                parts_out.push(`${days} ${dayWord}`);
+            }
             
             return parts_out.join(' ');
         }
@@ -2619,9 +2637,9 @@
                     button.classList.add('admin-call-active');
                 }
                 
-                // Клик по игроку из базы - показываем попап с информацией
+                // Клик по игроку из базы - открываем карточку игрока
                 button.addEventListener('click', () => {
-                    showDbPlayerInfo(player);
+                    showDbPlayerCard(player);
                 });
                 
                 dbPlayersList.appendChild(button);
@@ -2674,6 +2692,179 @@
             } catch (e) {
                 alert(`${nickname}\n\n${message}`);
             }
+        }
+
+        // Флаг: пришли с экрана игроков из базы
+        let cameFromDbPlayers = false;
+        let currentDbPlayer = null; // Текущий игрок из БД для кнопки "Написать"
+
+        // Показать карточку игрока из базы данных
+        function showDbPlayerCard(player) {
+            currentDbPlayer = player;
+            cameFromDbPlayers = true;
+            selectedBox = null;
+            
+            hideAllScreens();
+            actionScreen.classList.remove('hidden');
+            
+            // Заполняем карточку данными игрока
+            selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
+            const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+            selectedPlayerName.textContent = baseName;
+            
+            // Бейдж роли игрока
+            if (selectedPlayerRoleBadge) {
+                const badges = [];
+                const isPlayerAdmin = (getTournament().admins || []).some(
+                    adminId => String(adminId) === String(player.id)
+                );
+                if (isPlayerAdmin) {
+                    badges.push('<span class="player-role-badge admin">👑</span>');
+                }
+                if (badges.length > 0) {
+                    selectedPlayerRoleBadge.innerHTML = badges.join(' ');
+                    selectedPlayerRoleBadge.style.display = 'inline-flex';
+                } else {
+                    selectedPlayerRoleBadge.innerHTML = '';
+                    selectedPlayerRoleBadge.style.display = 'none';
+                }
+            }
+            
+            // Скрываем рейтинг из шапки
+            if (selectedPlayerRating) {
+                selectedPlayerRating.textContent = '';
+                selectedPlayerRating.style.display = 'none';
+            }
+            
+            // Информация о статусе в турнире
+            if (selectedPlayerTableInfo) {
+                const isRegistered = player.isRegistered === true;
+                selectedPlayerTableInfo.innerHTML = `
+                    <span class="table-label">В турнире</span>
+                    <span class="table-badge">${isRegistered ? 'Да' : 'Нет'}</span>
+                `;
+            }
+            
+            // Скрываем старый блок дат
+            if (selectedPlayerDates) {
+                selectedPlayerDates.style.display = 'none';
+            }
+            
+            // Функция для склонения слова "день"
+            const getDayWord = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
+            
+            // Info boxes
+            if (playerInfoBoxes) {
+                // День рождения
+                if (birthdayValue && birthdayLabel) {
+                    if (player.birthday) {
+                        const daysUntil = getDaysUntilDate(player.birthday, false);
+                        birthdayValue.textContent = player.birthday;
+                        
+                        if (daysUntil === 0) {
+                            birthdayLabel.innerHTML = '<span class="info-box-success">Сегодня! 🎉</span>';
+                        } else if (daysUntil !== null && daysUntil <= 7) {
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>`;
+                        } else if (daysUntil !== null) {
+                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}`;
+                        } else {
+                            birthdayLabel.textContent = 'День рождения';
+                        }
+                    } else {
+                        birthdayValue.textContent = '—';
+                        birthdayLabel.textContent = 'Не указан';
+                    }
+                }
+                
+                // Дата регистрации
+                if (registrationValue && registrationLabel) {
+                    if (player.reg_date) {
+                        const membershipDuration = getMembershipDuration(player.reg_date);
+                        const daysUntilAnniversary = getDaysUntilDate(player.reg_date, true);
+                        
+                        registrationValue.textContent = player.reg_date;
+                        
+                        if (daysUntilAnniversary === 0) {
+                            registrationLabel.innerHTML = `<span class="info-box-success">Годовщина! 🎉</span>`;
+                        } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
+                            registrationLabel.innerHTML = `<span class="info-box-warning">${membershipDuration || ''}</span>`;
+                        } else {
+                            registrationLabel.textContent = membershipDuration || 'В клубе';
+                        }
+                    } else {
+                        registrationValue.textContent = '—';
+                        registrationLabel.textContent = 'Не указана';
+                    }
+                }
+                
+                // Рейтинг
+                if (ratingBoxValue && ratingBoxLabel) {
+                    const rating = player.rating || 0;
+                    const ratingPlace = globalRatingPlaces.get(player.id);
+                    
+                    if (rating > 0) {
+                        ratingBoxValue.textContent = rating;
+                        ratingBoxLabel.textContent = ratingPlace ? `#${ratingPlace} в рейтинге` : 'Рейтинг';
+                    } else {
+                        ratingBoxValue.textContent = '0';
+                        ratingBoxLabel.textContent = 'Без рейтинга';
+                    }
+                }
+                
+                playerInfoBoxes.style.display = 'flex';
+            }
+            
+            // Фото игрока
+            const now = new Date();
+            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
+            if (playerPhotoImage) {
+                let fallbackApplied = false;
+                playerPhotoImage.style.display = 'none';
+                playerPhotoImage.onload = () => {
+                    playerPhotoImage.style.display = 'block';
+                };
+                playerPhotoImage.onerror = () => {
+                    if (fallbackApplied) {
+                        playerPhotoImage.style.display = 'block';
+                        return;
+                    }
+                    fallbackApplied = true;
+                    playerPhotoImage.src = 'avatar.png';
+                };
+                playerPhotoImage.src = playerPhotoUrl;
+            }
+            
+            // Скрываем кнопки ребай и финиш (игрок из БД, не в турнире)
+            rebuyButton.style.display = 'none';
+            finishButton.style.display = 'none';
+            
+            // Кнопка написать игроку
+            if (messagePlayerButton) {
+                if (viewerIsAdmin) {
+                    messagePlayerButton.style.display = '';
+                    messagePlayerButton.disabled = !player.username;
+                } else {
+                    messagePlayerButton.style.display = 'none';
+                }
+            }
+            
+            // Скрываем кнопку позвать админа
+            if (playerAdminButton) {
+                playerAdminButton.style.display = 'none';
+            }
+            
+            // Кнопка назад ведёт к списку игроков из базы
+            showTelegramBackButton(backToDbPlayersFromAction);
+        }
+
+        // Возврат с карточки игрока к экрану игроков из базы
+        function backToDbPlayersFromAction() {
+            actionScreen.classList.add('hidden');
+            cameFromDbPlayers = false;
+            selectedBox = null;
+            currentDbPlayer = null;
+            showDbPlayersScreen();
         }
 
         // === ТУРНИРЫ ===
@@ -3025,6 +3216,7 @@
 
         function selectBox(box) {
             selectedBox = box;
+            currentDbPlayer = null; // Очищаем DB player при выборе игрока из турнира
             const player = getPlayerByBox(box);
             
             if (!player) {
@@ -3100,16 +3292,10 @@
                 }
             }
 
+            // Скрываем рейтинг из шапки (перенесён в info box)
             if (selectedPlayerRating) {
-                if (ratingText) {
-                    const ratingPlace = globalRatingPlaces.get(player.id);
-                    const ratingDisplayText = ratingPlace ? `${ratingText} (#${ratingPlace})` : ratingText;
-                    selectedPlayerRating.textContent = ratingDisplayText;
-                    selectedPlayerRating.style.display = 'inline-flex';
-                } else {
-                    selectedPlayerRating.textContent = '';
-                    selectedPlayerRating.style.display = 'none';
-                }
+                selectedPlayerRating.textContent = '';
+                selectedPlayerRating.style.display = 'none';
             }
 
             // Даты: день рождения и регистрация (скрываем старый блок)
@@ -3117,25 +3303,25 @@
                 selectedPlayerDates.style.display = 'none';
             }
             
-            // Info boxes: день рождения и стаж в клубе
+            // Функция для склонения слова "день"
+            const getDayWord = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
+            
+            // Info boxes: день рождения, стаж в клубе, рейтинг
             if (playerInfoBoxes) {
                 const dbPlayer = getDbPlayerById(player.id);
-                let hasBirthday = false;
-                let hasRegDate = false;
                 
                 // День рождения
                 if (birthdayValue && birthdayLabel) {
                     if (dbPlayer?.birthday) {
-                        hasBirthday = true;
                         const daysUntil = getDaysUntilDate(dbPlayer.birthday, false);
                         birthdayValue.textContent = dbPlayer.birthday;
                         
                         if (daysUntil === 0) {
                             birthdayLabel.innerHTML = '<span class="info-box-success">Сегодня! 🎉</span>';
                         } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} дн.</span>`;
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>`;
                         } else if (daysUntil !== null) {
-                            birthdayLabel.textContent = `Через ${daysUntil} дн.`;
+                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}`;
                         } else {
                             birthdayLabel.textContent = 'День рождения';
                         }
@@ -3145,25 +3331,38 @@
                     }
                 }
                 
-                // Дата регистрации и стаж
+                // Дата регистрации (дата как основное, стаж как второстепенное)
                 if (registrationValue && registrationLabel) {
                     if (dbPlayer?.reg_date) {
-                        hasRegDate = true;
                         const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
                         const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
                         
-                        registrationValue.textContent = membershipDuration || dbPlayer.reg_date;
+                        registrationValue.textContent = dbPlayer.reg_date;
                         
                         if (daysUntilAnniversary === 0) {
-                            registrationLabel.innerHTML = '<span class="info-box-success">Годовщина! 🎉</span>';
+                            registrationLabel.innerHTML = `<span class="info-box-success">Годовщина! 🎉</span>`;
                         } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
-                            registrationLabel.innerHTML = `<span class="info-box-warning">Годовщина через ${daysUntilAnniversary} дн.</span>`;
+                            registrationLabel.innerHTML = `<span class="info-box-warning">${membershipDuration || ''}</span>`;
                         } else {
-                            registrationLabel.textContent = `С ${dbPlayer.reg_date}`;
+                            registrationLabel.textContent = membershipDuration || 'В клубе';
                         }
                     } else {
                         registrationValue.textContent = '—';
                         registrationLabel.textContent = 'Не указана';
+                    }
+                }
+                
+                // Рейтинг
+                if (ratingBoxValue && ratingBoxLabel) {
+                    const rating = dbPlayer?.rating || player.rating || 0;
+                    const ratingPlace = globalRatingPlaces.get(player.id);
+                    
+                    if (rating > 0) {
+                        ratingBoxValue.textContent = rating;
+                        ratingBoxLabel.textContent = ratingPlace ? `#${ratingPlace} в рейтинге` : 'Рейтинг';
+                    } else {
+                        ratingBoxValue.textContent = '0';
+                        ratingBoxLabel.textContent = 'Без рейтинга';
                     }
                 }
                 
@@ -3205,13 +3404,11 @@
                 if (isPrivilegedHere) {
                     messagePlayerButton.style.display = '';
                     
-                    // Если нет username - блокируем кнопку и меняем текст
+                    // Если нет username - блокируем кнопку
                     if (!player.username) {
                         messagePlayerButton.disabled = true;
-                        messagePlayerInfo.textContent = 'У игрока скрыт ник в Telegram';
                     } else {
                         messagePlayerButton.disabled = false;
-                        messagePlayerInfo.textContent = 'Открыть чат в Telegram';
                     }
                 } else {
                     messagePlayerButton.style.display = 'none';
@@ -3442,9 +3639,16 @@
         // Кнопка "Написать игроку" — открыть чат в Telegram по username через https://t.me/
         if (messagePlayerButton) {
             messagePlayerButton.addEventListener('click', () => {
-                if (selectedBox === null || !tg || typeof tg.openTelegramLink !== 'function') return;
+                if (!tg || typeof tg.openTelegramLink !== 'function') return;
 
-                const player = getPlayerByBox(selectedBox);
+                // Определяем игрока: либо из турнира (по боксу), либо из БД
+                let player = null;
+                if (selectedBox !== null) {
+                    player = getPlayerByBox(selectedBox);
+                } else if (currentDbPlayer) {
+                    player = currentDbPlayer;
+                }
+                
                 if (!player || !player.username) return;
 
                 const username = player.username.replace(/^@+/, '');
