@@ -2487,6 +2487,17 @@
             const dbPlayers = getTournament().players || [];
             const playersWithBirthday = dbPlayers.filter(p => p.birthday);
             
+            // Подсчитываем статистику
+            let todayCount = 0;
+            let weekCount = 0;
+            playersWithBirthday.forEach(player => {
+                const daysUntil = getDaysUntilDate(player.birthday, false);
+                if (daysUntil === 0) todayCount++;
+                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+            });
+            
+            const statsText = `Всего ${playersWithBirthday.length}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
+            
             const button = document.createElement('button');
             button.classList.add('player-button');
             
@@ -2494,7 +2505,7 @@
                 <div class="table-indicator" style="background-color: var(--orange, #ff9500);">🎂</div>
                 <div class="player-info">
                     <div class="player-nickname">Дни рождения</div>
-                    <div class="player-name">${playersWithBirthday.length} игроков с указанной датой</div>
+                    <div class="player-name">${statsText}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -2668,8 +2679,17 @@
                 });
             }
             
+            // Подсчитываем статистику для заголовка
+            let todayCount = 0;
+            let weekCount = 0;
+            playersWithBirthday.forEach(player => {
+                const daysUntil = getDaysUntilDate(player.birthday, false);
+                if (daysUntil === 0) todayCount++;
+                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+            });
+            
             if (birthdaysInfo) {
-                birthdaysInfo.textContent = `${totalPlayers} игроков с днём рождения`;
+                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
             }
         }
 
