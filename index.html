@@ -2610,15 +2610,20 @@
                 
                 if (players.length === 0) continue;
                 
-                // Заголовок месяца
+                // Заголовок месяца с количеством игроков
                 const monthHeader = document.createElement('div');
                 monthHeader.className = 'tables-active-title tables-section-padding';
                 monthHeader.style.marginTop = totalPlayers > 0 ? 'var(--spacing-lg)' : '0';
-                monthHeader.textContent = getMonthName(monthIndex);
+                monthHeader.innerHTML = `${getMonthName(monthIndex)} <span style="color: var(--text-secondary); font-weight: 400;">${players.length}</span>`;
                 birthdaysList.appendChild(monthHeader);
                 
+                // Контейнер для игроков месяца (для правильных скруглений)
+                const monthContainer = document.createElement('div');
+                monthContainer.className = 'players-list';
+                birthdaysList.appendChild(monthContainer);
+                
                 // Игроки месяца
-                players.forEach(({ player, day }) => {
+                players.forEach(({ player, day, month }) => {
                     const button = document.createElement('button');
                     button.classList.add('player-button');
                     
@@ -2629,6 +2634,7 @@
                     const nickname = player.nickname || 'Неизвестно';
                     const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || '';
                     const dayStr = String(day).padStart(2, '0');
+                    const monthStr = String(month + 1).padStart(2, '0');
                     
                     // Определяем сколько дней до дня рождения
                     const daysUntil = getDaysUntilDate(player.birthday, false);
@@ -2645,9 +2651,9 @@
                     }
                     
                     button.innerHTML = `
-                        <img src="${playerPhotoUrl}" alt="${nickname}" class="player-photo" style="width: 40px; height: 40px; border-radius: 20px;" onerror="this.src='avatar.png'">
+                        <img src="${playerPhotoUrl}" alt="${nickname}" class="player-photo" style="width: 40px; height: 40px; min-width: 40px; min-height: 40px; border-radius: 20px; object-fit: cover; align-self: center;" onerror="this.src='avatar.png'">
                         <div class="player-info">
-                            <div class="player-nickname">${dayStr} — ${nickname}</div>
+                            <div class="player-nickname">${dayStr}.${monthStr} — ${nickname}</div>
                             <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
                         </div>
                         <div class="chevron"></div>
@@ -2657,7 +2663,7 @@
                         showDbPlayerCardFromBirthdays(player);
                     });
                     
-                    birthdaysList.appendChild(button);
+                    monthContainer.appendChild(button);
                     totalPlayers++;
                 });
             }
