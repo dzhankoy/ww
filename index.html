@@ -1824,6 +1824,16 @@
                 return;
             }
 
+            // ПРИОРИТЕТ 4: Игрок есть в базе клуба, но не за столом — показываем его профиль
+            const dbViewerPlayer = getDbPlayerById(viewerChatId);
+            if (dbViewerPlayer) {
+                hideTelegramBackButton();
+                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                // Показываем профиль без возможности вернуться назад (это его личный экран)
+                showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
+                return;
+            }
+
             // Режим отладки: если chat.id не определён (браузер), считаем пользователя админом
             if (!viewerChatId) {
                 viewerIsAdmin = true;
@@ -1835,9 +1845,26 @@
                 return;
             }
 
+            // Неизвестный пользователь — показываем заглушку
             hideTelegramBackButton();
-            setButtonsVisibility({ rebuy: '', finish: '', admin: '' });
-            showPlayerSelection();
+            setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+            showUnknownUserScreen();
+        }
+
+        // Экран-заглушка для неизвестных пользователей
+        function showUnknownUserScreen() {
+            hideAllScreens();
+            
+            // Показываем экран ошибки с сообщением
+            if (errorScreen) {
+                errorScreen.classList.remove('hidden');
+            }
+            if (errorMessage) {
+                errorMessage.textContent = 'Вы не зарегистрированы в клубе';
+            }
+            if (retryButton) {
+                retryButton.style.display = 'none';
+            }
         }
 
         // Экран списка столов (для админа)
@@ -2774,7 +2801,7 @@
         // Получить данные игрока из базы по ID
         function getDbPlayerById(playerId) {
             const dbPlayers = getTournament().players || [];
-            return dbPlayers.find(p => p.id === playerId) || null;
+            return dbPlayers.find(p => String(p.id) === String(playerId)) || null;
         }
 
         // Расчёт стажа членства в клубе (лет, месяцев, недель, дней)
@@ -2974,7 +3001,9 @@
         }
 
         // Внутренняя функция показа карточки игрока
-        function showDbPlayerCardInternal(player, backHandler) {
+        // options.isOwnProfile - если true, скрываем кнопку "Назад" и "Написать"
+        function showDbPlayerCardInternal(player, backHandler, options = {}) {
+            const isOwnProfile = options.isOwnProfile === true;
             currentDbPlayer = player;
             cameFromDbPlayers = true;
             selectedBox = null;
@@ -3135,9 +3164,11 @@
             rebuyButton.style.display = 'none';
             finishButton.style.display = 'none';
             
-            // Кнопка написать игроку
+            // Кнопка написать игроку (скрываем для своего профиля)
             if (messagePlayerButton) {
-                if (viewerIsAdmin) {
+                if (isOwnProfile) {
+                    messagePlayerButton.style.display = 'none';
+                } else if (viewerIsAdmin) {
                     messagePlayerButton.style.display = '';
                     messagePlayerButton.disabled = !player.username;
                 } else {
@@ -3145,13 +3176,17 @@
                 }
             }
             
-            // Скрываем кнопку позвать админа
+            // Кнопка позвать админа (показываем для своего профиля)
             if (playerAdminButton) {
-                playerAdminButton.style.display = 'none';
+                playerAdminButton.style.display = isOwnProfile ? '' : 'none';
             }
             
-            // Кнопка назад ведёт к нужному экрану
-            showTelegramBackButton(backHandler);
+            // Кнопка назад (скрываем для своего профиля)
+            if (isOwnProfile) {
+                hideTelegramBackButton();
+            } else {
+                showTelegramBackButton(backHandler);
+            }
         }
 
         // Возврат с карточки игрока к экрану дней рождения
