@@ -2873,18 +2873,13 @@
                 const isRegistered = player.isRegistered === true;
                 const statusClass = isRegistered ? 'playing' : 'finished';
                 
-                // Формируем строку с информацией: ⭐ рейтинг • # позиция (с подсветкой топ-3)
-                let infoLine = `⭐ ${ratingDisplay}`;
-                if (ratingPlace) {
-                    let placeText = `#️⃣ ${ratingPlace}`;
-                    if (ratingPlace === 1) {
-                        placeText = `<span style="color: var(--gold, #FFD700);">#️⃣ ${ratingPlace}</span>`;
-                    } else if (ratingPlace === 2) {
-                        placeText = `<span style="color: var(--silver, #C0C0C0);">#️⃣ ${ratingPlace}</span>`;
-                    } else if (ratingPlace === 3) {
-                        placeText = `<span style="color: var(--bronze, #CD7F32);">#️⃣ ${ratingPlace}</span>`;
-                    }
-                    infoLine += ` • ${placeText}`;
+                // Подсветка топ-3 по рейтингу
+                if (ratingPlace === 1) {
+                    button.classList.add('gold');
+                } else if (ratingPlace === 2) {
+                    button.classList.add('silver');
+                } else if (ratingPlace === 3) {
+                    button.classList.add('bronze');
                 }
                 
                 button.innerHTML = `
@@ -2893,8 +2888,9 @@
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
-                        <div class="player-name">${playerName} • ${infoLine}</div>
+                        <div class="player-name">${playerName}</div>
                     </div>
+                    <div style="margin-left: auto; display: flex; align-items: center; color: var(--text-secondary); font-size: 15px; padding-right: var(--spacing-sm);">${ratingDisplay} ⭐</div>
                     <div class="chevron"></div>
                 `;
                 
