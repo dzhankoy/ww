@@ -143,6 +143,57 @@
             min-height: 0;
             padding: var(--spacing-xl) 0;
         }
+        
+        /* Apple-style info boxes */
+        .info-boxes-row {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-sm);
+        }
+        
+        .info-box {
+            flex: 1;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 90px;
+            text-align: center;
+        }
+        
+        .info-box-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+        
+        .info-box-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-color);
+            line-height: 1.2;
+        }
+        
+        .info-box-label {
+            font-size: 12px;
+            color: var(--secondary-text);
+            margin-top: 4px;
+        }
+        
+        .info-box-highlight {
+            color: var(--blue);
+            font-weight: 600;
+        }
+        
+        .info-box-warning {
+            color: var(--orange, #ff9500);
+        }
+        
+        .info-box-success {
+            color: var(--green, #34c759);
+        }
 
         .tournament-title {
             font-size: 26px;
@@ -1025,6 +1076,18 @@
                 <span>Написать игроку</span>
                 <div class="action-info" id="messagePlayerInfo">Открыть чат</div>
             </button>
+            <div class="info-boxes-row" id="playerInfoBoxes" style="display:none;">
+                <div class="info-box" id="birthdayBox">
+                    <div class="info-box-icon">🎂</div>
+                    <div class="info-box-value" id="birthdayValue">—</div>
+                    <div class="info-box-label" id="birthdayLabel">День рождения</div>
+                </div>
+                <div class="info-box" id="registrationBox">
+                    <div class="info-box-icon">📅</div>
+                    <div class="info-box-value" id="registrationValue">—</div>
+                    <div class="info-box-label" id="registrationLabel">В клубе</div>
+                </div>
+            </div>
             <button class="admin-button" id="playerAdminButton" style="display:none;">Позвать администратора</button>
         </div>
     </div>
@@ -1202,6 +1265,11 @@
         const selectedPlayerName = document.getElementById('selectedPlayerName');
         const selectedPlayerTableInfo = document.getElementById('selectedPlayerTableInfo');
         const selectedPlayerDates = document.getElementById('selectedPlayerDates');
+        const playerInfoBoxes = document.getElementById('playerInfoBoxes');
+        const birthdayValue = document.getElementById('birthdayValue');
+        const birthdayLabel = document.getElementById('birthdayLabel');
+        const registrationValue = document.getElementById('registrationValue');
+        const registrationLabel = document.getElementById('registrationLabel');
         const gameTimeElement = document.getElementById('gameTime');
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
@@ -3044,42 +3112,63 @@
                 }
             }
 
-            // Даты: день рождения и регистрация
+            // Даты: день рождения и регистрация (скрываем старый блок)
             if (selectedPlayerDates) {
+                selectedPlayerDates.style.display = 'none';
+            }
+            
+            // Info boxes: день рождения и стаж в клубе
+            if (playerInfoBoxes) {
                 const dbPlayer = getDbPlayerById(player.id);
-                const lines = [];
+                let hasBirthday = false;
+                let hasRegDate = false;
                 
-                // Строка 1: ДР и дата регистрации
-                const line1Parts = [];
-                if (dbPlayer?.birthday) {
-                    const daysUntilBirthday = getDaysUntilDate(dbPlayer.birthday, false);
-                    const birthdayText = daysUntilBirthday !== null 
-                        ? `🎂 ${dbPlayer.birthday} (${daysUntilBirthday === 0 ? 'сегодня!' : daysUntilBirthday + ' дн.'})`
-                        : `🎂 ${dbPlayer.birthday}`;
-                    line1Parts.push(birthdayText);
-                }
-                if (dbPlayer?.reg_date) {
-                    const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
-                    let regText = `📅 ${dbPlayer.reg_date}`;
-                    if (daysUntilAnniversary !== null) {
-                        regText += ` (${daysUntilAnniversary === 0 ? 'годовщина!' : daysUntilAnniversary + ' дн.'})`;
-                    }
-                    line1Parts.push(regText);
-                }
-                if (line1Parts.length > 0) {
-                    lines.push(`<span class="table-label">${line1Parts.join('  ')}</span>`);
-                }
-                
-                // Строка 2: стаж членства
-                if (dbPlayer?.reg_date) {
-                    const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
-                    if (membershipDuration) {
-                        lines.push(`<span class="table-label">В клубе: ${membershipDuration}</span>`);
+                // День рождения
+                if (birthdayValue && birthdayLabel) {
+                    if (dbPlayer?.birthday) {
+                        hasBirthday = true;
+                        const daysUntil = getDaysUntilDate(dbPlayer.birthday, false);
+                        birthdayValue.textContent = dbPlayer.birthday;
+                        
+                        if (daysUntil === 0) {
+                            birthdayLabel.innerHTML = '<span class="info-box-success">Сегодня! 🎉</span>';
+                        } else if (daysUntil !== null && daysUntil <= 7) {
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} дн.</span>`;
+                        } else if (daysUntil !== null) {
+                            birthdayLabel.textContent = `Через ${daysUntil} дн.`;
+                        } else {
+                            birthdayLabel.textContent = 'День рождения';
+                        }
+                    } else {
+                        birthdayValue.textContent = '—';
+                        birthdayLabel.textContent = 'Не указан';
                     }
                 }
                 
-                selectedPlayerDates.innerHTML = lines.join('<br>');
-                selectedPlayerDates.style.display = lines.length > 0 ? '' : 'none';
+                // Дата регистрации и стаж
+                if (registrationValue && registrationLabel) {
+                    if (dbPlayer?.reg_date) {
+                        hasRegDate = true;
+                        const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
+                        const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
+                        
+                        registrationValue.textContent = membershipDuration || dbPlayer.reg_date;
+                        
+                        if (daysUntilAnniversary === 0) {
+                            registrationLabel.innerHTML = '<span class="info-box-success">Годовщина! 🎉</span>';
+                        } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
+                            registrationLabel.innerHTML = `<span class="info-box-warning">Годовщина через ${daysUntilAnniversary} дн.</span>`;
+                        } else {
+                            registrationLabel.textContent = `С ${dbPlayer.reg_date}`;
+                        }
+                    } else {
+                        registrationValue.textContent = '—';
+                        registrationLabel.textContent = 'Не указана';
+                    }
+                }
+                
+                // Всегда показываем блок с информацией
+                playerInfoBoxes.style.display = 'flex';
             }
             
             // Фото игрока
