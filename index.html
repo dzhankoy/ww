@@ -258,6 +258,11 @@
             background-color: var(--border-color);
         }
         
+        /* Отключаем подсветку по клику для таблицы Телеграм */
+        #telegramTableScreen .player-button:active {
+            background-color: var(--card-bg);
+        }
+        
         .player-button:disabled, .action-button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -2192,7 +2197,8 @@
             const finishedPlayers = allPlayers.filter(p => !!p.finishTime);
             
             if (telegramTableInfo) {
-                telegramTableInfo.textContent = `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
+                const t = getTournament();
+                telegramTableInfo.textContent = `${t.date || ''} • ${t.time || ''} • ${allPlayers.length} игроков`;
             }
             
             renderTelegramTable();
@@ -2276,7 +2282,6 @@
                     const chevron = button.querySelector('.chevron');
                     button.insertBefore(finishInfoContainer, chevron);
                     chevron.style.display = 'none';
-                    button.style.opacity = '0.5';
                 }
                 
                 telegramTableList.appendChild(button);
