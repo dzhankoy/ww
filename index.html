@@ -1032,8 +1032,8 @@
             <div class="tournament-header-row">
                 <img src="https://dzhankoy.github.io/ww/logo.png" alt="Club logo" class="club-logo">
                 <div class="tournament-header-text">
-                    <div class="tournament-title">King & Joker Club</div>
-                    <div class="tournament-date">Все турниры</div>
+                    <div class="tournament-title" id="tournamentsTitle">Все турниры</div>
+                    <div class="tournament-date" id="tournamentsInfo">Загрузка...</div>
                 </div>
             </div>
         </div>
@@ -3233,7 +3233,7 @@
                 <div class="table-indicator">${tournaments.length}</div>
                 <div class="player-info">
                     <div class="player-nickname">Все турниры</div>
-                    <div class="player-name">Активных: ${activeTournaments}, запланировано: ${scheduledTournaments}</div>
+                    <div class="player-name">Всего: ${tournaments.length}, активных: ${activeTournaments}, запланировано: ${scheduledTournaments}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -3264,6 +3264,15 @@
             tournamentsList.innerHTML = '';
             
             const tournaments = getTournamentsList();
+            
+            // Обновляем заголовок и подзаголовок
+            const tournamentsTitle = document.getElementById('tournamentsTitle');
+            const tournamentsInfo = document.getElementById('tournamentsInfo');
+            const activeTournaments = tournaments.filter(t => t.status === 'active').length;
+            const scheduledTournaments = tournaments.filter(t => t.status === 'scheduled').length;
+            
+            if (tournamentsTitle) tournamentsTitle.textContent = 'Все турниры';
+            if (tournamentsInfo) tournamentsInfo.textContent = `Всего: ${tournaments.length}, активных: ${activeTournaments}, запланировано: ${scheduledTournaments}`;
             
             // Парсинг даты dd.mm.yyyy
             function parseTournamentDate(dateStr) {
