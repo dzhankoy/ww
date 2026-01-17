@@ -2159,7 +2159,7 @@
             button.classList.add('player-button');
             
             button.innerHTML = `
-                <div class="table-indicator">${allPlayers.length}</div>
+                <div class="table-indicator">👤</div>
                 <div class="player-info">
                     <div class="player-nickname">Все игроки турнира</div>
                     <div class="player-name">В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}</div>
@@ -2459,7 +2459,7 @@
                 `;
             } else {
                 button.innerHTML = `
-                    <div class="table-indicator">${dbPlayers.length}</div>
+                    <div class="table-indicator">👤</div>
                     <div class="player-info">
                         <div class="player-nickname">Все игроки клуба</div>
                         <div class="player-name">Всего игроков: ${dbPlayers.length}, активных: 15</div>
@@ -3230,7 +3230,7 @@
             const scheduledTournaments = tournaments.filter(t => t.status === 'scheduled').length;
             
             button.innerHTML = `
-                <div class="table-indicator">${tournaments.length}</div>
+                <div class="table-indicator">🏆</div>
                 <div class="player-info">
                     <div class="player-nickname">Все турниры</div>
                     <div class="player-name">Всего: ${tournaments.length}, активных: ${activeTournaments}, запланировано: ${scheduledTournaments}</div>
