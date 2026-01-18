@@ -1519,27 +1519,8 @@
         }
 
         function applySnapshotToUI() {
-            const selectedTable = getSelectedTable();
-            if (!selectedTable) {
-                return;
-            }
-
-            currentBoxes = buildBoxes(selectedTable);
-
             if (tournamentTitle && fullTournamentData.tournament) {
                 tournamentTitle.textContent = fullTournamentData.tournament.title || 'King & Joker Tournament';
-            }
-
-            if (tableNumber) {
-                tableNumber.textContent = selectedTable.id || '1';
-            }
-
-            // Определяем дилера по флагу dealer у игрока и используем его никнейм
-            const dealerPlayer = selectedTable.players?.find(p => p.dealer);
-            if (dealerName) {
-                dealerName.textContent = dealerPlayer 
-                    ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Дилер')
-                    : 'Нет дилера';
             }
 
             if (fullTournamentData.tournament.date && fullTournamentData.tournament.time) {
@@ -1553,6 +1534,26 @@
             }
 
             updateGameTime();
+
+            const selectedTable = getSelectedTable();
+            if (!selectedTable) {
+                currentBoxes = null;
+                return;
+            }
+
+            currentBoxes = buildBoxes(selectedTable);
+
+            if (tableNumber) {
+                tableNumber.textContent = selectedTable.id || '1';
+            }
+
+            // Определяем дилера по флагу dealer у игрока и используем его никнейм
+            const dealerPlayer = selectedTable.players?.find(p => p.dealer);
+            if (dealerName) {
+                dealerName.textContent = dealerPlayer 
+                    ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Дилер')
+                    : 'Нет дилера';
+            }
         }
 
         // Общая функция для запроса данных турнира
@@ -1585,8 +1586,23 @@
             let responseData = await response.json();
             let fullData = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
 
-            if (!fullData.tournament || !Array.isArray(fullData.tournament.tables)) {
-                throw new Error('Invalid data format from server');
+            if (!fullData || typeof fullData !== 'object') {
+                fullData = {};
+            }
+            if (!fullData.tournament || typeof fullData.tournament !== 'object') {
+                fullData.tournament = {};
+            }
+            if (!Array.isArray(fullData.tournament.tables)) {
+                fullData.tournament.tables = [];
+            }
+            if (!Array.isArray(fullData.tournament.players)) {
+                fullData.tournament.players = [];
+            }
+            if (!Array.isArray(fullData.tournament.admins)) {
+                fullData.tournament.admins = [];
+            }
+            if (!Array.isArray(fullData.tournament.adminCalls)) {
+                fullData.tournament.adminCalls = [];
             }
 
             return fullData;
@@ -1821,6 +1837,13 @@
                         }
                     }
                 }
+
+                const dbViewerPlayer = getDbPlayerById(viewerChatId);
+                if (dbViewerPlayer) {
+                    setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                    showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
+                    return;
+                }
                 return;
             }
 
@@ -1859,8 +1882,8 @@
             if (errorScreen) {
                 errorScreen.classList.remove('hidden');
             }
-            if (errorMessage) {
-                errorMessage.textContent = 'Вы не зарегистрированы в клубе';
+            if (errorText) {
+                errorText.textContent = 'Вы не зарегистрированы в клубе';
             }
             if (retryButton) {
                 retryButton.style.display = 'none';
@@ -3908,6 +3931,10 @@
 
         function updateGameTime() {
             if (isGameFinished) return;
+
+            if (!gameStartTime || !(gameStartTime instanceof Date) || isNaN(gameStartTime.getTime())) {
+                return;
+            }
             
             const now = new Date();
             const diffMs = now - gameStartTime;
