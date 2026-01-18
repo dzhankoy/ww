@@ -1538,8 +1538,8 @@
             const dealerPlayer = selectedTable.players?.find(p => p.dealer);
             if (dealerName) {
                 dealerName.textContent = dealerPlayer 
-                    ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Максимус')
-                    : 'Максимус';
+                    ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Дилер')
+                    : 'Нет дилера';
             }
 
             if (fullTournamentData.tournament.date && fullTournamentData.tournament.time) {
@@ -1967,7 +1967,7 @@
                     }
                 });
                 const dealerPlayer = players.find(p => p.dealer);
-                const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || '—') : '—';
+                const dealerNickname = dealerPlayer ? (dealerPlayer.nickname || dealerPlayer.firstName || 'Дилер') : 'Нет дилера';
 
                 const button = document.createElement('button');
                 button.classList.add('player-button');
@@ -3401,11 +3401,10 @@
             let durationText = '—';
             if (startDate instanceof Date && !isNaN(startDate.getTime())) {
                 const now = new Date();
-                const diff = now - startDate;
-                const dh = Math.floor(diff / (1000 * 60 * 60));
-                const dm = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const ds = Math.floor((diff % (1000 * 60)) / 1000);
-                durationText = `${dh.toString().padStart(2, '0')}:${dm.toString().padStart(2, '0')}:${ds.toString().padStart(2, '0')}`;
+                const diffMs = now - startDate;
+                durationText = diffMs >= 0
+                    ? formatHHMMSS(diffMs)
+                    : `до ${formatHHMMSS(-diffMs)}`;
             }
 
             const totalEntries = totalPlayers + totalRebuys;
@@ -3879,6 +3878,14 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
+        function formatHHMMSS(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
         function getPositionClass(position) {
             switch(position) {
                 case 1: return 'gold';
@@ -3901,16 +3908,17 @@
             if (isGameFinished) return;
             
             const now = new Date();
-            const timeDiff = now - gameStartTime;
-            const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-            const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            const diffMs = now - gameStartTime;
             
             const startTimeString = gameStartTime.toLocaleTimeString('ru-RU', {
                 hour: '2-digit', minute: '2-digit'
             });
-            
-            gameTimeElement.textContent = `Время начала ${startTimeString}, игра идёт ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (diffMs >= 0) {
+                gameTimeElement.textContent = `Старт ${startTimeString}, идёт ${formatHHMMSS(diffMs)}`;
+            } else {
+                gameTimeElement.textContent = `Старт ${startTimeString}, до ${formatHHMMSS(-diffMs)}`;
+            }
         }
 
         function updateCurrentTime() {
