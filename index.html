@@ -3404,7 +3404,7 @@
                 const diffMs = now - startDate;
                 durationText = diffMs >= 0
                     ? formatHHMMSS(diffMs)
-                    : `до ${formatHHMMSS(-diffMs)}`;
+                    : `до начала ${formatHHMMSS(-diffMs)}`;
             }
 
             const totalEntries = totalPlayers + totalRebuys;
@@ -3880,10 +3880,12 @@
 
         function formatHHMMSS(ms) {
             const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-            const hours = Math.floor(totalSeconds / 3600);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
-            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const hhmmss = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            return days > 0 ? `${days.toString().padStart(2, '0')}:${hhmmss}` : hhmmss;
         }
 
         function getPositionClass(position) {
@@ -3915,9 +3917,9 @@
             });
 
             if (diffMs >= 0) {
-                gameTimeElement.textContent = `Старт ${startTimeString}, идёт ${formatHHMMSS(diffMs)}`;
+                gameTimeElement.textContent = `Начало в ${startTimeString}, идёт ${formatHHMMSS(diffMs)}`;
             } else {
-                gameTimeElement.textContent = `Старт ${startTimeString}, до ${formatHHMMSS(-diffMs)}`;
+                gameTimeElement.textContent = `Начало в ${startTimeString}, осталось ${formatHHMMSS(-diffMs)}`;
             }
         }
 
