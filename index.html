@@ -2329,6 +2329,17 @@
                 // Клик по игроку - переход к его столу и карточке
                 button.addEventListener('click', () => {
                     cameFromAllPlayers = true;
+
+                    if (!player.tableId || !player.box) {
+                        const dbPlayer = getDbPlayerById(player.id);
+                        if (dbPlayer) {
+                            showDbPlayerCardInternal(dbPlayer, backToAllPlayersFromAction);
+                            return;
+                        }
+                        showError('Нет данных для открытия игрока');
+                        return;
+                    }
+
                     currentTableId = player.tableId;
                     applySnapshotToUI();
                     updatePlayersList();
