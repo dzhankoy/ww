@@ -3768,9 +3768,8 @@
                         : status === 'finished'
                             ? 'завершён'
                             : (status || '—');
-                const seatingText = hasBoxes ? 'есть' : 'нет';
                 const regCount = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
-                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, столов: ${tablesCount}, рассадка: ${seatingText}, ${timeText}${callsSuffix}${adminSuffix}`;
+                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
 
                 if (tablesProgressFill) {
                     tablesProgressFill.style.width = '0%';
