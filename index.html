@@ -517,6 +517,14 @@
             padding: 0 var(--spacing-sm);
         }
 
+        .tables-progress.tables-section-padding {
+            padding: 0;
+        }
+
+        .tables-actions.tables-section-padding {
+            padding: 0;
+        }
+
         /* Единый вертикальный отступ между блоками на экране столов */
         .tables-section-block {
             margin-bottom: var(--spacing-xxl);
@@ -526,8 +534,11 @@
         .tables-active-title,
         .tables-progress-title,
         .tables-actions-title {
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--secondary-text);
             margin-top: var(--spacing-lg);    /* более компактный стандартный отступ сверху */
             margin-bottom: var(--spacing-xs);
             text-align: left;
