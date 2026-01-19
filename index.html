@@ -945,7 +945,7 @@
         <div class="players-list-container tables-section-block">
             <div class="tables-active-title tables-section-padding">Игроки турнира</div>
             <div class="players-list" id="allPlayersPreviewList"></div>
-            <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Активные столы</div>
+            <div class="tables-active-title tables-section-padding" id="activeTablesTitle" style="margin-top: var(--spacing-lg);">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
             <div class="players-list" id="dbPlayersPreviewList"></div>
@@ -1289,6 +1289,7 @@
         const allPlayersTournamentTitle = document.getElementById('allPlayersTournamentTitle');
         const allPlayersInfo = document.getElementById('allPlayersInfo');
         const allPlayersGameTime = document.getElementById('allPlayersGameTime');
+        const activeTablesTitle = document.getElementById('activeTablesTitle');
         const dbPlayersPreviewList = document.getElementById('dbPlayersPreviewList');
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
@@ -1931,6 +1932,10 @@
                     ? t.players.filter(p => p && p.isRegistered).length
                     : 0;
 
+                const tablesCountDynamic = registrationsMode
+                    ? Math.ceil(registeredCount / 9)
+                    : tables.length;
+
                 let totalPlayers = 0;
                 let totalActive = 0;
                 let totalFinished = 0;
@@ -1967,7 +1972,7 @@
                 }
 
                 tournamentStatsCache = {
-                    tablesCount: tables.length,
+                    tablesCount: tablesCountDynamic,
                     status: t.status,
                     registrationsMode,
                     hasBoxes,
@@ -1984,7 +1989,28 @@
             }
 
             if (!tablesList) return;
-            tablesList.innerHTML = '';
+
+            const shouldHideTables = t.status === 'scheduled';
+            if (activeTablesTitle) {
+                activeTablesTitle.style.display = shouldHideTables ? 'none' : '';
+            }
+            if (shouldHideTables) {
+                tablesList.innerHTML = '';
+                tablesList.style.display = 'none';
+            } else {
+                tablesList.style.display = '';
+                tablesList.innerHTML = '';
+            }
+
+            if (shouldHideTables) {
+                // При запланированном турнире не показываем список столов
+                renderAllPlayersPreview();
+                renderDbPlayersPreview();
+                renderBirthdaysPreview();
+                renderTournamentsPreview();
+                renderAdminCallsList();
+                return;
+            }
 
             tables.forEach((table, index) => {
                 const players = Array.isArray(table.players) ? table.players : [];
