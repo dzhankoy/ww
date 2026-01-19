@@ -975,6 +975,7 @@
         </div>
         <div class="players-list-container">
             <div class="players-list" id="allPlayersList"></div>
+            <div class="game-time" id="allPlayersGameTime"></div>
         </div>
     </div>
 
@@ -1287,6 +1288,7 @@
         const allPlayersList = document.getElementById('allPlayersList');
         const allPlayersTournamentTitle = document.getElementById('allPlayersTournamentTitle');
         const allPlayersInfo = document.getElementById('allPlayersInfo');
+        const allPlayersGameTime = document.getElementById('allPlayersGameTime');
         const dbPlayersPreviewList = document.getElementById('dbPlayersPreviewList');
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
@@ -2267,6 +2269,18 @@
 
             const registered = registeredFromTables.length > 0 ? registeredFromTables : registeredFromDb;
             registered.sort((a, b) => {
+                const aDt = parseTournamentRegDateTime(a?.registrationDate);
+                const bDt = parseTournamentRegDateTime(b?.registrationDate);
+
+                if (aDt && bDt) {
+                    const diff = aDt.getTime() - bDt.getTime();
+                    if (diff !== 0) return diff;
+                } else if (aDt && !bDt) {
+                    return -1;
+                } else if (!aDt && bDt) {
+                    return 1;
+                }
+
                 const aName = (a.nickname || `${a.firstName || ''} ${a.lastName || ''}`.trim() || '').toLowerCase();
                 const bName = (b.nickname || `${b.firstName || ''} ${b.lastName || ''}`.trim() || '').toLowerCase();
                 return aName.localeCompare(bName);
@@ -2401,7 +2415,7 @@
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
-                        <div class="player-name">${playerName} • ${tableBoxInfo}</div>
+                        <div class="player-name">${registrationsMode ? `${tableBoxInfo} • ${playerName}` : `${playerName} • ${tableBoxInfo}`}</div>
                     </div>
                     <div class="player-rebuys"></div>
                     <div class="chevron"></div>
@@ -2948,7 +2962,8 @@
             const yyyy = String(d.getFullYear());
             const hh = String(d.getHours()).padStart(2, '0');
             const min = String(d.getMinutes()).padStart(2, '0');
-            return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${dd}.${mm}.${yyyy} ${hh}:${min}:${ss}`;
         }
 
         function getTournamentRegistrationDisplay(player) {
@@ -4167,8 +4182,44 @@
             }
         }
 
+        function updateAllPlayersGameTime() {
+            if (!allPlayersGameTime) return;
+            if (!allPlayersScreen || allPlayersScreen.classList.contains('hidden')) return;
+
+            const t = getTournament();
+            if (!t?.date || !t?.time) {
+                allPlayersGameTime.textContent = '';
+                return;
+            }
+
+            let startDate = null;
+            try {
+                const [day, month, year] = String(t.date).split('.');
+                const [hours, minutes] = String(t.time).split(':');
+                startDate = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
+                if (isNaN(startDate.getTime())) startDate = null;
+            } catch (e) {
+                startDate = null;
+            }
+
+            if (!startDate) {
+                allPlayersGameTime.textContent = '';
+                return;
+            }
+
+            const now = new Date();
+            const diffMs = now - startDate;
+            const startTimeString = startDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            if (diffMs >= 0) {
+                allPlayersGameTime.textContent = `Начало в ${startTimeString}, идёт ${formatHHMMSS(diffMs)}`;
+            } else {
+                allPlayersGameTime.textContent = `Начало в ${startTimeString}, осталось ${formatHHMMSS(-diffMs)}`;
+            }
+        }
+
         function updateCurrentTime() {
             updateTournamentStatsDisplay();
+            updateAllPlayersGameTime();
         }
 
         function backToPlayerList() {
