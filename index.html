@@ -3014,7 +3014,7 @@
                 `;
                 
                 // Подсветка вызывающего админа игрока
-                if ((getTournament().adminCalls || []).includes(player.id)) {
+                if ((getTournament().adminCalls || []).some(id => String(id) === String(player.id))) {
                     button.classList.add('admin-call-active');
                 }
                 
@@ -3100,6 +3100,15 @@
             currentDbPlayer = player;
             cameFromDbPlayers = true;
             selectedBox = null;
+
+            // Если у игрока активен вызов админа - снимаем его (при просмотре профиля админом)
+            if (viewerIsAdmin) {
+                const adminCalls = getTournament().adminCalls || [];
+                const hasCall = adminCalls.some(id => String(id) === String(player.id));
+                if (hasCall) {
+                    clearAdminCall(player.id);
+                }
+            }
             
             hideAllScreens();
             actionScreen.classList.remove('hidden');
@@ -4302,14 +4311,29 @@
                 
                 // Обновляем локальные данные сразу
                 if (fullTournamentData?.tournament?.adminCalls) {
-                    const index = fullTournamentData.tournament.adminCalls.indexOf(playerId);
-                    if (index > -1) {
-                        fullTournamentData.tournament.adminCalls.splice(index, 1);
+                    const idx = fullTournamentData.tournament.adminCalls.findIndex(id => String(id) === String(playerId));
+                    if (idx > -1) {
+                        fullTournamentData.tournament.adminCalls.splice(idx, 1);
                     }
                 }
                 
                 // Обновляем список вызовов на главном экране
                 renderAdminCallsList();
+
+                // Обновляем подсветку вызовов на остальных экранах
+                try {
+                    updatePlayersList();
+                    if (!tablesScreen.classList.contains('hidden')) {
+                        renderTablesList();
+                    }
+                    if (!allPlayersScreen.classList.contains('hidden')) {
+                        renderAllPlayersList();
+                    }
+                    if (!dbPlayersScreen.classList.contains('hidden')) {
+                        renderDbPlayersList();
+                    }
+                } catch (e) {
+                }
                 
             } catch (error) {
             }
