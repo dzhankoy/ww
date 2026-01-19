@@ -1973,6 +1973,9 @@
                     ? t.players.filter(p => p && p.isRegistered).length
                     : 0;
 
+                const maxPlayers = Number(t.max_players);
+                const maxPlayersSafe = Number.isFinite(maxPlayers) && maxPlayers > 0 ? maxPlayers : null;
+
                 const tablesCountDynamic = registrationsMode
                     ? Math.ceil(registeredCount / 9)
                     : tables.length;
@@ -2018,6 +2021,7 @@
                     registrationsMode,
                     hasBoxes,
                     registeredCount,
+                    maxPlayers: maxPlayersSafe,
                     totalPlayers,
                     totalActive,
                     totalFinished,
@@ -3733,6 +3737,7 @@
                 registrationsMode,
                 hasBoxes,
                 registeredCount,
+                maxPlayers,
                 totalPlayers,
                 totalActive,
                 totalFinished,
@@ -3772,7 +3777,12 @@
                 tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
 
                 if (tablesProgressFill) {
-                    tablesProgressFill.style.width = '0%';
+                    if (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0) {
+                        const ratio = Math.max(0, Math.min(1, regCount / maxPlayers));
+                        tablesProgressFill.style.width = `${ratio * 100}%`;
+                    } else {
+                        tablesProgressFill.style.width = '0%';
+                    }
                 }
                 return;
             }
