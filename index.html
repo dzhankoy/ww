@@ -2953,20 +2953,7 @@
 
         function getTournamentRegistrationDisplay(player) {
             if (!player) return '';
-            const raw =
-                player.tournamentRegDateTime ??
-                player.tournament_reg_datetime ??
-                player.tournament_reg_time ??
-                player.registrationDateTime ??
-                player.registration_datetime ??
-                player.reg_datetime ??
-                player.registeredAt ??
-                player.createdAt ??
-                player.created_at ??
-                player.created;
-
-            const formatted = formatTournamentRegDateTime(raw);
-            return formatted || '';
+            return formatTournamentRegDateTime(player.registrationDate) || '';
         }
 
         // Форматирование даты регистрации для отображения
