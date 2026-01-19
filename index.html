@@ -1923,6 +1923,12 @@
 
             // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
             if (tablesTournamentStats) {
+                const hasBoxes = tournamentHasAssignedBoxes();
+                const registrationsMode = !hasBoxes || t.status === 'scheduled';
+                const registeredCount = Array.isArray(t.players)
+                    ? t.players.filter(p => p && p.isRegistered).length
+                    : 0;
+
                 let totalPlayers = 0;
                 let totalActive = 0;
                 let totalFinished = 0;
@@ -1960,6 +1966,10 @@
 
                 tournamentStatsCache = {
                     tablesCount: tables.length,
+                    status: t.status,
+                    registrationsMode,
+                    hasBoxes,
+                    registeredCount,
                     totalPlayers,
                     totalActive,
                     totalFinished,
@@ -2380,8 +2390,9 @@
                             ? 'dealer'
                             : 'playing';
                 
+                const registrationDisplay = getTournamentRegistrationDisplay(player) || '—';
                 const tableBoxInfo = registrationsMode
-                    ? 'Регистрация'
+                    ? registrationDisplay
                     : `Стол ${player.tableId}, бокс ${player.box || '?'}`;
                 
                 button.innerHTML = `
@@ -2888,6 +2899,74 @@
             }
             
             return null;
+        }
+
+        function parseTournamentRegDateTime(value) {
+            if (!value) return null;
+
+            if (value instanceof Date && !isNaN(value.getTime())) {
+                return value;
+            }
+
+            const str = String(value).trim();
+
+            if (!str) return null;
+
+            // dd.mm.yyyy HH:MM
+            if (str.includes('.') && str.includes(':') && str.includes(' ')) {
+                try {
+                    const [datePart, timePart] = str.split(' ');
+                    const parts = datePart.split('.');
+                    if (parts.length === 3) {
+                        const [day, month, year] = parts;
+                        const [hh = '0', mm = '0'] = String(timePart).split(':');
+                        const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hh), Number(mm), 0, 0);
+                        if (!isNaN(d.getTime())) return d;
+                    }
+                } catch (e) {
+                }
+            }
+
+            // ISO
+            if (str.includes('T') || str.includes('-')) {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // dd.mm.yyyy (без времени)
+            const d = parseRegDate(str);
+            if (d) return d;
+
+            return null;
+        }
+
+        function formatTournamentRegDateTime(value) {
+            const d = parseTournamentRegDateTime(value);
+            if (!d) return '';
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = String(d.getFullYear());
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
+        }
+
+        function getTournamentRegistrationDisplay(player) {
+            if (!player) return '';
+            const raw =
+                player.tournamentRegDateTime ??
+                player.tournament_reg_datetime ??
+                player.tournament_reg_time ??
+                player.registrationDateTime ??
+                player.registration_datetime ??
+                player.reg_datetime ??
+                player.registeredAt ??
+                player.createdAt ??
+                player.created_at ??
+                player.created;
+
+            const formatted = formatTournamentRegDateTime(raw);
+            return formatted || '';
         }
 
         // Форматирование даты регистрации для отображения
@@ -3542,6 +3621,10 @@
 
             const {
                 tablesCount,
+                status,
+                registrationsMode,
+                hasBoxes,
+                registeredCount,
                 totalPlayers,
                 totalActive,
                 totalFinished,
@@ -3563,6 +3646,24 @@
             const adminCallsCount = (getTournament().adminCalls || []).length;
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
             const callsSuffix = adminCallsCount > 0 ? `, вызовов: ${adminCallsCount}` : '';
+
+            if (registrationsMode) {
+                const statusText = status === 'active'
+                    ? 'активен'
+                    : status === 'scheduled'
+                        ? 'запланирован'
+                        : status === 'finished'
+                            ? 'завершён'
+                            : (status || '—');
+                const seatingText = hasBoxes ? 'есть' : 'нет';
+                const regCount = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
+                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, столов: ${tablesCount}, рассадка: ${seatingText}, время: ${durationText}${callsSuffix}${adminSuffix}`;
+
+                if (tablesProgressFill) {
+                    tablesProgressFill.style.width = '0%';
+                }
+                return;
+            }
 
             tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, время: ${durationText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${callsSuffix}${adminSuffix}`;
 
