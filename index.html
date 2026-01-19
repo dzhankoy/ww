@@ -502,6 +502,13 @@
         .table-indicator.warning {
             background-color: var(--red);
         }
+
+        #allPlayersPreviewList .table-indicator,
+        #dbPlayersPreviewList .table-indicator,
+        #tournamentsPreviewList .table-indicator {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
         
         /* Подсветка стола, откуда вызывали администратора */
         .player-button.admin-call-active {
@@ -2383,6 +2390,10 @@
             
             const allPlayers = getAllTournamentPlayers();
             const registrationsMode = !tournamentHasAssignedBoxes();
+            const t = getTournament();
+            const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
+            const maxPlayers = Number(t.max_players);
+            const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
             const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
             const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
             
@@ -2394,8 +2405,8 @@
             button.innerHTML = `
                 <div class="table-indicator">👤</div>
                 <div class="player-info">
-                    <div class="player-nickname">Все игроки турнира</div>
-                    <div class="player-name">${registrationsMode ? `Зарегистрировано: ${allPlayers.length}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
+                    <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации на турнир' : 'Все игроки турнира'}</div>
+                    <div class="player-name">${registrationsMode ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -2442,12 +2453,16 @@
             
             const allPlayers = getAllTournamentPlayers();
             const registrationsMode = !tournamentHasAssignedBoxes();
+            const t = getTournament();
+            const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
+            const maxPlayers = Number(t.max_players);
+            const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
             const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
             const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
             
             if (allPlayersInfo) {
                 allPlayersInfo.textContent = registrationsMode
-                    ? `Зарегистрировано: ${allPlayers.length}`
+                    ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}`
                     : `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
             }
             
