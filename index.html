@@ -4248,6 +4248,14 @@
             triggerAdminCallHaptic();
             signalSound.play().catch(() => {});
         }
+
+        function stopAdminCallSound() {
+            try {
+                signalSound.pause();
+                signalSound.currentTime = 0;
+            } catch (e) {
+            }
+        }
         
         if (playSoundButton) {
             playSoundButton.addEventListener('click', () => {
@@ -4277,6 +4285,10 @@
         function handleAdminCalls(newAdminCalls) {
             // Проверяем есть ли новые вызовы (которых не было в предыдущем списке)
             const newCalls = newAdminCalls.filter(chatId => !previousAdminCalls.some(id => String(id) === String(chatId)));
+
+            if (viewerIsAdmin && previousAdminCalls.length > 0 && newAdminCalls.length === 0) {
+                stopAdminCallSound();
+            }
             
             // Если есть новые вызовы и пользователь админ - запускаем мелодию
             if (newCalls.length > 0 && viewerIsAdmin) {
@@ -4315,6 +4327,10 @@
                     if (idx > -1) {
                         fullTournamentData.tournament.adminCalls.splice(idx, 1);
                     }
+                }
+
+                if (viewerIsAdmin && (fullTournamentData?.tournament?.adminCalls || []).length === 0) {
+                    stopAdminCallSound();
                 }
                 
                 // Обновляем список вызовов на главном экране
