@@ -192,7 +192,7 @@
         }
         
         .info-box-warning {
-            color: var(--orange, #ff9500);
+            color: var(--red);
         }
         
         .info-box-success {
@@ -426,6 +426,11 @@
             background-color: var(--green);
             color: white;
             border-color: var(--green);
+        }
+
+        body.dealer-main-mode #playerSelectionScreen .position-indicator.playing {
+            background-color: var(--card-bg);
+            color: var(--text-color);
         }
         
         .position-indicator.dealer {
@@ -1402,6 +1407,7 @@
 
         // Скрытие всех экранов
         function hideAllScreens() {
+            document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
              dbPlayersScreen, birthdaysScreen, tournamentsScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => s?.classList.add('hidden'));
@@ -2782,7 +2788,7 @@
             button.classList.add('player-button');
             
             button.innerHTML = `
-                <div class="table-indicator" style="background-color: var(--orange, #ff9500);">🎂</div>
+                <div class="table-indicator" style="background-color: var(--red);">🎂</div>
                 <div class="player-info">
                     <div class="player-nickname">Дни рождения</div>
                     <div class="player-name">${statsText}</div>
@@ -2936,7 +2942,7 @@
                     if (daysUntil === 0) {
                         daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня! 🎉</span>';
                     } else if (daysUntil !== null && daysUntil <= 7) {
-                        daysLabel = `<span style="color: var(--orange, #ff9500);">через ${daysUntil} ${getDayWordLocal(daysUntil)}</span>`;
+                        daysLabel = `<span style="color: var(--red);">через ${daysUntil} ${getDayWordLocal(daysUntil)}</span>`;
                     } else if (daysUntil !== null) {
                         daysLabel = `через ${daysUntil} ${getDayWordLocal(daysUntil)}`;
                     }
@@ -4233,6 +4239,9 @@
         function showPlayerSelection() {
             hideAllScreens();
             playerSelectionScreen.classList.remove('hidden');
+
+            const viewerPlayer = getViewerPlayer();
+            document.body.classList.toggle('dealer-main-mode', !!(viewerPlayer && viewerPlayer.dealer === true));
 
             // Для админа на экране списка игроков системная кнопка ведёт "Назад к столам"
             if (viewerIsAdmin) {
