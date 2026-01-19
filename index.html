@@ -1480,7 +1480,7 @@
                         boxes[box] = { 
                             player: {
                                 ...player,
-                                adminCall: adminCalls.includes(player.id)
+                                adminCall: adminCalls.some(id => String(id) === String(player.id))
                             }
                         };
                     }
@@ -2075,20 +2075,50 @@
             section.style.display = 'block';
             list.innerHTML = '';
             
-            // Получаем данные игроков с вызовами
+            // Получаем данные игроков с вызовами (устойчиво: даже если tables пустой)
             const tables = t.tables || [];
-            const playersWithCalls = [];
-            
+            const tournamentPlayerById = new Map();
+
             tables.forEach(table => {
                 const players = Array.isArray(table.players) ? table.players : [];
                 players.forEach(player => {
-                    if (adminCalls.includes(player.id)) {
-                        playersWithCalls.push({
+                    if (player && player.id != null) {
+                        tournamentPlayerById.set(String(player.id), {
                             ...player,
                             tableId: table.id
                         });
                     }
                 });
+            });
+
+            const playersWithCalls = (adminCalls || []).map((callId) => {
+                const fromTournament = tournamentPlayerById.get(String(callId));
+                if (fromTournament) {
+                    return {
+                        ...fromTournament,
+                        source: 'tournament'
+                    };
+                }
+
+                const dbPlayer = getDbPlayerById(callId);
+                if (dbPlayer) {
+                    return {
+                        ...dbPlayer,
+                        tableId: null,
+                        box: null,
+                        source: 'db'
+                    };
+                }
+
+                return {
+                    id: callId,
+                    nickname: 'Игрок',
+                    firstName: '',
+                    lastName: '',
+                    tableId: null,
+                    box: null,
+                    source: 'unknown'
+                };
             });
             
             playersWithCalls.forEach(player => {
@@ -2097,11 +2127,13 @@
                 
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-                const tableBoxInfo = `Стол ${player.tableId}, бокс ${player.box || '?'}`;
+                const tableText = player.tableId != null ? String(player.tableId) : '?';
+                const boxText = player.box != null ? String(player.box) : '?';
+                const tableBoxInfo = `Стол ${tableText}, бокс ${boxText}`;
                 
                 button.innerHTML = `
                     <div class="position-indicator playing">
-                        ${player.box || '?'}
+                        ${boxText}
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">🔔 ${nicknameDisplay}</div>
@@ -2110,16 +2142,43 @@
                     <div class="chevron"></div>
                 `;
                 
-                // Клик по игроку - переход к его столу и карточке
+                // Клик по игроку - всегда открываем профиль, без пустых экранов
                 button.addEventListener('click', () => {
                     cameFromAllPlayers = false;
-                    currentTableId = player.tableId;
-                    applySnapshotToUI();
-                    updatePlayersList();
-                    tablesScreen.classList.add('hidden');
-                    
-                    // Показываем карточку игрока
-                    selectBox(player.box);
+
+                    // 1) Если игрок реально сидит за столом и есть бокс — открываем турнирную карточку
+                    if (player.tableId != null && player.box != null) {
+                        currentTableId = player.tableId;
+                        applySnapshotToUI();
+                        updatePlayersList();
+
+                        // гарантированно показываем экран, чтобы не было пустоты
+                        showPlayerSelection();
+
+                        const p = getPlayerByBox(player.box);
+                        if (p) {
+                            selectBox(player.box);
+                            return;
+                        }
+                    }
+
+                    // 2) Фоллбек: открываем профиль из базы клуба
+                    const dbPlayer = getDbPlayerById(player.id);
+                    if (dbPlayer) {
+                        const backHandler = viewerIsAdmin
+                            ? () => showTablesScreen()
+                            : () => showPlayerSelection();
+                        showDbPlayerCardInternal(dbPlayer, backHandler);
+                        return;
+                    }
+
+                    // 3) Последний фоллбек
+                    showSimpleActionNotice('Игрок не найден');
+                    if (viewerIsAdmin) {
+                        showTablesScreen();
+                    } else {
+                        showPlayerSelection();
+                    }
                 });
                 
                 list.appendChild(button);
@@ -2142,7 +2201,7 @@
                     allPlayers.push({
                         ...player,
                         tableId: table.id,
-                        adminCall: adminCalls.includes(player.id)
+                        adminCall: adminCalls.some(id => String(id) === String(player.id))
                     });
                 });
             });
