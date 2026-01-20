@@ -572,6 +572,30 @@
             border-radius: var(--border-radius);
             padding-top: var(--spacing-md);
             padding-bottom: var(--spacing-md);
+            position: relative;
+            overflow: hidden;
+            --progress: 0%;
+        }
+
+        .tables-aggregates::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(40, 167, 69, 0.18) 0%,
+                rgba(40, 167, 69, 0.18) var(--progress),
+                rgba(0, 0, 0, 0) var(--progress),
+                rgba(0, 0, 0, 0) 100%
+            );
+            pointer-events: none;
+        }
+
+        .tables-aggregates > * {
+            position: relative;
         }
 
         /* Общий горизонтальный паддинг для секций экрана столов */
@@ -1014,11 +1038,6 @@
             <div class="tables-aggregates-title">Статистика турнира</div>
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
         </div>
-        <div class="tables-progress tables-section-padding">
-            <div class="tables-progress-bar">
-                <div class="tables-progress-fill" id="tablesProgressFill"></div>
-            </div>
-        </div>
         <div class="players-list-container tables-section-block" id="adminCallsSection" style="display: none;">
             <div class="tables-active-title tables-section-padding" style="color: var(--yellow);">🔔 Вызовы</div>
             <div class="players-list" id="adminCallsList"></div>
@@ -1357,7 +1376,6 @@
         const tablesTournamentTitle = document.getElementById('tablesTournamentTitle');
         const tablesTournamentInfo = document.getElementById('tablesTournamentInfo');
         const tablesTournamentStats = document.getElementById('tablesTournamentStats');
-        const tablesProgressFill = document.getElementById('tablesProgressFill');
         const tableIndicator = document.getElementById('tableIndicator');
         const tableNumber = document.getElementById('tableNumber');
         const dealerName = document.getElementById('dealerName');
@@ -3836,6 +3854,13 @@
         function updateTournamentStatsDisplay() {
             if (!tablesTournamentStats || !tournamentStatsCache) return;
 
+            const tablesAggregatesEl = tablesTournamentStats.closest('.tables-aggregates');
+            const applyAggregatesProgress = (ratio) => {
+                if (!tablesAggregatesEl) return;
+                const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
+                tablesAggregatesEl.style.setProperty('--progress', `${safeRatio * 100}%`);
+            };
+
             const {
                 tablesCount,
                 status,
@@ -3871,6 +3896,7 @@
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
             const callsSuffix = adminCallsCount > 0 ? `, вызовов: ${adminCallsCount}` : '';
             const stackSuffix = (stack !== null && stack !== undefined && String(stack).trim() !== '') ? `, стек: ${stack}` : '';
+            const regCountForRatio = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
 
             if (registrationsMode) {
                 const statusText = status === 'active'
@@ -3880,30 +3906,23 @@
                         : status === 'finished'
                             ? 'завершён'
                             : (status || '—');
-                const regCount = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
+                const regCount = regCountForRatio;
                 const registeredPlayers = getAllTournamentPlayers();
                 const dealersCount = registeredPlayers.filter(p => p && p.dealer === true).length;
                 const maxDealersCount = Math.max(1, Math.ceil(regCount / 9));
                 tablesTournamentStats.textContent = `Статус: ${statusText}, регистраций: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${stackSuffix}${callsSuffix}${adminSuffix}`;
 
-                if (tablesProgressFill) {
-                    if (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0) {
-                        const ratio = Math.max(0, Math.min(1, regCount / maxPlayers));
-                        tablesProgressFill.style.width = `${ratio * 100}%`;
-                    } else {
-                        tablesProgressFill.style.width = '0%';
-                    }
-                }
+                const ratio = (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0)
+                    ? (regCount / maxPlayers)
+                    : (typeof totalPlayers === 'number' && totalPlayers > 0 ? (totalActive / totalPlayers) : 0);
+                applyAggregatesProgress(ratio);
                 return;
             }
 
             tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${callsSuffix}${adminSuffix}`;
 
-            // Прогресс-бар: доля оставшихся активных игроков от общего количества
-            if (tablesProgressFill && totalPlayers > 0) {
-                const ratio = Math.max(0, Math.min(1, totalActive / totalPlayers));
-                tablesProgressFill.style.width = `${ratio * 100}%`;
-            }
+            const ratio = (typeof totalPlayers === 'number' && totalPlayers > 0) ? (totalActive / totalPlayers) : 0;
+            applyAggregatesProgress(ratio);
         }
 
         function updatePlayersList() {
