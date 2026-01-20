@@ -1230,12 +1230,12 @@
                 root.style.setProperty('--badge-bg', '#333');
                 root.style.setProperty('--badge-color', '#fff');
                 root.style.setProperty('--indicator-border', 'rgba(0, 0, 0, 0.15)');
-                root.style.setProperty('--table-indicator-border', 'rgba(0, 0, 0, 0.2)');
+                root.style.setProperty('--table-indicator-border', 'rgba(0, 0, 0, 0.15)');
             } else {
                 root.style.setProperty('--badge-bg', textColor);
                 root.style.setProperty('--badge-color', '#000');
                 root.style.setProperty('--indicator-border', 'currentColor');
-                root.style.setProperty('--table-indicator-border', '#ffffff');
+                root.style.setProperty('--table-indicator-border', 'rgba(0, 0, 0, 0.2)');
             }
         }
 
@@ -1852,20 +1852,20 @@
 
             const viewerPlayer = getViewerPlayer();
 
-            // ПРИОРИТЕТ 1: Дилер (даже если он админ) — экран списка игроков своего стола
-            if (viewerPlayer && viewerPlayer.dealer) {
-                hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: '', finish: '', admin: isTournamentAdmin ? 'none' : '', playerAdmin: 'none' });
-                showPlayerSelection();
-                return;
-            }
-
-            // ПРИОРИТЕТ 2: Админ (не дилер или вообще не за столом) — экран списка столов
+            // ПРИОРИТЕТ 1: Админ — всегда экран списка столов
             if (isTournamentAdmin) {
                 currentTableId = null;
                 hideTelegramBackButton();
                 setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
                 showTablesScreen();
+                return;
+            }
+
+            // ПРИОРИТЕТ 2: Дилер — экран списка игроков своего стола
+            if (viewerPlayer && viewerPlayer.dealer) {
+                hideTelegramBackButton();
+                setButtonsVisibility({ rebuy: '', finish: '', admin: '', playerAdmin: 'none' });
+                showPlayerSelection();
                 return;
             }
 
