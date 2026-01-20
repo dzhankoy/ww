@@ -1257,7 +1257,8 @@
         const TOURNAMENT_EVENTS = {
             PLAYER_REBUY: 'player_rebuy',
             PLAYER_FINISH: 'player_finish',
-            ADMIN_CALL: 'admin_call'
+            ADMIN_CALL: 'admin_call',
+            SET_DEALER: 'set_dealer'
         };
 
         function showSimpleActionNotice(title) {
@@ -1295,44 +1296,6 @@
         let pendingOperations = new Set();
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let previousAdminCalls = []; // Предыдущий список вызовов админа
-
-        function getDealerAssignmentStorageKey() {
-            const t = getTournament();
-            const idPart = t && t.id != null ? String(t.id) : 'unknown';
-            const datePart = t && t.date ? String(t.date) : '';
-            const timePart = t && t.time ? String(t.time) : '';
-            return `ww_dealer_assignments_${idPart}_${datePart}_${timePart}`;
-        }
-
-        function getLocalDealerAssignments() {
-            try {
-                const raw = localStorage.getItem(getDealerAssignmentStorageKey());
-                const parsed = raw ? JSON.parse(raw) : {};
-                if (!parsed || typeof parsed !== 'object') return {};
-                return parsed;
-            } catch (e) {
-                return {};
-            }
-        }
-
-        function setLocalDealerAssignment(playerId, tableId) {
-            const assignments = getLocalDealerAssignments();
-            assignments[String(playerId)] = Number(tableId);
-            try {
-                localStorage.setItem(getDealerAssignmentStorageKey(), JSON.stringify(assignments));
-            } catch (e) {
-            }
-        }
-
-        function getLocalAssignedDealerTableId(playerId) {
-            const t = getTournament();
-            if (!t || t.status !== 'scheduled') return null;
-            if (tournamentHasAssignedBoxes()) return null;
-            const assignments = getLocalDealerAssignments();
-            const value = assignments[String(playerId)];
-            const n = Number(value);
-            return Number.isFinite(n) && n > 0 ? n : null;
-        }
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1499,6 +1462,14 @@
                     tableNumber: tableNumber,
                     dealerName: dealerName,
                     userData: window.Telegram.WebApp.initDataUnsafe.user
+                });
+            }
+
+            async setDealer(tournamentDate, playerId, isDealer) {
+                return await this.sendEvent(TOURNAMENT_EVENTS.SET_DEALER, {
+                    tournamentDate,
+                    playerId,
+                    isDealer
                 });
             }
         }
@@ -2506,12 +2477,9 @@
                 const isFinished = !!player.finishTime;
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-
-                const assignedDealerTableId = getLocalAssignedDealerTableId(player.id);
-                const isAssignedDealer = registrationsMode && assignedDealerTableId != null;
                 
                 const positionClass = registrationsMode
-                    ? (isAssignedDealer ? 'dealer' : 'playing')
+                    ? (player.dealer ? 'dealer' : 'playing')
                     : isFinished
                         ? 'finished'
                         : player.dealer
@@ -2525,7 +2493,7 @@
                 
                 button.innerHTML = `
                     <div class="position-indicator ${positionClass}">
-                        ${registrationsMode ? (isAssignedDealer ? assignedDealerTableId : 'R') : (player.box || '?')}
+                        ${registrationsMode ? (player.dealer ? 'D' : 'R') : (player.box || '?')}
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
@@ -3530,29 +3498,50 @@
                 } else {
                     assignDealerButton.style.display = '';
 
-                    const assignedDealerTableId = getLocalAssignedDealerTableId(player.id);
-                    if (assignedDealerTableId != null) {
+                    const t = getTournament();
+                    const isRegistered = player.isRegistered === true;
+
+                    if (!isRegistered) {
                         assignDealerButton.disabled = true;
-                        assignDealerButton.innerHTML = `<span>Дилер стола №${assignedDealerTableId}</span>`;
+                        assignDealerButton.innerHTML = '<span>Не в турнире</span>';
                         assignDealerButton.onclick = null;
                     } else {
+                        const tournamentPlayer = getAllTournamentPlayers().find(p => String(p.id) === String(player.id));
+                        const isDealerNow = tournamentPlayer?.dealer === true;
+
                         assignDealerButton.disabled = false;
-                        assignDealerButton.innerHTML = '<span>Назначить дилером</span>';
-                        assignDealerButton.onclick = () => {
-                            const maxTableId = (tournamentStatsCache && typeof tournamentStatsCache.tablesCount === 'number' && tournamentStatsCache.tablesCount > 0)
-                                ? tournamentStatsCache.tablesCount
-                                : (Array.isArray(getTournament().tables) && getTournament().tables.length > 0 ? getTournament().tables.length : 1);
-                            const input = prompt(`Введите номер стола (1-${maxTableId})`);
-                            if (input == null) return;
-                            const n = Number(String(input).trim());
-                            if (!Number.isFinite(n) || n < 1 || n > maxTableId) {
-                                showError('Неверный номер стола');
+                        assignDealerButton.innerHTML = isDealerNow ? '<span>Снять дилера</span>' : '<span>Назначить дилером</span>';
+                        assignDealerButton.onclick = async () => {
+                            if (!eventService) {
+                                showError('Сервис событий не инициализирован');
                                 return;
                             }
-                            setLocalDealerAssignment(player.id, n);
-                            showDbPlayerCardInternal(player, backHandler, options);
-                            if (!allPlayersScreen.classList.contains('hidden')) {
-                                renderAllPlayersList();
+
+                            const tournamentDate = t?.date;
+                            if (!tournamentDate) {
+                                showError('Не удалось определить дату турнира');
+                                return;
+                            }
+
+                            assignDealerButton.disabled = true;
+
+                            try {
+                                const result = await eventService.setDealer(tournamentDate, player.id, !isDealerNow);
+
+                                if (result && result.success === false) {
+                                    showError(result.message || 'Ошибка');
+                                    return;
+                                }
+
+                                await refreshTournamentData();
+                                showDbPlayerCardInternal(player, backHandler, options);
+                                if (!allPlayersScreen.classList.contains('hidden')) {
+                                    renderAllPlayersList();
+                                }
+                            } catch (e) {
+                                showError('Ошибка при назначении дилера');
+                            } finally {
+                                assignDealerButton.disabled = false;
                             }
                         };
                     }
