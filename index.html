@@ -2060,6 +2060,7 @@
                     hasBoxes,
                     registeredCount,
                     maxPlayers: maxPlayersSafe,
+                    stack: t.stack ?? null,
                     totalPlayers,
                     totalActive,
                     totalFinished,
@@ -3841,6 +3842,7 @@
                 hasBoxes,
                 registeredCount,
                 maxPlayers,
+                stack,
                 totalPlayers,
                 totalActive,
                 totalFinished,
@@ -3867,6 +3869,7 @@
             const adminCallsCount = (getTournament().adminCalls || []).length;
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
             const callsSuffix = adminCallsCount > 0 ? `, вызовов: ${adminCallsCount}` : '';
+            const stackSuffix = (stack !== null && stack !== undefined && String(stack).trim() !== '') ? `, стек: ${stack}` : '';
 
             if (registrationsMode) {
                 const statusText = status === 'active'
@@ -3880,7 +3883,7 @@
                 const registeredPlayers = getAllTournamentPlayers();
                 const dealersCount = registeredPlayers.filter(p => p && p.dealer === true).length;
                 const maxDealersCount = Math.max(1, Math.ceil(regCount / 9));
-                tablesTournamentStats.textContent = `Статус: ${statusText}, регистраций: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
+                tablesTournamentStats.textContent = `Статус: ${statusText}, регистраций: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${stackSuffix}${callsSuffix}${adminSuffix}`;
 
                 if (tablesProgressFill) {
                     if (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0) {
@@ -3893,7 +3896,7 @@
                 return;
             }
 
-            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${callsSuffix}${adminSuffix}`;
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${callsSuffix}${adminSuffix}`;
 
             // Прогресс-бар: доля оставшихся активных игроков от общего количества
             if (tablesProgressFill && totalPlayers > 0) {
