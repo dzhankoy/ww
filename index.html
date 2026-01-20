@@ -293,6 +293,12 @@
             text-align: left;
         }
 
+        #actionScreen .player-title,
+        #actionScreen .player-subtitle,
+        #actionScreen .table-info {
+            text-align: center;
+        }
+
         .game-time {
             margin-bottom: 0;
         }
@@ -437,6 +443,20 @@
             bottom: -2px;
             border-radius: 18px;
             border: 1px solid var(--indicator-border, currentColor);
+        }
+
+        .position-indicator.photo-indicator {
+            background-color: transparent;
+            color: var(--text-color);
+            padding: 0;
+        }
+
+        .position-indicator.photo-indicator img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: calc(var(--position-size) / 2);
+            display: block;
         }
         
         .position-indicator.playing {
@@ -2672,8 +2692,8 @@
                 
                 // Фото вместо номера бокса
                 button.innerHTML = `
-                    <div class="position-indicator ${positionClass}" style="padding: 0; overflow: hidden;">
-                        <img src="${photoUrl}" alt="" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='avatar.png'">
+                    <div class="position-indicator ${positionClass} photo-indicator">
+                        <img src="${photoUrl}" alt="" onerror="this.src='avatar.png'">
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nickname}</div>
@@ -2960,7 +2980,9 @@
                     }
                     
                     button.innerHTML = `
-                        <img src="${playerPhotoUrl}" alt="${nickname}" style="width: var(--position-size); height: var(--position-size); min-width: var(--position-size); min-height: var(--position-size); border-radius: calc(var(--position-size) / 2); object-fit: cover; flex-shrink: 0;" onerror="this.src='avatar.png'">
+                        <div class="position-indicator photo-indicator">
+                            <img src="${playerPhotoUrl}" alt="${nickname}" onerror="this.src='avatar.png'">
+                        </div>
                         <div class="player-info">
                             <div class="player-nickname">${dayStr}.${monthStr} — ${nickname}</div>
                             <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
@@ -3199,6 +3221,11 @@
             
             const dbPlayers = getTournament().players || [];
             dbPlayersList.innerHTML = '';
+
+            const tournamentPlayers = getAllTournamentPlayers();
+            const tournamentPlayersById = new Map(
+                tournamentPlayers.map(p => [String(p.id), p])
+            );
             
             // Сортируем по рейтингу (по убыванию), если рейтинг одинаковый - по ID
             const sortedPlayers = [...dbPlayers].sort((a, b) => {
@@ -3225,6 +3252,14 @@
                 // Определяем статус игрока
                 const isRegistered = player.isRegistered === true;
                 const statusClass = isRegistered ? 'playing' : 'finished';
+
+                const tournamentPlayer = tournamentPlayersById.get(String(player.id));
+                const isDealer = tournamentPlayer?.dealer === true || player.dealer === true;
+                const isAdmin = player.isAdmin === true || (getTournament().admins || []).some(
+                    adminId => String(adminId) === String(player.id)
+                );
+
+                const indicatorClass = isDealer ? 'dealer' : statusClass;
                 
                 // Подсветка топ-3 по рейтингу (список уже отсортирован по рейтингу)
                 if (index === 0 && player.rating > 0) {
@@ -3236,14 +3271,14 @@
                 }
                 
                 button.innerHTML = `
-                    <div class="position-indicator ${statusClass}">
+                    <div class="position-indicator ${indicatorClass}">
                         ${index + 1}
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
                         <div class="player-name">${playerName}</div>
                     </div>
-                    <div style="margin-left: auto; display: flex; align-items: center; color: var(--text-secondary); font-size: 15px;">${ratingDisplay} ⭐</div>
+                    <div style="margin-left: auto; display: flex; align-items: center; color: var(--text-secondary); font-size: 15px;">${isAdmin ? '👑 ' : ''}${ratingDisplay} ⭐</div>
                     <div class="chevron"></div>
                 `;
                 
@@ -3516,6 +3551,8 @@
                 if (isOwnProfile || !viewerIsAdmin) {
                     assignDealerButton.style.display = 'none';
                     assignDealerButton.onclick = null;
+                    assignDealerButton.classList.remove('destructive');
+                    assignDealerButton.classList.remove('rebuy');
                 } else {
                     assignDealerButton.style.display = '';
 
@@ -3526,6 +3563,8 @@
                         assignDealerButton.style.display = 'none';
                         assignDealerButton.disabled = true;
                         assignDealerButton.onclick = null;
+                        assignDealerButton.classList.remove('destructive');
+                        assignDealerButton.classList.remove('rebuy');
                     } else {
                         const tournamentPlayers = getAllTournamentPlayers();
                         const tournamentPlayer = tournamentPlayers.find(p => String(p.id) === String(player.id));
@@ -3534,6 +3573,10 @@
                         const maxDealersCount = Math.max(1, Math.ceil(tournamentPlayers.length / 9));
 
                         const canAssignNewDealer = isDealerNow || dealerCount < maxDealersCount;
+
+                        assignDealerButton.classList.remove('destructive');
+                        assignDealerButton.classList.remove('rebuy');
+                        assignDealerButton.classList.add(isDealerNow ? 'destructive' : 'rebuy');
 
                         assignDealerButton.disabled = !canAssignNewDealer;
                         assignDealerButton.innerHTML = !canAssignNewDealer
