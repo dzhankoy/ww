@@ -2335,7 +2335,7 @@
                 ...p,
                 tableId: null,
                 box: null,
-                dealer: false,
+                dealer: p.dealer === true,
                 finishTime: null,
                 rebuysLeft: 0,
                 adminCall: adminCalls.some(id => String(id) === String(p.id))
@@ -2373,6 +2373,9 @@
             const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
             const maxPlayers = Number(t.max_players);
             const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
+            const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
+            const maxDealersCount = registrationsMode ? Math.max(1, Math.ceil(allPlayers.length / 9)) : 0;
+            const dealersText = registrationsMode ? `, дилеров: ${dealersCount} из ${maxDealersCount}` : '';
             const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
             const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
             
@@ -2385,7 +2388,7 @@
                 <div class="table-indicator">👤</div>
                 <div class="player-info">
                     <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации на турнир' : 'Все игроки турнира'}</div>
-                    <div class="player-name">${registrationsMode ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
+                    <div class="player-name">${registrationsMode ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -2438,10 +2441,13 @@
             const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
             const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
             const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
+            const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
+            const maxDealersCount = registrationsMode ? Math.max(1, Math.ceil(allPlayers.length / 9)) : 0;
+            const dealersText = registrationsMode ? `, дилеров: ${dealersCount} из ${maxDealersCount}` : '';
             
             if (allPlayersInfo) {
                 allPlayersInfo.textContent = registrationsMode
-                    ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}`
+                    ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}`
                     : `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
             }
             
@@ -3502,16 +3508,26 @@
                     const isRegistered = player.isRegistered === true;
 
                     if (!isRegistered) {
+                        assignDealerButton.style.display = 'none';
                         assignDealerButton.disabled = true;
-                        assignDealerButton.innerHTML = '<span>Не в турнире</span>';
                         assignDealerButton.onclick = null;
                     } else {
-                        const tournamentPlayer = getAllTournamentPlayers().find(p => String(p.id) === String(player.id));
+                        const tournamentPlayers = getAllTournamentPlayers();
+                        const tournamentPlayer = tournamentPlayers.find(p => String(p.id) === String(player.id));
                         const isDealerNow = tournamentPlayer?.dealer === true;
+                        const dealerCount = tournamentPlayers.filter(p => p && p.dealer === true).length;
+                        const maxDealersCount = Math.max(1, Math.ceil(tournamentPlayers.length / 9));
 
-                        assignDealerButton.disabled = false;
-                        assignDealerButton.innerHTML = isDealerNow ? '<span>Снять дилера</span>' : '<span>Назначить дилером</span>';
+                        const canAssignNewDealer = isDealerNow || dealerCount < maxDealersCount;
+
+                        assignDealerButton.disabled = !canAssignNewDealer;
+                        assignDealerButton.innerHTML = !canAssignNewDealer
+                            ? `<span>Лимит дилеров: ${dealerCount} из ${maxDealersCount}</span>`
+                            : (isDealerNow ? '<span>Снять дилера</span>' : '<span>Назначить дилером</span>');
                         assignDealerButton.onclick = async () => {
+                            if (!canAssignNewDealer) {
+                                return;
+                            }
                             if (!eventService) {
                                 showError('Сервис событий не инициализирован');
                                 return;
@@ -3803,7 +3819,10 @@
                             ? 'завершён'
                             : (status || '—');
                 const regCount = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
-                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
+                const registeredPlayers = getAllTournamentPlayers();
+                const dealersCount = registeredPlayers.filter(p => p && p.dealer === true).length;
+                const maxDealersCount = Math.max(1, Math.ceil(regCount / 9));
+                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
 
                 if (tablesProgressFill) {
                     if (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0) {
