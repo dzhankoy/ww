@@ -2422,7 +2422,7 @@
             button.innerHTML = `
                 <div class="table-indicator">👤</div>
                 <div class="player-info">
-                    <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации на турнир' : 'Все игроки турнира'}</div>
+                    <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации' : 'Все игроки турнира'}</div>
                     <div class="player-name">${registrationsMode ? `Игроков: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
@@ -2441,8 +2441,8 @@
             telegramButton.innerHTML = `
                 <div class="table-indicator">🏆</div>
                 <div class="player-info">
-                    <div class="player-nickname">Таблица для Телеграм</div>
-                    <div class="player-name">Компактный вид с фото</div>
+                    <div class="player-nickname">Призовая таблица</div>
+                    <div class="player-name">Для Телеграм-канала</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -2752,7 +2752,7 @@
                 button.innerHTML = `
                     <div class="table-indicator">👤</div>
                     <div class="player-info">
-                        <div class="player-nickname">Все игроки клуба</div>
+                        <div class="player-nickname">Рейтинг</div>
                         <div class="player-name">Всего игроков: ${dbPlayers.length}, активных: 15</div>
                     </div>
                     <div class="chevron"></div>
@@ -2779,7 +2779,7 @@
             
             // Заголовок
             if (dbPlayersTournamentTitle) {
-                dbPlayersTournamentTitle.textContent = 'Все игроки клуба';
+                dbPlayersTournamentTitle.textContent = 'Рейтинг игроков';
             }
             
             if (dbPlayersInfo) {
