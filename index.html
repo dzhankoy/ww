@@ -466,8 +466,9 @@
         }
 
         body.dealer-main-mode #playerSelectionScreen .position-indicator.playing {
-            background-color: var(--card-bg);
-            color: var(--text-color);
+            background-color: var(--green);
+            color: white;
+            border-color: var(--green);
         }
         
         .position-indicator.dealer {
@@ -1114,21 +1115,17 @@
     <div id="playerSelectionScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <img src="logo.png" alt="Club logo" class="club-logo">
+                <div class="table-indicator" id="tableIndicator">1</div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tournamentTitle">King & Joker Tournament</div>
-                    <div class="table-info">
-                        <span class="table-label">Стол</span> 
-                        <span class="table-badge" id="tableNumber">1</span> 
-                        <span class="table-label">Дилер</span> 
-                        <span class="table-badge" id="dealerName">Максимус</span>
-                    </div>
+                    <div class="tournament-date" id="gameTime"></div>
+                    <span id="tableNumber" style="display:none;">1</span>
+                    <span id="dealerName" style="display:none;">Максимус</span>
                 </div>
             </div>
         </div>
         <div class="players-list-container">
             <div class="players-list" id="playersList"></div>
-            <div class="game-time" id="gameTime"></div>
             <div class="game-finished hidden" id="gameFinished"></div>
             <button class="admin-button" id="adminButton">Позвать администратора</button>
         </div>
@@ -1349,6 +1346,7 @@
         const tablesTournamentInfo = document.getElementById('tablesTournamentInfo');
         const tablesTournamentStats = document.getElementById('tablesTournamentStats');
         const tablesProgressFill = document.getElementById('tablesProgressFill');
+        const tableIndicator = document.getElementById('tableIndicator');
         const tableNumber = document.getElementById('tableNumber');
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
@@ -1627,6 +1625,10 @@
 
             if (tableNumber) {
                 tableNumber.textContent = selectedTable.id || '1';
+            }
+
+            if (tableIndicator) {
+                tableIndicator.textContent = selectedTable.id || '1';
             }
 
             // Определяем дилера по флагу dealer у игрока и используем его никнейм
