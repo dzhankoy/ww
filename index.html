@@ -2388,7 +2388,7 @@
                 <div class="table-indicator">👤</div>
                 <div class="player-info">
                     <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации на турнир' : 'Все игроки турнира'}</div>
-                    <div class="player-name">${registrationsMode ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
+                    <div class="player-name">${registrationsMode ? `Игроков: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -3822,7 +3822,7 @@
                 const registeredPlayers = getAllTournamentPlayers();
                 const dealersCount = registeredPlayers.filter(p => p && p.dealer === true).length;
                 const maxDealersCount = Math.max(1, Math.ceil(regCount / 9));
-                tablesTournamentStats.textContent = `Статус: ${statusText}, зарегистрировано: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
+                tablesTournamentStats.textContent = `Статус: ${statusText}, регистраций: ${regCount}, дилеров: ${dealersCount} из ${maxDealersCount}, столов: ${tablesCount}, ${timeText}${callsSuffix}${adminSuffix}`;
 
                 if (tablesProgressFill) {
                     if (status === 'scheduled' && typeof maxPlayers === 'number' && maxPlayers > 0) {
