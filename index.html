@@ -239,7 +239,7 @@
             right: 2px;
             bottom: 2px;
             border-radius: 6px;
-            border: 1px solid var(--table-indicator-border);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             pointer-events: none;
         }
 
@@ -4412,6 +4412,12 @@
             if (!gameStartTime || !(gameStartTime instanceof Date) || isNaN(gameStartTime.getTime())) {
                 return;
             }
+
+            const selectedTable = getSelectedTable();
+            const players = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
+            const totalPlayers = players.length;
+            const activePlayers = totalPlayers > 0 ? players.filter(p => p && !p.finishTime).length : 0;
+            const playersSuffix = totalPlayers > 0 ? `, игроков ${activePlayers} из ${totalPlayers}` : '';
             
             const now = new Date();
             const diffMs = now - gameStartTime;
@@ -4421,9 +4427,9 @@
             });
 
             if (diffMs >= 0) {
-                gameTimeElement.textContent = `Начало в ${startTimeString}, идёт ${formatHHMMSS(diffMs)}`;
+                gameTimeElement.textContent = `Начало в ${startTimeString}, идёт ${formatHHMMSS(diffMs)}${playersSuffix}`;
             } else {
-                gameTimeElement.textContent = `Начало в ${startTimeString}, осталось ${formatHHMMSS(-diffMs)}`;
+                gameTimeElement.textContent = `Начало в ${startTimeString}, осталось ${formatHHMMSS(-diffMs)}${playersSuffix}`;
             }
         }
 
