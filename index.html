@@ -3580,7 +3580,7 @@
 
                         assignDealerButton.disabled = !canAssignNewDealer;
                         assignDealerButton.innerHTML = !canAssignNewDealer
-                            ? `<span>Лимит дилеров: ${dealerCount} из ${maxDealersCount}</span>`
+                            ? `<span>Дилеров уже ${dealerCount} из ${maxDealersCount}</span>`
                             : (isDealerNow ? '<span>Снять дилера</span>' : '<span>Назначить дилером</span>');
                         assignDealerButton.onclick = async () => {
                             if (!canAssignNewDealer) {
