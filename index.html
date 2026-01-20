@@ -218,13 +218,21 @@
             display: block;
             width: 48px;
             height: 48px;
-            border-radius: 50%;
+            border-radius: 12px;
             object-fit: cover;
-            flex-shrink: 0;
-            padding: 1px;                 /* 1px отступ между логотипом и обводкой */
-            background-color: #000000;    /* фон для зазора */
-            border: 1px solid #ffffff;    /* тонкая белая обводка */
-            transform: translateY(-1px);  /* лёгкий сдвиг вверх для визуального центрирования */
+            margin-right: var(--spacing-md);
+        }
+
+        /* Иконка стола в шапке (квадрат крупнее, чем в строках списков) */
+        #playerSelectionScreen #tableIndicator {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+            margin-right: var(--spacing-md);
+        }
+
+        #playerSelectionScreen #tableIndicator::after {
+            border-width: 2px;
         }
 
         .header-icon {
@@ -3733,27 +3741,14 @@
                 return null;
             }
             
-            // Сортируем: активные первыми, потом запланированные (ближайшие первыми), потом завершённые (недавние первыми)
+            // Сортируем только по дате (статус не учитываем)
             const sortedTournaments = [...tournaments].sort((a, b) => {
-                const statusOrder = { active: 0, scheduled: 1, finished: 2 };
-                const aOrder = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 3;
-                const bOrder = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 3;
-                
-                if (aOrder !== bOrder) return aOrder - bOrder;
-                
-                // Подсортировка по дате внутри группы
                 const aDate = parseTournamentDate(a.date);
                 const bDate = parseTournamentDate(b.date);
-                if (!aDate || !bDate) return 0;
-                
-                if (a.status === 'scheduled') {
-                    // Ближайшие первыми (по возрастанию)
-                    return aDate - bDate;
-                } else if (a.status === 'finished') {
-                    // Недавние первыми (по убыванию)
-                    return bDate - aDate;
-                }
-                return 0;
+                if (!aDate && !bDate) return 0;
+                if (!aDate) return 1;
+                if (!bDate) return -1;
+                return bDate - aDate;
             });
             
             sortedTournaments.forEach(tournament => {
