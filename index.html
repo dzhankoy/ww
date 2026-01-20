@@ -544,6 +544,10 @@
             border: 1px solid var(--table-indicator-border);
         }
 
+        #tablesList .table-indicator::after {
+            border: 1px solid var(--indicator-border, currentColor);
+        }
+
         /* Индикатор стола с проблемой (дилер не зашёл в рабочее место) */
         .table-indicator.warning {
             background-color: var(--red);
@@ -568,6 +572,8 @@
             border-radius: var(--border-radius);
             padding-top: var(--spacing-md);
             padding-bottom: var(--spacing-md);
+            padding-left: var(--spacing-lg);
+            padding-right: var(--spacing-md);
             position: relative;
             overflow: hidden;
             --progress: 0%;
@@ -1031,8 +1037,8 @@
                 </div>
             </div>
         </div>
-        <div class="tables-aggregates tables-section-padding tables-section-block">
-            <div class="tables-aggregates-title">Статистика турнира</div>
+        <div class="tables-aggregates-title tables-section-padding">Статистика турнира</div>
+        <div class="tables-aggregates tables-section-block">
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
         </div>
         <div class="players-list-container tables-section-block" id="adminCallsSection" style="display: none;">
