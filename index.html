@@ -220,7 +220,7 @@
             height: var(--position-size);
             border-radius: 8px;
             object-fit: cover;
-            margin-right: 0;
+            margin-right: var(--spacing-sm);
         }
 
         /* Иконка стола в шапке (квадрат крупнее, чем в строках списков) */
@@ -228,7 +228,7 @@
             width: var(--position-size);
             height: var(--position-size);
             font-size: 16px;
-            margin-right: 0;
+            margin-right: var(--spacing-sm);
         }
 
         #playerSelectionScreen #tableIndicator::after {
@@ -243,6 +243,7 @@
             justify-content: center;
             flex-shrink: 0;
             font-size: 20px;
+            margin-right: var(--spacing-sm);
             line-height: 1;
             transform: translateY(-1px);
         }
@@ -261,8 +262,7 @@
             align-items: flex-start;
             justify-content: center;   /* центрируем текстовый блок по вертикали */
             text-align: left;
-            height: var(--position-size);              /* фиксируем высотой логотипа */
-            overflow: hidden;
+            min-height: var(--position-size);
         }
         
         .tournament-header-text .tournament-title {
@@ -1024,7 +1024,7 @@
     <div id="tablesScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <img src="logo.png" alt="Club logo" class="club-logo">
+                <img src="/logo.png" alt="Club logo" class="club-logo" onerror="this.onerror=null;this.src='logo.png';">
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="tablesTournamentInfo"></div>
@@ -1040,10 +1040,10 @@
             <div class="players-list" id="adminCallsList"></div>
         </div>
         <div class="players-list-container tables-section-block">
-            <div class="tables-active-title tables-section-padding">Игроки турнира</div>
-            <div class="players-list" id="allPlayersPreviewList"></div>
-            <div class="tables-active-title tables-section-padding" id="activeTablesTitle" style="margin-top: var(--spacing-lg);">Активные столы</div>
+            <div class="tables-active-title tables-section-padding" id="activeTablesTitle">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
+            <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Игроки турнира</div>
+            <div class="players-list" id="allPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
             <div class="players-list" id="dbPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База турниров</div>
@@ -1506,13 +1506,15 @@
             
             async playerRebuy(playerId) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_REBUY, {
-                    playerId: playerId
+                    playerId: playerId,
+                    tournamentDate: getTournament().date || null
                 });
             }
             
             async playerFinish(playerId) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_FINISH, {
-                    playerId: playerId
+                    playerId: playerId,
+                    tournamentDate: getTournament().date || null
                 });
             }
             
