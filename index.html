@@ -115,7 +115,7 @@
         .header-content {
             flex-shrink: 0;
             margin-bottom: var(--spacing-xxl);
-            padding: 0 var(--spacing-sm);
+            padding: 0 var(--spacing-lg);
         }
         
         .players-list-container {
@@ -216,18 +216,18 @@
 
         .club-logo {
             display: block;
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+            width: var(--position-size);
+            height: var(--position-size);
+            border-radius: 8px;
             object-fit: cover;
-            margin-right: var(--spacing-md);
+            margin-right: 0;
         }
 
         /* Иконка стола в шапке (квадрат крупнее, чем в строках списков) */
         #playerSelectionScreen #tableIndicator {
-            width: 48px;
-            height: 48px;
-            font-size: 18px;
+            width: var(--position-size);
+            height: var(--position-size);
+            font-size: 16px;
             margin-right: 0;
         }
 
@@ -236,13 +236,13 @@
         }
 
         .header-icon {
-            width: 48px;
-            height: 48px;
+            width: var(--position-size);
+            height: var(--position-size);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            font-size: 28px;
+            font-size: 20px;
             line-height: 1;
             transform: translateY(-1px);
         }
@@ -251,12 +251,8 @@
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        #playerSelectionScreen .tournament-header-row {
             gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
         }
 
         .tournament-header-text {
@@ -265,7 +261,7 @@
             align-items: flex-start;
             justify-content: center;   /* центрируем текстовый блок по вертикали */
             text-align: left;
-            height: 48px;              /* фиксируем высотой логотипа */
+            height: var(--position-size);              /* фиксируем высотой логотипа */
             overflow: hidden;
         }
         
