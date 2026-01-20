@@ -3895,6 +3895,11 @@
             const adminSuffix = adminName ? `, админ: ${adminName}` : '';
             const callsSuffix = adminCallsCount > 0 ? `, вызовов: ${adminCallsCount}` : '';
             const stackSuffix = (stack !== null && stack !== undefined && String(stack).trim() !== '') ? `, стек: ${stack}` : '';
+            const stackNumber = (stack !== null && stack !== undefined && String(stack).trim() !== '') ? Number(stack) : NaN;
+            const avgStackValue = (status === 'active' && Number.isFinite(stackNumber) && typeof totalActive === 'number' && totalActive > 0)
+                ? Math.round((totalEntries * stackNumber) / totalActive)
+                : null;
+            const avgStackSuffix = (avgStackValue !== null) ? `, средний: ${avgStackValue}` : '';
             const regCountForRatio = typeof registeredCount === 'number' ? registeredCount : totalPlayers;
 
             if (registrationsMode) {
@@ -3918,7 +3923,7 @@
                 return;
             }
 
-            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${callsSuffix}${adminSuffix}`;
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${avgStackSuffix}${callsSuffix}${adminSuffix}`;
 
             const ratio = (typeof totalPlayers === 'number' && totalPlayers > 0) ? (totalActive / totalPlayers) : 0;
             applyAggregatesProgress(ratio);
