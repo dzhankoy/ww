@@ -565,6 +565,32 @@
             /* меняем только фон карточки, граница-разделитель и индикатор остаются как у обычного стола */
             background-color: rgba(181, 137, 0, 0.35) !important;
         }
+
+        #tablesList .player-button.table-row {
+            --table-progress: 0%;
+            overflow: hidden;
+        }
+
+        #tablesList .player-button.table-row::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(40, 167, 69, 0.18) 0%,
+                rgba(40, 167, 69, 0.18) var(--table-progress),
+                rgba(0, 0, 0, 0) var(--table-progress),
+                rgba(0, 0, 0, 0) 100%
+            );
+            pointer-events: none;
+        }
+
+        #tablesList .player-button.table-row > * {
+            position: relative;
+        }
         
         .tables-aggregates {
             margin-bottom: 0;
@@ -2032,6 +2058,7 @@
 
             const t = fullTournamentData.tournament;
             const tables = Array.isArray(t.tables) ? t.tables : [];
+            const shouldShowTableProgress = t.status === 'active';
 
             if (tablesTournamentTitle) {
                 tablesTournamentTitle.textContent = t.title || 'Турнир';
@@ -2153,7 +2180,16 @@
 
                 const button = document.createElement('button');
                 button.classList.add('player-button');
+                button.classList.add('table-row');
                 button.setAttribute('data-table-id', String(table.id));
+
+                if (shouldShowTableProgress) {
+                    const ratio = players.length > 0 ? (activePlayers.length / players.length) : 0;
+                    const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
+                    button.style.setProperty('--table-progress', `${safeRatio * 100}%`);
+                } else {
+                    button.style.setProperty('--table-progress', '0%');
+                }
 
                 // Подсветка стола если в нём есть игрок, вызывающий админа
                 const adminCalls = fullTournamentData.tournament.adminCalls || [];
