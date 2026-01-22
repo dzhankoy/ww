@@ -650,12 +650,16 @@
         .tables-actions-title {
             font-size: 13px;
             font-weight: 500;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
             color: var(--secondary-text);
             margin-top: var(--spacing-lg);    /* более компактный стандартный отступ сверху */
             margin-bottom: var(--spacing-xs);
             text-align: left;
+        }
+
+        #activeTablesTitle .active-tables-hint {
+            color: var(--yellow);
         }
 
         .tables-aggregates-title.tables-section-padding,
@@ -679,7 +683,7 @@
         .tables-aggregates-text {
             font-size: 14px;
             color: var(--secondary-text);
-            margin-bottom: var(--spacing-lg);   /* больше воздуха перед блоком активных игроков */
+            margin-bottom: 0;
             text-align: left;
         }
 
@@ -2086,10 +2090,13 @@
                     const minTablesNeeded = Math.max(0, Math.ceil(activePlayersTotal / 9));
 
                     if (activeTablesCount > 0 && minTablesNeeded > 0 && minTablesNeeded < activeTablesCount) {
-                        titleText += ` • Можно рассадить за ${minTablesNeeded} ${formatStolCount(minTablesNeeded)}`;
+                        activeTablesTitle.innerHTML = `${titleText} <span class="active-tables-hint">Можно рассадить за ${minTablesNeeded} ${formatStolCount(minTablesNeeded)}</span>`;
+                        titleText = null;
                     }
                 }
-                activeTablesTitle.textContent = titleText;
+                if (titleText !== null) {
+                    activeTablesTitle.textContent = titleText;
+                }
             }
 
             if (tablesTournamentTitle) {
