@@ -686,14 +686,10 @@
         .tables-compaction-hint {
             font-size: 13px;
             color: var(--yellow);
-            margin-top: var(--spacing-xs);
-            margin-bottom: var(--spacing-lg);
-            text-align: left;
-        }
-
-        .tables-compaction-hint.tables-section-padding {
-            padding-left: var(--spacing-lg);
-            padding-right: var(--spacing-lg);
+            text-transform: none;
+            letter-spacing: normal;
+            font-weight: 500;
+            margin-left: var(--spacing-sm);
         }
 
         .tables-progress {
@@ -1085,9 +1081,8 @@
             <div class="players-list" id="adminCallsList"></div>
         </div>
         <div class="players-list-container tables-section-block">
-            <div class="tables-active-title tables-section-padding" id="activeTablesTitle">Активные столы</div>
+            <div class="tables-active-title tables-section-padding" id="activeTablesTitle"><span>Активные столы</span><span class="tables-compaction-hint" id="tablesCompactionHint" style="display: none;"></span></div>
             <div class="players-list" id="tablesList"></div>
-            <div class="tables-compaction-hint tables-section-padding" id="tablesCompactionHint" style="display: none;"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Игроки турнира</div>
             <div class="players-list" id="allPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
@@ -2198,7 +2193,7 @@
 
                 const neededTables = totalActivePlayers > 0 ? Math.ceil(totalActivePlayers / 9) : 0;
                 if (neededTables > 0 && activeTablesCount > 0 && neededTables < activeTablesCount) {
-                    tablesCompactionHint.textContent = `Можно рассадить игроков за ${neededTables} ${getTableWord(neededTables)}`;
+                    tablesCompactionHint.textContent = `Можно рассадить за ${neededTables} ${getTableWord(neededTables)}`;
                     tablesCompactionHint.style.display = '';
                 }
             }
