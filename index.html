@@ -484,6 +484,12 @@
             color: white;
             border-color: var(--blue);
         }
+
+        .position-indicator.dealer-finished {
+            background-color: rgba(10, 132, 255, 0.22);
+            color: var(--blue);
+            border-color: var(--blue);
+        }
         
         .position-indicator.finished {
             background-color: var(--border-color);
@@ -4051,7 +4057,7 @@
                     const isPending = pendingOperations.has(box);
 
                     const positionClass = isFinished
-                        ? 'finished'
+                        ? (player.dealer ? 'dealer-finished' : 'finished')
                         : player.dealer
                             ? 'dealer'
                             : 'playing';
