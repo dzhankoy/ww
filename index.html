@@ -683,6 +683,14 @@
             text-align: left;
         }
 
+        .tables-compaction-hint {
+            font-size: 13px;
+            color: var(--secondary-text);
+            margin-top: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            text-align: left;
+        }
+
         .tables-progress {
             width: 100%;
             display: none;
@@ -1074,6 +1082,7 @@
         <div class="players-list-container tables-section-block">
             <div class="tables-active-title tables-section-padding" id="activeTablesTitle">Активные столы</div>
             <div class="players-list" id="tablesList"></div>
+            <div class="tables-compaction-hint tables-section-padding" id="tablesCompactionHint" style="display: none;"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Игроки турнира</div>
             <div class="players-list" id="allPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База игроков</div>
@@ -1418,6 +1427,7 @@
         const allPlayersInfo = document.getElementById('allPlayersInfo');
         const allPlayersGameTime = document.getElementById('allPlayersGameTime');
         const activeTablesTitle = document.getElementById('activeTablesTitle');
+        const tablesCompactionHint = document.getElementById('tablesCompactionHint');
         const dbPlayersPreviewList = document.getElementById('dbPlayersPreviewList');
         const dbPlayersList = document.getElementById('dbPlayersList');
         const dbPlayersTournamentTitle = document.getElementById('dbPlayersTournamentTitle');
@@ -2142,6 +2152,10 @@
             if (activeTablesTitle) {
                 activeTablesTitle.style.display = shouldHideTables ? 'none' : '';
             }
+            if (tablesCompactionHint) {
+                tablesCompactionHint.textContent = '';
+                tablesCompactionHint.style.display = 'none';
+            }
             if (shouldHideTables) {
                 tablesList.innerHTML = '';
                 tablesList.style.display = 'none';
@@ -2158,6 +2172,30 @@
                 renderTournamentsPreview();
                 renderAdminCallsList();
                 return;
+            }
+
+            const getTableWord = (n) => {
+                const num = Math.abs(Number(n)) % 100;
+                const last = num % 10;
+                if (num >= 11 && num <= 14) return 'столов';
+                if (last === 1) return 'стол';
+                if (last >= 2 && last <= 4) return 'стола';
+                return 'столов';
+            };
+
+            if (t.status === 'active' && tablesCompactionHint && tournamentStatsCache) {
+                const totalActivePlayers = typeof tournamentStatsCache.totalActive === 'number' ? tournamentStatsCache.totalActive : 0;
+                const activeTablesCount = tables.reduce((acc, table) => {
+                    const players = Array.isArray(table.players) ? table.players : [];
+                    const activeCount = players.filter(p => !p.finishTime).length;
+                    return acc + (activeCount > 0 ? 1 : 0);
+                }, 0);
+
+                const neededTables = totalActivePlayers > 0 ? Math.ceil(totalActivePlayers / 9) : 0;
+                if (neededTables > 0 && activeTablesCount > 0 && neededTables < activeTablesCount) {
+                    tablesCompactionHint.textContent = `Можно рассадить игроков за ${neededTables} ${getTableWord(neededTables)}`;
+                    tablesCompactionHint.style.display = '';
+                }
             }
 
             tables.forEach((table, index) => {
