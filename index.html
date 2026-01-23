@@ -744,7 +744,10 @@
             flex: 1;
             overflow-y: auto;
             scroll-snap-type: y mandatory;
-            padding: 0 var(--spacing-lg) var(--spacing-xxl) var(--spacing-lg);
+            padding: 0 var(--spacing-md) var(--spacing-lg) var(--spacing-md);
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
         }
 
         #registrationJournalScreen {
@@ -754,20 +757,26 @@
         .registration-year {
             scroll-snap-align: start;
             min-height: 100dvh;
-            padding-top: var(--spacing-md);
+            padding-top: var(--spacing-sm);
         }
 
         .registration-year-title {
-            font-size: 44px;
+            font-size: 32px;
             font-weight: 700;
             color: var(--red);
-            margin: 0 0 var(--spacing-lg) 0;
+            margin: 0 0 var(--spacing-md) 0;
         }
 
         .registration-months-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 28px;
+            gap: 12px;
+        }
+
+        @media (min-width: 420px) {
+            .registration-months-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
         }
 
         .registration-month {
@@ -775,27 +784,35 @@
         }
 
         .registration-month-title {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: 600;
             color: var(--text-color);
-            margin: 0 0 var(--spacing-sm) 0;
+            margin: 0 0 6px 0;
         }
 
         .registration-month-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 6px;
+            gap: 2px;
         }
 
         .registration-day {
-            width: 22px;
-            height: 22px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            min-width: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
+            line-height: 1;
             color: var(--text-color);
             opacity: 0.85;
+        }
+
+        .registration-day.weekend,
+        .registration-day.holiday {
+            color: var(--red);
+            font-weight: 600;
         }
 
         .registration-day.blank {
@@ -803,13 +820,13 @@
         }
 
         .registration-day .dot {
-            width: 22px;
-            height: 22px;
+            width: 100%;
+            height: 100%;
             border-radius: 999px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
             color: #fff;
         }
@@ -1358,6 +1375,22 @@
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
+
+        function setTelegramVerticalSwipesEnabled(enabled) {
+            if (!tg) return;
+            try {
+                if (enabled) {
+                    if (typeof tg.enableVerticalSwipes === 'function') {
+                        tg.enableVerticalSwipes();
+                    }
+                } else {
+                    if (typeof tg.disableVerticalSwipes === 'function') {
+                        tg.disableVerticalSwipes();
+                    }
+                }
+            } catch (e) {
+            }
+        }
 
         let telegramBackHandler = null;
 
@@ -2985,12 +3018,15 @@
                 registrationJournalScreen.classList.remove('hidden');
             }
 
+            setTelegramVerticalSwipesEnabled(false);
+
             renderRegistrationJournal();
             showTelegramBackButton(backToTablesFromRegistrationJournal);
         }
 
         function backToTablesFromRegistrationJournal() {
             registrationJournalScreen?.classList.add('hidden');
+            setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
         }
 
@@ -3051,6 +3087,22 @@
             return `${y}-${m}-${d}`;
         }
 
+        function isRussianFixedHoliday(date) {
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const md = `${mm}-${dd}`;
+
+            if (mm === '01' && Number(dd) >= 1 && Number(dd) <= 8) return true;
+            if (md === '02-23') return true;
+            if (md === '03-08') return true;
+            if (md === '05-01') return true;
+            if (md === '05-09') return true;
+            if (md === '06-12') return true;
+            if (md === '11-04') return true;
+
+            return false;
+        }
+
         function renderRegistrationJournal() {
             if (!registrationJournalList) return;
 
@@ -3100,12 +3152,16 @@
                         const key = formatLocalDateKey(dt);
                         const count = registrationsByDay.get(key) || 0;
 
+                        const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+                        const isHoliday = isRussianFixedHoliday(dt);
+                        const dayClass = `registration-day${isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')}`;
+
                         if (count > 0) {
-                            html += `<div class="registration-day"><div class="dot has-registrations">${count}</div></div>`;
+                            html += `<div class="${dayClass}"><div class="dot has-registrations">${count}</div></div>`;
                         } else if (key === todayKey) {
-                            html += `<div class="registration-day"><div class="dot today">${day}</div></div>`;
+                            html += `<div class="${dayClass}"><div class="dot today">${day}</div></div>`;
                         } else {
-                            html += `<div class="registration-day">${day}</div>`;
+                            html += `<div class="${dayClass}">${day}</div>`;
                         }
                     }
 
