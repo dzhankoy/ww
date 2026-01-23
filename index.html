@@ -1638,7 +1638,7 @@
         function getScrollElementForScreen(screenEl) {
             if (!screenEl) return null;
             if (screenEl === registrationJournalScreen) return registrationJournalList;
-            return document.scrollingElement || document.documentElement;
+            return document.scrollingElement || document.documentElement || document.body;
         }
 
         function saveScrollPositionForScreen(screenEl) {
@@ -2242,12 +2242,12 @@
             
             hideAllScreens();
             tablesScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(tablesScreen);
 
             // На корневом экране админа (список столов) системная кнопка "Назад" скрыта
             hideTelegramBackButton();
 
             renderTablesList();
+            restoreScrollPositionForScreen(tablesScreen);
         }
 
         function renderTablesList() {
@@ -2450,6 +2450,7 @@
                     currentTableId = table.id;
                     applySnapshotToUI();
                     updatePlayersList();
+                    saveScrollPositionForScreen(tablesScreen);
                     tablesScreen.classList.add('hidden');
                     
                     // Проверяем, является ли зритель дилером выбранного стола
@@ -2773,7 +2774,6 @@
             
             hideAllScreens();
             allPlayersScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(allPlayersScreen);
             
             // Заголовок
             if (allPlayersTournamentTitle) {
@@ -2799,6 +2799,7 @@
             }
             
             renderAllPlayersList();
+            restoreScrollPositionForScreen(allPlayersScreen);
             
             // Кнопка назад ведёт к списку столов
             showTelegramBackButton(backToTablesFromAllPlayers);
@@ -2806,6 +2807,7 @@
 
         // Возврат с экрана всех игроков к списку столов
         function backToTablesFromAllPlayers() {
+            saveScrollPositionForScreen(allPlayersScreen);
             allPlayersScreen.classList.add('hidden');
             showTablesScreen();
         }
@@ -2816,6 +2818,19 @@
             
             const allPlayers = getAllTournamentPlayers();
             const registrationsMode = !tournamentHasAssignedBoxes();
+            const dealersOnTables = new Set();
+            if (!registrationsMode) {
+                const t = getTournament();
+                const tables = Array.isArray(t?.tables) ? t.tables : [];
+                for (const table of tables) {
+                    const players = Array.isArray(table?.players) ? table.players : [];
+                    for (const p of players) {
+                        if (p && p.id != null && p.dealer === true) {
+                            dealersOnTables.add(String(p.id));
+                        }
+                    }
+                }
+            }
             allPlayersList.innerHTML = '';
             
             allPlayers.forEach(player => {
@@ -2830,15 +2845,14 @@
                 const isFinished = !!player.finishTime;
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-                const isAdmin = player.isAdmin === true || (getTournament().admins || []).some(
-                    adminId => String(adminId) === String(player.id)
-                );
-                
+                const isDealer = registrationsMode
+                    ? (player.dealer === true)
+                    : dealersOnTables.has(String(player.id));
                 const positionClass = registrationsMode
-                    ? (player.dealer ? 'dealer' : 'playing')
+                    ? (isDealer ? 'dealer' : 'playing')
                     : isFinished
-                        ? (isAdmin ? 'dealer-finished' : 'finished')
-                        : player.dealer
+                        ? (isDealer ? 'dealer-finished' : 'finished')
+                        : isDealer
                             ? 'dealer'
                             : 'playing';
                 
@@ -2915,6 +2929,7 @@
                     currentTableId = player.tableId;
                     applySnapshotToUI();
                     updatePlayersList();
+                    saveScrollPositionForScreen(allPlayersScreen);
                     allPlayersScreen.classList.add('hidden');
                     
                     // Скрываем кнопки ребай/финиш для админа (если он не дилер этого стола)
@@ -2961,6 +2976,7 @@
 
         // Возврат с экрана таблицы для Телеграм
         function backToTablesFromTelegramTable() {
+            saveScrollPositionForScreen(telegramTableScreen);
             telegramTableScreen.classList.add('hidden');
             showTablesScreen();
         }
@@ -3107,6 +3123,7 @@
         }
 
         function backToTablesFromRegistrationJournal() {
+            saveScrollPositionForScreen(registrationJournalScreen);
             registrationJournalScreen?.classList.add('hidden');
             setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
@@ -3281,7 +3298,6 @@
             
             hideAllScreens();
             dbPlayersScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(dbPlayersScreen);
             
             const dbPlayers = getTournament().players || [];
             
@@ -3295,6 +3311,7 @@
             }
             
             renderDbPlayersList();
+            restoreScrollPositionForScreen(dbPlayersScreen);
             
             // Кнопка назад ведёт к списку столов
             showTelegramBackButton(backToTablesFromDbPlayers);
@@ -3302,6 +3319,7 @@
 
         // Возврат с экрана игроков из базы к списку столов
         function backToTablesFromDbPlayers() {
+            saveScrollPositionForScreen(dbPlayersScreen);
             dbPlayersScreen.classList.add('hidden');
             showTablesScreen();
         }
@@ -3349,15 +3367,16 @@
             
             hideAllScreens();
             birthdaysScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(birthdaysScreen);
             
             renderBirthdaysList();
+            restoreScrollPositionForScreen(birthdaysScreen);
             
             showTelegramBackButton(backToTablesFromBirthdays);
         }
 
         // Возврат с экрана дней рождения к списку столов
         function backToTablesFromBirthdays() {
+            saveScrollPositionForScreen(birthdaysScreen);
             birthdaysScreen.classList.add('hidden');
             showTablesScreen();
         }
@@ -4146,6 +4165,7 @@
 
         // Возврат с карточки игрока к экрану дней рождения
         function backToBirthdaysFromAction() {
+            saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
             cameFromBirthdays = false;
             cameFromDbPlayers = false;
@@ -4156,6 +4176,7 @@
 
         // Возврат с карточки игрока к экрану игроков из базы
         function backToDbPlayersFromAction() {
+            saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
             cameFromDbPlayers = false;
             selectedBox = null;
@@ -4201,14 +4222,15 @@
         function showTournamentsScreen() {
             hideAllScreens();
             tournamentsScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(tournamentsScreen);
             
             renderTournamentsList();
+            restoreScrollPositionForScreen(tournamentsScreen);
             showTelegramBackButton(backToTablesFromTournaments);
         }
 
         // Возврат с экрана турниров к списку столов
         function backToTablesFromTournaments() {
+            saveScrollPositionForScreen(tournamentsScreen);
             tournamentsScreen.classList.add('hidden');
             showTablesScreen();
         }
@@ -4754,6 +4776,7 @@
             updateRebuyButtonStateForPlayer(player);
             updateFinishButtonStateForPlayer(player);
             
+            saveScrollPositionForScreen(playerSelectionScreen);
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.remove('hidden');
 
@@ -4788,6 +4811,7 @@
 
         // Возврат с карточки игрока к экрану всех игроков
         function backToAllPlayersFromAction() {
+            saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
             cameFromAllPlayers = false;
             selectedBox = null;
@@ -4966,8 +4990,10 @@
         }
 
         function backToPlayerList() {
+            saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
             playerSelectionScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(playerSelectionScreen);
             selectedBox = null;
             cameFromAllPlayers = false; // Сбрасываем флаг
 
@@ -4981,6 +5007,8 @@
 
         // Возврат с списка игроков к списку столов (для админа)
         function backToTablesFromPlayers() {
+            saveScrollPositionForScreen(playerSelectionScreen);
+            saveScrollPositionForScreen(actionScreen);
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
             showTablesScreen();
