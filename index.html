@@ -743,8 +743,8 @@
         #registrationJournalList {
             flex: 1;
             overflow-y: auto;
-            scroll-snap-type: y mandatory;
-            padding: 0 var(--spacing-md) var(--spacing-lg) var(--spacing-md);
+            scroll-snap-type: y proximity;
+            padding: 0 var(--spacing-sm) var(--spacing-lg) var(--spacing-sm);
             overscroll-behavior-y: contain;
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y;
@@ -756,10 +756,7 @@
 
         .registration-year {
             scroll-snap-align: start;
-            min-height: 100dvh;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
+            min-height: 0;
             padding-top: var(--spacing-sm);
             padding-bottom: var(--spacing-md);
         }
@@ -779,8 +776,7 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
-            flex: 1;
-            align-content: space-between;
+            align-content: start;
         }
 
         .registration-month {
@@ -788,10 +784,11 @@
         }
 
         .registration-month-title {
-            font-size: 13px;
+            font-size: clamp(13px, 4vw, 16px);
             font-weight: 600;
             color: var(--text-color);
             margin: 0 0 6px 0;
+            white-space: nowrap;
         }
 
         .registration-month.current-month .registration-month-title {
@@ -3029,6 +3026,13 @@
             setTelegramVerticalSwipesEnabled(false);
 
             renderRegistrationJournal();
+            try {
+                const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
+                if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
+                    currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+                }
+            } catch (e) {
+            }
             showTelegramBackButton(backToTablesFromRegistrationJournal);
         }
 
