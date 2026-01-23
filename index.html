@@ -1545,6 +1545,7 @@
         let pendingOperations = new Set();
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let previousAdminCalls = []; // Предыдущий список вызовов админа
+        let registrationJournalScrollListenerAttached = false;
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -3108,15 +3109,28 @@
 
             setTelegramVerticalSwipesEnabled(false);
 
+            if (registrationJournalList && !registrationJournalScrollListenerAttached) {
+                registrationJournalScrollListenerAttached = true;
+                registrationJournalList.addEventListener('scroll', () => {
+                    if (!registrationJournalScreen?.id) return;
+                    screenScrollPositions.set(registrationJournalScreen.id, registrationJournalList.scrollTop || 0);
+                }, { passive: true });
+            }
+
             renderRegistrationJournal();
+
             try {
-                const restored = restoreScrollPositionForScreen(registrationJournalScreen);
-                if (!restored) {
-                    const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
-                    if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
-                        currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
-                    }
-                }
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        const restored = restoreScrollPositionForScreen(registrationJournalScreen);
+                        if (!restored) {
+                            const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
+                            if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
+                                currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+                            }
+                        }
+                    });
+                });
             } catch (e) {
             }
             showTelegramBackButton(backToTablesFromRegistrationJournal);
@@ -3205,6 +3219,8 @@
         function renderRegistrationJournal() {
             if (!registrationJournalList) return;
 
+            const savedScrollTop = registrationJournalList.scrollTop || 0;
+
             const dbPlayers = getTournament().players || [];
             const registrationsByDay = new Map();
             const registrationsByYear = new Map();
@@ -3288,6 +3304,18 @@
             }
 
             registrationJournalList.innerHTML = html;
+
+            if (savedScrollTop > 0) {
+                try {
+                    requestAnimationFrame(() => {
+                        registrationJournalList.scrollTop = savedScrollTop;
+                        if (registrationJournalScreen?.id) {
+                            screenScrollPositions.set(registrationJournalScreen.id, savedScrollTop);
+                        }
+                    });
+                } catch (e) {
+                }
+            }
         }
 
         // Показать экран со всеми игроками из базы
