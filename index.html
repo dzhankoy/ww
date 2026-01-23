@@ -1633,12 +1633,52 @@
             return fullTournamentData?.tournament || {};
         }
 
+        const screenScrollPositions = new Map();
+
+        function getScrollElementForScreen(screenEl) {
+            if (!screenEl) return null;
+            if (screenEl === registrationJournalScreen) return registrationJournalList;
+            return document.scrollingElement || document.documentElement;
+        }
+
+        function saveScrollPositionForScreen(screenEl) {
+            if (!screenEl || !screenEl.id) return;
+            const scrollEl = getScrollElementForScreen(screenEl);
+            if (!scrollEl) return;
+            screenScrollPositions.set(screenEl.id, scrollEl.scrollTop || 0);
+        }
+
+        function restoreScrollPositionForScreen(screenEl) {
+            if (!screenEl || !screenEl.id) return false;
+            const scrollEl = getScrollElementForScreen(screenEl);
+            if (!scrollEl) return false;
+            if (!screenScrollPositions.has(screenEl.id)) {
+                try {
+                    scrollEl.scrollTop = 0;
+                } catch (e) {
+                }
+                return false;
+            }
+
+            const saved = screenScrollPositions.get(screenEl.id);
+            try {
+                scrollEl.scrollTop = saved;
+            } catch (e) {
+            }
+            return true;
+        }
+
         // Скрытие всех экранов
         function hideAllScreens() {
             document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
              dbPlayersScreen, birthdaysScreen, registrationJournalScreen, tournamentsScreen, playerSelectionScreen, 
-             actionScreen, telegramTableScreen].forEach(s => s?.classList.add('hidden'));
+             actionScreen, telegramTableScreen].forEach(s => {
+                if (s && !s.classList.contains('hidden')) {
+                    saveScrollPositionForScreen(s);
+                }
+                s?.classList.add('hidden');
+            });
         }
 
         // Сервис событий турнира
@@ -2199,9 +2239,10 @@
                 showError('Нет данных турнира');
                 return;
             }
-
+            
             hideAllScreens();
             tablesScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(tablesScreen);
 
             // На корневом экране админа (список столов) системная кнопка "Назад" скрыта
             hideTelegramBackButton();
@@ -2732,6 +2773,7 @@
             
             hideAllScreens();
             allPlayersScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(allPlayersScreen);
             
             // Заголовок
             if (allPlayersTournamentTitle) {
@@ -2788,11 +2830,14 @@
                 const isFinished = !!player.finishTime;
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+                const isAdmin = player.isAdmin === true || (getTournament().admins || []).some(
+                    adminId => String(adminId) === String(player.id)
+                );
                 
                 const positionClass = registrationsMode
                     ? (player.dealer ? 'dealer' : 'playing')
                     : isFinished
-                        ? 'finished'
+                        ? (isAdmin ? 'dealer-finished' : 'finished')
                         : player.dealer
                             ? 'dealer'
                             : 'playing';
@@ -3049,9 +3094,12 @@
 
             renderRegistrationJournal();
             try {
-                const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
-                if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
-                    currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+                const restored = restoreScrollPositionForScreen(registrationJournalScreen);
+                if (!restored) {
+                    const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
+                    if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
+                        currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+                    }
                 }
             } catch (e) {
             }
@@ -3233,6 +3281,7 @@
             
             hideAllScreens();
             dbPlayersScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(dbPlayersScreen);
             
             const dbPlayers = getTournament().players || [];
             
@@ -3300,6 +3349,7 @@
             
             hideAllScreens();
             birthdaysScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(birthdaysScreen);
             
             renderBirthdaysList();
             
@@ -4151,6 +4201,7 @@
         function showTournamentsScreen() {
             hideAllScreens();
             tournamentsScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(tournamentsScreen);
             
             renderTournamentsList();
             showTelegramBackButton(backToTablesFromTournaments);
