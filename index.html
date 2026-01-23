@@ -757,26 +757,30 @@
         .registration-year {
             scroll-snap-align: start;
             min-height: 100dvh;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
             padding-top: var(--spacing-sm);
+            padding-bottom: var(--spacing-md);
         }
 
         .registration-year-title {
             font-size: 32px;
             font-weight: 700;
-            color: var(--red);
+            color: var(--text-color);
             margin: 0 0 var(--spacing-md) 0;
+        }
+
+        .registration-year.current-year .registration-year-title {
+            color: var(--red);
         }
 
         .registration-months-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 12px;
-        }
-
-        @media (min-width: 420px) {
-            .registration-months-grid {
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
+            flex: 1;
+            align-content: space-between;
         }
 
         .registration-month {
@@ -784,10 +788,14 @@
         }
 
         .registration-month-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-color);
             margin: 0 0 6px 0;
+        }
+
+        .registration-month.current-month .registration-month-title {
+            color: var(--red);
         }
 
         .registration-month-grid {
@@ -832,7 +840,7 @@
         }
 
         .registration-day .dot.today {
-            background-color: var(--blue);
+            background-color: var(--red);
         }
 
         .registration-day .dot.has-registrations {
@@ -3125,12 +3133,13 @@
             const currentYear = now.getFullYear();
             if (minYear === null) minYear = currentYear;
 
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
             const todayKey = formatLocalDateKey(now);
 
             let html = '';
             for (let year = minYear; year <= currentYear; year++) {
-                html += `<div class="registration-year">`;
+                const yearClass = `registration-year${year === currentYear ? ' current-year' : ''}`;
+                html += `<div class="${yearClass}">`;
                 html += `<div class="registration-year-title">${year}</div>`;
                 html += `<div class="registration-months-grid">`;
 
@@ -3139,7 +3148,9 @@
                     const daysInMonth = new Date(year, month + 1, 0).getDate();
                     const firstWeekdayMon0 = (first.getDay() + 6) % 7;
 
-                    html += `<div class="registration-month">`;
+                    const isCurrentMonth = (year === currentYear) && (month === now.getMonth());
+                    const monthClass = `registration-month${isCurrentMonth ? ' current-month' : ''}`;
+                    html += `<div class="${monthClass}">`;
                     html += `<div class="registration-month-title">${monthNames[month]}</div>`;
                     html += `<div class="registration-month-grid">`;
 
