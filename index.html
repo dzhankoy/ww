@@ -750,7 +750,23 @@
             touch-action: pan-y;
         }
 
+        #birthdaysCalendarList,
+        #tournamentsCalendarList {
+            flex: 1;
+            overflow-y: auto;
+            scroll-snap-type: y proximity;
+            padding: 0 0 var(--spacing-lg) 0;
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+        }
+
         #registrationJournalScreen {
+            padding: 0;
+        }
+
+        #birthdaysCalendarScreen,
+        #tournamentsCalendarScreen {
             padding: 0;
         }
 
@@ -864,6 +880,34 @@
 
         .registration-day .dot.has-registrations {
             background-color: var(--green);
+        }
+
+        .registration-day .dot.birthday-photo {
+            background-color: var(--border-color);
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .registration-day .dot.birthday-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .registration-day .dot.tournament-finished {
+            background-color: var(--border-color);
+            color: var(--secondary-text);
+        }
+
+        .registration-day .dot.tournament-active {
+            background-color: var(--green);
+            color: #fff;
+        }
+
+        .registration-day .dot.tournament-scheduled {
+            background-color: var(--blue);
+            color: #fff;
         }
         
         .position-indicator.medal {
@@ -1181,6 +1225,14 @@
 
     <div id="registrationJournalScreen" class="screen hidden">
         <div id="registrationJournalList"></div>
+    </div>
+
+    <div id="birthdaysCalendarScreen" class="screen hidden">
+        <div id="birthdaysCalendarList"></div>
+    </div>
+
+    <div id="tournamentsCalendarScreen" class="screen hidden">
+        <div id="tournamentsCalendarList"></div>
     </div>
 
     <!-- Экран ошибки -->
@@ -1546,6 +1598,8 @@
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let previousAdminCalls = []; // Предыдущий список вызовов админа
         let registrationJournalScrollListenerAttached = false;
+        let birthdaysCalendarScrollListenerAttached = false;
+        let tournamentsCalendarScrollListenerAttached = false;
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1584,6 +1638,10 @@
         const birthdaysInfo = document.getElementById('birthdaysInfo');
         const registrationJournalScreen = document.getElementById('registrationJournalScreen');
         const registrationJournalList = document.getElementById('registrationJournalList');
+        const birthdaysCalendarScreen = document.getElementById('birthdaysCalendarScreen');
+        const birthdaysCalendarList = document.getElementById('birthdaysCalendarList');
+        const tournamentsCalendarScreen = document.getElementById('tournamentsCalendarScreen');
+        const tournamentsCalendarList = document.getElementById('tournamentsCalendarList');
         const tournamentsScreen = document.getElementById('tournamentsScreen');
         const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
         const tournamentsList = document.getElementById('tournamentsList');
@@ -1639,6 +1697,8 @@
         function getScrollElementForScreen(screenEl) {
             if (!screenEl) return null;
             if (screenEl === registrationJournalScreen) return registrationJournalList;
+            if (screenEl === birthdaysCalendarScreen) return birthdaysCalendarList;
+            if (screenEl === tournamentsCalendarScreen) return tournamentsCalendarList;
             return document.scrollingElement || document.documentElement || document.body;
         }
 
@@ -1673,13 +1733,84 @@
         function hideAllScreens() {
             document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
-             dbPlayersScreen, birthdaysScreen, registrationJournalScreen, tournamentsScreen, playerSelectionScreen, 
+             dbPlayersScreen, birthdaysScreen, registrationJournalScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => {
                 if (s && !s.classList.contains('hidden')) {
                     saveScrollPositionForScreen(s);
                 }
                 s?.classList.add('hidden');
             });
+        }
+
+        function buildYearMonthCalendarHTML({
+            minYear,
+            maxYear,
+            now,
+            monthNames,
+            getYearBadge,
+            getMonthBadge,
+            getDayCell
+        }) {
+            const todayKey = formatLocalDateKey(now);
+
+            let html = '';
+            for (let year = minYear; year <= maxYear; year++) {
+                const yearClass = `registration-year${year === now.getFullYear() ? ' current-year' : ''}`;
+                const yearBadge = typeof getYearBadge === 'function' ? (getYearBadge(year) || '') : '';
+
+                html += `<div class="${yearClass}">`;
+                html += `<div class="registration-year-title">${year}${yearBadge}</div>`;
+                html += `<div class="registration-months-grid">`;
+
+                for (let month = 0; month < 12; month++) {
+                    const first = new Date(year, month, 1);
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const firstWeekdayMon0 = (first.getDay() + 6) % 7;
+                    const isCurrentMonth = (year === now.getFullYear()) && (month === now.getMonth());
+                    const monthClass = `registration-month${isCurrentMonth ? ' current-month' : ''}`;
+                    const monthBadge = typeof getMonthBadge === 'function' ? (getMonthBadge(year, month) || '') : '';
+
+                    html += `<div class="${monthClass}">`;
+                    html += `<div class="registration-month-title">${monthNames[month]}${monthBadge}</div>`;
+                    html += `<div class="registration-month-grid">`;
+
+                    for (let i = 0; i < firstWeekdayMon0; i++) {
+                        html += `<div class="registration-day blank"></div>`;
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dt = new Date(year, month, day, 0, 0, 0, 0);
+                        const key = formatLocalDateKey(dt);
+
+                        const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+                        const isHoliday = isRussianFixedHoliday(dt);
+                        const baseDayClass = `registration-day${isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')}`;
+
+                        const cell = typeof getDayCell === 'function'
+                            ? getDayCell({ dt, key, dayNumber: day, todayKey })
+                            : null;
+
+                        if (cell && typeof cell === 'object') {
+                            const extraClass = cell.extraClass ? ` ${cell.extraClass}` : '';
+                            html += `<div class="${baseDayClass}${extraClass}">${cell.html || ''}</div>`;
+                        } else {
+                            if (key === todayKey) {
+                                html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                            } else {
+                                html += `<div class="${baseDayClass}">${day}</div>`;
+                            }
+                        }
+                    }
+
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            return html;
         }
 
         // Сервис событий турнира
@@ -2391,6 +2522,7 @@
                 renderDbPlayersPreview();
                 renderRegistrationJournalPreview();
                 renderBirthdaysPreview();
+                renderBirthdaysCalendarPreview();
                 renderTournamentsPreview();
                 renderAdminCallsList();
                 return;
@@ -2483,11 +2615,12 @@
             
             // Рендерим превью дней рождения
             renderBirthdaysPreview();
+            renderBirthdaysCalendarPreview();
             
             // Рендерим превью списка турниров
             renderTournamentsPreview();
             
-            // Рендерим список вызовов админа
+            // Обновляем админ вызовы
             renderAdminCallsList();
         }
 
@@ -3136,6 +3269,80 @@
             showTelegramBackButton(backToTablesFromRegistrationJournal);
         }
 
+        function showBirthdaysCalendarScreen() {
+            if (!fullTournamentData) return;
+
+            hideAllScreens();
+            if (birthdaysCalendarScreen) {
+                birthdaysCalendarScreen.classList.remove('hidden');
+            }
+
+            setTelegramVerticalSwipesEnabled(false);
+
+            if (birthdaysCalendarList && !birthdaysCalendarScrollListenerAttached) {
+                birthdaysCalendarScrollListenerAttached = true;
+                birthdaysCalendarList.addEventListener('scroll', () => {
+                    if (!birthdaysCalendarScreen?.id) return;
+                    screenScrollPositions.set(birthdaysCalendarScreen.id, birthdaysCalendarList.scrollTop || 0);
+                }, { passive: true });
+            }
+
+            renderBirthdaysCalendar();
+            try {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        restoreScrollPositionForScreen(birthdaysCalendarScreen);
+                    });
+                });
+            } catch (e) {
+            }
+
+            showTelegramBackButton(backToTablesFromBirthdaysCalendar);
+        }
+
+        function backToTablesFromBirthdaysCalendar() {
+            saveScrollPositionForScreen(birthdaysCalendarScreen);
+            birthdaysCalendarScreen?.classList.add('hidden');
+            setTelegramVerticalSwipesEnabled(true);
+            showTablesScreen();
+        }
+
+        function showTournamentsCalendarScreen() {
+            hideAllScreens();
+            if (tournamentsCalendarScreen) {
+                tournamentsCalendarScreen.classList.remove('hidden');
+            }
+
+            setTelegramVerticalSwipesEnabled(false);
+
+            if (tournamentsCalendarList && !tournamentsCalendarScrollListenerAttached) {
+                tournamentsCalendarScrollListenerAttached = true;
+                tournamentsCalendarList.addEventListener('scroll', () => {
+                    if (!tournamentsCalendarScreen?.id) return;
+                    screenScrollPositions.set(tournamentsCalendarScreen.id, tournamentsCalendarList.scrollTop || 0);
+                }, { passive: true });
+            }
+
+            renderTournamentsCalendar();
+            try {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        restoreScrollPositionForScreen(tournamentsCalendarScreen);
+                    });
+                });
+            } catch (e) {
+            }
+
+            showTelegramBackButton(backToTablesFromTournamentsCalendar);
+        }
+
+        function backToTablesFromTournamentsCalendar() {
+            saveScrollPositionForScreen(tournamentsCalendarScreen);
+            tournamentsCalendarScreen?.classList.add('hidden');
+            setTelegramVerticalSwipesEnabled(true);
+            showTablesScreen();
+        }
+
         function backToTablesFromRegistrationJournal() {
             saveScrollPositionForScreen(registrationJournalScreen);
             registrationJournalScreen?.classList.add('hidden');
@@ -3248,62 +3455,31 @@
             if (minYear === null) minYear = currentYear;
 
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-            const todayKey = formatLocalDateKey(now);
-
-            let html = '';
-            for (let year = minYear; year <= currentYear; year++) {
-                const yearClass = `registration-year${year === currentYear ? ' current-year' : ''}`;
-                const yearCount = registrationsByYear.get(year) || 0;
-                const yearBadge = yearCount > 0 ? `<span class="registration-count-badge">${yearCount}</span>` : '';
-                html += `<div class="${yearClass}">`;
-                html += `<div class="registration-year-title">${year}${yearBadge}</div>`;
-                html += `<div class="registration-months-grid">`;
-
-                for (let month = 0; month < 12; month++) {
-                    const first = new Date(year, month, 1);
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    const firstWeekdayMon0 = (first.getDay() + 6) % 7;
-
-                    const isCurrentMonth = (year === currentYear) && (month === now.getMonth());
-                    const monthClass = `registration-month${isCurrentMonth ? ' current-month' : ''}`;
+            registrationJournalList.innerHTML = buildYearMonthCalendarHTML({
+                minYear,
+                maxYear: currentYear,
+                now,
+                monthNames,
+                getYearBadge: (year) => {
+                    const yearCount = registrationsByYear.get(year) || 0;
+                    return yearCount > 0 ? `<span class="registration-count-badge">${yearCount}</span>` : '';
+                },
+                getMonthBadge: (year, month) => {
                     const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
                     const monthCount = registrationsByMonth.get(ymKey) || 0;
-                    const monthBadge = monthCount > 0 ? `<span class="registration-count-badge">${monthCount}</span>` : '';
-                    html += `<div class="${monthClass}">`;
-                    html += `<div class="registration-month-title">${monthNames[month]}${monthBadge}</div>`;
-                    html += `<div class="registration-month-grid">`;
-
-                    for (let i = 0; i < firstWeekdayMon0; i++) {
-                        html += `<div class="registration-day blank"></div>`;
+                    return monthCount > 0 ? `<span class="registration-count-badge">${monthCount}</span>` : '';
+                },
+                getDayCell: ({ key, dayNumber, todayKey }) => {
+                    const count = registrationsByDay.get(key) || 0;
+                    if (count > 0) {
+                        return { html: `<div class="dot has-registrations">${count}</div>` };
                     }
-
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const dt = new Date(year, month, day, 0, 0, 0, 0);
-                        const key = formatLocalDateKey(dt);
-                        const count = registrationsByDay.get(key) || 0;
-
-                        const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
-                        const isHoliday = isRussianFixedHoliday(dt);
-                        const dayClass = `registration-day${isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')}`;
-
-                        if (count > 0) {
-                            html += `<div class="${dayClass}"><div class="dot has-registrations">${count}</div></div>`;
-                        } else if (key === todayKey) {
-                            html += `<div class="${dayClass}"><div class="dot today">${day}</div></div>`;
-                        } else {
-                            html += `<div class="${dayClass}">${day}</div>`;
-                        }
+                    if (key === todayKey) {
+                        return { html: `<div class="dot today">${dayNumber}</div>` };
                     }
-
-                    html += `</div>`;
-                    html += `</div>`;
+                    return null;
                 }
-
-                html += `</div>`;
-                html += `</div>`;
-            }
-
-            registrationJournalList.innerHTML = html;
+            });
 
             if (savedScrollTop > 0) {
                 try {
@@ -3311,6 +3487,229 @@
                         registrationJournalList.scrollTop = savedScrollTop;
                         if (registrationJournalScreen?.id) {
                             screenScrollPositions.set(registrationJournalScreen.id, savedScrollTop);
+                        }
+                    });
+                } catch (e) {
+                }
+            }
+        }
+
+        function parseBirthdayMonthDay(birthdayValue) {
+            if (!birthdayValue) return null;
+            const str = String(birthdayValue).trim();
+            if (!str) return null;
+
+            if (str.includes('.')) {
+                const parts = str.split('.');
+                if (parts.length === 2) {
+                    const day = Number(parts[0]);
+                    const month = Number(parts[1]);
+                    if (Number.isFinite(day) && Number.isFinite(month) && month >= 1 && month <= 12) {
+                        return { day, month };
+                    }
+                }
+                if (parts.length === 3) {
+                    const day = Number(parts[0]);
+                    const month = Number(parts[1]);
+                    if (Number.isFinite(day) && Number.isFinite(month) && month >= 1 && month <= 12) {
+                        return { day, month };
+                    }
+                }
+            }
+
+            if (str.includes('-')) {
+                const parts = str.split('-');
+                if (parts.length === 2) {
+                    const day = Number(parts[0]);
+                    const month = Number(parts[1]);
+                    if (Number.isFinite(day) && Number.isFinite(month) && month >= 1 && month <= 12) {
+                        return { day, month };
+                    }
+                }
+                if (parts.length === 3) {
+                    // yyyy-mm-dd
+                    if (parts[0].length === 4) {
+                        const month = Number(parts[1]);
+                        const day = Number(parts[2]);
+                        if (Number.isFinite(day) && Number.isFinite(month) && month >= 1 && month <= 12) {
+                            return { day, month };
+                        }
+                    } else {
+                        const day = Number(parts[0]);
+                        const month = Number(parts[1]);
+                        if (Number.isFinite(day) && Number.isFinite(month) && month >= 1 && month <= 12) {
+                            return { day, month };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function renderBirthdaysCalendar() {
+            if (!birthdaysCalendarList) return;
+
+            const savedScrollTop = birthdaysCalendarList.scrollTop || 0;
+
+            const dbPlayers = getTournament().players || [];
+            const byMonthDay = new Map();
+            const byMonth = new Map();
+
+            for (const p of dbPlayers) {
+                const md = parseBirthdayMonthDay(p?.birthday);
+                if (!md) continue;
+                const mm = String(md.month).padStart(2, '0');
+                const dd = String(md.day).padStart(2, '0');
+                const mdKey = `${mm}-${dd}`;
+                if (!byMonthDay.has(mdKey)) {
+                    byMonthDay.set(mdKey, p);
+                }
+                byMonth.set(mm, (byMonth.get(mm) || 0) + 1);
+            }
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const minYear = currentYear;
+            const maxYear = currentYear + 1;
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            birthdaysCalendarList.innerHTML = buildYearMonthCalendarHTML({
+                minYear,
+                maxYear,
+                now,
+                monthNames,
+                getYearBadge: (year) => {
+                    const yearCount = byMonthDay.size;
+                    return yearCount > 0 ? `<span class=\"registration-count-badge\">${yearCount}</span>` : '';
+                },
+                getMonthBadge: (year, month) => {
+                    const mm = String(month + 1).padStart(2, '0');
+                    const monthCount = byMonth.get(mm) || 0;
+                    return monthCount > 0 ? `<span class=\"registration-count-badge\">${monthCount}</span>` : '';
+                },
+                getDayCell: ({ dt, dayNumber, todayKey }) => {
+                    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                    const dd = String(dayNumber).padStart(2, '0');
+                    const mdKey = `${mm}-${dd}`;
+                    const p = byMonthDay.get(mdKey);
+                    if (p && p.id != null) {
+                        const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
+                        return {
+                            html: `<div class=\"dot birthday-photo\"><img src=\"${playerPhotoUrl}\" alt=\"\" onerror=\"this.onerror=null;this.src='avatar.png';\"></div>`
+                        };
+                    }
+
+                    const key = formatLocalDateKey(dt);
+                    if (key === todayKey) {
+                        return { html: `<div class=\"dot today\">${dayNumber}</div>` };
+                    }
+
+                    return null;
+                }
+            });
+
+            if (savedScrollTop > 0) {
+                try {
+                    requestAnimationFrame(() => {
+                        birthdaysCalendarList.scrollTop = savedScrollTop;
+                        if (birthdaysCalendarScreen?.id) {
+                            screenScrollPositions.set(birthdaysCalendarScreen.id, savedScrollTop);
+                        }
+                    });
+                } catch (e) {
+                }
+            }
+        }
+
+        function parseTournamentDate(dateStr) {
+            if (!dateStr) return null;
+            const parts = String(dateStr).trim().split('.');
+            if (parts.length === 3) {
+                const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]), 0, 0, 0, 0);
+                return isNaN(d.getTime()) ? null : d;
+            }
+            return null;
+        }
+
+        function renderTournamentsCalendar() {
+            if (!tournamentsCalendarList) return;
+
+            const savedScrollTop = tournamentsCalendarList.scrollTop || 0;
+
+            const tournaments = getTournamentsList();
+            const byDay = new Map();
+            const byYear = new Map();
+            const byMonth = new Map();
+
+            let minYear = null;
+            let maxYear = null;
+
+            for (const t of tournaments) {
+                const d = parseTournamentDate(t?.date);
+                if (!d) continue;
+                const key = formatLocalDateKey(d);
+
+                if (!byDay.has(key)) {
+                    byDay.set(key, {
+                        playersCount: Number(t?.playersCount) || 0,
+                        status: String(t?.status || '').toLowerCase() || 'finished'
+                    });
+                }
+
+                const y = d.getFullYear();
+                const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                byYear.set(y, (byYear.get(y) || 0) + 1);
+                byMonth.set(ym, (byMonth.get(ym) || 0) + 1);
+
+                if (minYear === null || y < minYear) minYear = y;
+                if (maxYear === null || y > maxYear) maxYear = y;
+            }
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            if (minYear === null) minYear = currentYear;
+            if (maxYear === null) maxYear = currentYear;
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            tournamentsCalendarList.innerHTML = buildYearMonthCalendarHTML({
+                minYear,
+                maxYear,
+                now,
+                monthNames,
+                getYearBadge: (year) => {
+                    const yearCount = byYear.get(year) || 0;
+                    return yearCount > 0 ? `<span class=\"registration-count-badge\">${yearCount}</span>` : '';
+                },
+                getMonthBadge: (year, month) => {
+                    const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                    const monthCount = byMonth.get(ymKey) || 0;
+                    return monthCount > 0 ? `<span class=\"registration-count-badge\">${monthCount}</span>` : '';
+                },
+                getDayCell: ({ key, dayNumber, todayKey }) => {
+                    const info = byDay.get(key);
+                    if (info) {
+                        let dotClass = 'tournament-finished';
+                        if (info.status === 'active') dotClass = 'tournament-active';
+                        else if (info.status === 'scheduled') dotClass = 'tournament-scheduled';
+                        return { html: `<div class=\"dot ${dotClass}\">${info.playersCount}</div>` };
+                    }
+                    if (key === todayKey) {
+                        return { html: `<div class=\"dot today\">${dayNumber}</div>` };
+                    }
+                    return null;
+                }
+            });
+
+            if (savedScrollTop > 0) {
+                try {
+                    requestAnimationFrame(() => {
+                        tournamentsCalendarList.scrollTop = savedScrollTop;
+                        if (tournamentsCalendarScreen?.id) {
+                            screenScrollPositions.set(tournamentsCalendarScreen.id, savedScrollTop);
                         }
                     });
                 } catch (e) {
@@ -3386,6 +3785,28 @@
                 showBirthdaysScreen();
             });
             
+            dbPlayersPreviewList.appendChild(button);
+        }
+
+        function renderBirthdaysCalendarPreview() {
+            if (!dbPlayersPreviewList) return;
+
+            const button = document.createElement('button');
+            button.classList.add('player-button');
+
+            button.innerHTML = `
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="player-info">
+                    <div class="player-nickname">Календарь дней рождений</div>
+                    <div class="player-name">По дням</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+
+            button.addEventListener('click', () => {
+                showBirthdaysCalendarScreen();
+            });
+
             dbPlayersPreviewList.appendChild(button);
         }
 
@@ -4244,6 +4665,20 @@
             
             button.addEventListener('click', showTournamentsScreen);
             tournamentsPreviewList.appendChild(button);
+
+            const calendarButton = document.createElement('button');
+            calendarButton.classList.add('player-button');
+            calendarButton.innerHTML = `
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="player-info">
+                    <div class="player-nickname">Календарь турниров</div>
+                    <div class="player-name">По дням</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+
+            calendarButton.addEventListener('click', showTournamentsCalendarScreen);
+            tournamentsPreviewList.appendChild(calendarButton);
         }
 
         // Показать экран списка турниров
@@ -4593,6 +5028,12 @@
                 }
                 if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
                     renderRegistrationJournal();
+                }
+                if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
+                    renderBirthdaysCalendar();
+                }
+                if (tournamentsCalendarScreen && !tournamentsCalendarScreen.classList.contains('hidden')) {
+                    renderTournamentsCalendar();
                 }
                 
                 handleAdminCalls(fullData.tournament.adminCalls || []);
@@ -5332,6 +5773,12 @@
                     }
                     if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
                         renderRegistrationJournal();
+                    }
+                    if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
+                        renderBirthdaysCalendar();
+                    }
+                    if (tournamentsCalendarScreen && !tournamentsCalendarScreen.classList.contains('hidden')) {
+                        renderTournamentsCalendar();
                     }
                 } catch (e) {
                 }
