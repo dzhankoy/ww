@@ -739,6 +739,88 @@
         .tables-action-button:active {
             background-color: var(--border-color);
         }
+
+        #registrationJournalList {
+            flex: 1;
+            overflow-y: auto;
+            scroll-snap-type: y mandatory;
+            padding: 0 var(--spacing-lg) var(--spacing-xxl) var(--spacing-lg);
+        }
+
+        #registrationJournalScreen {
+            padding: 0;
+        }
+
+        .registration-year {
+            scroll-snap-align: start;
+            min-height: 100dvh;
+            padding-top: var(--spacing-md);
+        }
+
+        .registration-year-title {
+            font-size: 44px;
+            font-weight: 700;
+            color: var(--red);
+            margin: 0 0 var(--spacing-lg) 0;
+        }
+
+        .registration-months-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 28px;
+        }
+
+        .registration-month {
+            min-width: 0;
+        }
+
+        .registration-month-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0 0 var(--spacing-sm) 0;
+        }
+
+        .registration-month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .registration-day {
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.85;
+        }
+
+        .registration-day.blank {
+            opacity: 0;
+        }
+
+        .registration-day .dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .registration-day .dot.today {
+            background-color: var(--blue);
+        }
+
+        .registration-day .dot.has-registrations {
+            background-color: var(--green);
+        }
         
         .position-indicator.medal {
             font-size: 18px;
@@ -1051,6 +1133,10 @@
     <!-- Экран загрузки -->
     <div id="loadingScreen" class="screen">
         <div class="loading">Загрузка данных...</div>
+    </div>
+
+    <div id="registrationJournalScreen" class="screen hidden">
+        <div id="registrationJournalList"></div>
     </div>
 
     <!-- Экран ошибки -->
@@ -1435,6 +1521,8 @@
         const birthdaysScreen = document.getElementById('birthdaysScreen');
         const birthdaysList = document.getElementById('birthdaysList');
         const birthdaysInfo = document.getElementById('birthdaysInfo');
+        const registrationJournalScreen = document.getElementById('registrationJournalScreen');
+        const registrationJournalList = document.getElementById('registrationJournalList');
         const tournamentsScreen = document.getElementById('tournamentsScreen');
         const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
         const tournamentsList = document.getElementById('tournamentsList');
@@ -1489,7 +1577,7 @@
         function hideAllScreens() {
             document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
-             dbPlayersScreen, birthdaysScreen, tournamentsScreen, playerSelectionScreen, 
+             dbPlayersScreen, birthdaysScreen, registrationJournalScreen, tournamentsScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => s?.classList.add('hidden'));
         }
 
@@ -2199,6 +2287,7 @@
                 // При запланированном турнире не показываем список столов
                 renderAllPlayersPreview();
                 renderDbPlayersPreview();
+                renderRegistrationJournalPreview();
                 renderBirthdaysPreview();
                 renderTournamentsPreview();
                 renderAdminCallsList();
@@ -2286,6 +2375,8 @@
             
             // Рендерим превью списка игроков из базы
             renderDbPlayersPreview();
+
+            renderRegistrationJournalPreview();
             
             // Рендерим превью дней рождения
             renderBirthdaysPreview();
@@ -2883,6 +2974,150 @@
             });
             
             dbPlayersPreviewList.appendChild(button);
+        }
+
+        // Показать экран журнала регистраций
+        function showRegistrationJournalScreen() {
+            if (!fullTournamentData) return;
+
+            hideAllScreens();
+            if (registrationJournalScreen) {
+                registrationJournalScreen.classList.remove('hidden');
+            }
+
+            renderRegistrationJournal();
+            showTelegramBackButton(backToTablesFromRegistrationJournal);
+        }
+
+        function backToTablesFromRegistrationJournal() {
+            registrationJournalScreen?.classList.add('hidden');
+            showTablesScreen();
+        }
+
+        function renderRegistrationJournalPreview() {
+            if (!dbPlayersPreviewList) return;
+
+            const button = document.createElement('button');
+            button.classList.add('player-button');
+
+            button.innerHTML = `
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="player-info">
+                    <div class="player-nickname">Журнал регистраций</div>
+                    <div class="player-name">По дням</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+
+            button.addEventListener('click', () => {
+                showRegistrationJournalScreen();
+            });
+
+            dbPlayersPreviewList.appendChild(button);
+        }
+
+        function parseRegistrationDateFromPlayer(player) {
+            const raw = player?.registrationDate ?? player?.reg_date ?? player?.regDate ?? null;
+            if (!raw) return null;
+
+            if (raw instanceof Date && !isNaN(raw.getTime())) {
+                return raw;
+            }
+
+            const str = String(raw).trim();
+
+            if (str.includes('T') || str.includes('Z')) {
+                const d = new Date(str);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            if (str.includes('.')) {
+                const d = parseRegDate(str);
+                return d && !isNaN(d.getTime()) ? d : null;
+            }
+
+            if (str.includes('-')) {
+                const d = new Date(str);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            return null;
+        }
+
+        function formatLocalDateKey(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function renderRegistrationJournal() {
+            if (!registrationJournalList) return;
+
+            const dbPlayers = getTournament().players || [];
+            const registrationsByDay = new Map();
+            let minYear = null;
+
+            for (const p of dbPlayers) {
+                const d = parseRegistrationDateFromPlayer(p);
+                if (!d) continue;
+
+                const key = formatLocalDateKey(d);
+                registrationsByDay.set(key, (registrationsByDay.get(key) || 0) + 1);
+
+                const y = d.getFullYear();
+                if (minYear === null || y < minYear) minYear = y;
+            }
+
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            if (minYear === null) minYear = currentYear;
+
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const todayKey = formatLocalDateKey(now);
+
+            let html = '';
+            for (let year = minYear; year <= currentYear; year++) {
+                html += `<div class="registration-year">`;
+                html += `<div class="registration-year-title">${year}</div>`;
+                html += `<div class="registration-months-grid">`;
+
+                for (let month = 0; month < 12; month++) {
+                    const first = new Date(year, month, 1);
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const firstWeekdayMon0 = (first.getDay() + 6) % 7;
+
+                    html += `<div class="registration-month">`;
+                    html += `<div class="registration-month-title">${monthNames[month]}</div>`;
+                    html += `<div class="registration-month-grid">`;
+
+                    for (let i = 0; i < firstWeekdayMon0; i++) {
+                        html += `<div class="registration-day blank"></div>`;
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const dt = new Date(year, month, day, 0, 0, 0, 0);
+                        const key = formatLocalDateKey(dt);
+                        const count = registrationsByDay.get(key) || 0;
+
+                        if (count > 0) {
+                            html += `<div class="registration-day"><div class="dot has-registrations">${count}</div></div>`;
+                        } else if (key === todayKey) {
+                            html += `<div class="registration-day"><div class="dot today">${day}</div></div>`;
+                        } else {
+                            html += `<div class="registration-day">${day}</div>`;
+                        }
+                    }
+
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            registrationJournalList.innerHTML = html;
         }
 
         // Показать экран со всеми игроками из базы
@@ -4150,6 +4385,9 @@
                 if (!dbPlayersScreen.classList.contains('hidden')) {
                     renderDbPlayersList();
                 }
+                if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
+                    renderRegistrationJournal();
+                }
                 
                 handleAdminCalls(fullData.tournament.adminCalls || []);
                 updateAdminButtonState();
@@ -4879,6 +5117,9 @@
                     }
                     if (!dbPlayersScreen.classList.contains('hidden')) {
                         renderDbPlayersList();
+                    }
+                    if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
+                        renderRegistrationJournal();
                     }
                 } catch (e) {
                 }
