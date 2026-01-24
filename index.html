@@ -830,7 +830,7 @@
 
         .month-overlay-calendar {
             flex: 0 0 auto;
-            padding: var(--spacing-md);
+            padding: var(--spacing-lg);
         }
 
         .month-overlay-title {
@@ -841,6 +841,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.35em;
+            text-transform: uppercase;
         }
 
         .month-overlay-title.current-month {
@@ -863,7 +864,7 @@
         .month-overlay-list {
             flex: 1;
             overflow-y: auto;
-            padding: 0 var(--spacing-md) var(--spacing-lg) var(--spacing-md);
+            padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
         }
 
         .month-overlay-anim-clone {
@@ -2262,6 +2263,21 @@
             });
             monthOverlayListEl.innerHTML = '';
 
+            monthOverlayCardEl.style.visibility = 'hidden';
+            monthOverlayCardEl.style.opacity = '0';
+            monthOverlayBackdropEl.style.opacity = '0';
+            monthOverlayEl.classList.add('visible');
+
+            await new Promise(resolve => {
+                try {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(resolve);
+                    });
+                } catch (e) {
+                    resolve();
+                }
+            });
+
             const calendarRect = monthOverlayCalendarEl?.getBoundingClientRect
                 ? monthOverlayCalendarEl.getBoundingClientRect()
                 : null;
@@ -2271,11 +2287,6 @@
             const targetTop = calendarRect ? calendarRect.top : fallbackTarget.top;
             const targetWidth = calendarRect ? calendarRect.width : (fromRect.width * fallbackTarget.scale);
             const targetScale = targetWidth / Math.max(1, fromRect.width);
-
-            monthOverlayCardEl.style.visibility = 'hidden';
-            monthOverlayCardEl.style.opacity = '0';
-            monthOverlayBackdropEl.style.opacity = '0';
-            monthOverlayEl.classList.add('visible');
 
             safeAnimate(
                 monthOverlayBackdropEl,
