@@ -871,6 +871,11 @@
             background: var(--bg-color);
         }
 
+        .month-overlay-placeholder {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
         .registration-month-title {
             font-size: clamp(13px, 4vw, 16px);
             font-weight: 600;
@@ -1891,13 +1896,51 @@
             return html;
         }
 
+        function computeMonthOverlayTargetRect(fromRect) {
+            const pad = 16;
+            const vw = window.innerWidth || 0;
+            const vh = window.innerHeight || 0;
+            const maxW = Math.max(0, vw - pad * 2);
+            const maxH = Math.max(0, vh - pad * 2);
+            const scale = Math.min(maxW / Math.max(1, fromRect.width), maxH / Math.max(1, fromRect.height));
+            const w = fromRect.width * scale;
+            const h = fromRect.height * scale;
+            const left = (vw - w) / 2;
+            const top = (vh - h) / 2;
+            return { left, top, width: w, height: h, scale };
+        }
+
         function safeAnimate(el, keyframes, options) {
             try {
                 if (!el || typeof el.animate !== 'function') {
+                    const last = Array.isArray(keyframes) && keyframes.length ? keyframes[keyframes.length - 1] : null;
+                    if (last && el && el.style) {
+                        for (const k of Object.keys(last)) {
+                            if (k === 'offset' || k === 'easing' || k === 'composite') continue;
+                            try {
+                                el.style[k] = String(last[k]);
+                            } catch (e) {
+                            }
+                        }
+                    }
                     return { finished: Promise.resolve() };
                 }
-                return el.animate(keyframes, options);
+                const anim = el.animate(keyframes, options);
+                return anim;
             } catch (e) {
+                try {
+                    const last = Array.isArray(keyframes) && keyframes.length ? keyframes[keyframes.length - 1] : null;
+                    if (last && el && el.style) {
+                        for (const k of Object.keys(last)) {
+                            if (k === 'offset' || k === 'easing' || k === 'composite') continue;
+                            try {
+                                el.style[k] = String(last[k]);
+                            } catch (e2) {
+                            }
+                        }
+                    }
+                } catch (e3) {
+                }
                 return { finished: Promise.resolve() };
             }
         }
@@ -1950,11 +1993,153 @@
             return 'generic';
         }
 
+        function getMonthOverlayConfig(calendarType, now) {
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            if (calendarType === 'registrations') {
+                const dbPlayers = getTournament().players || [];
+                const registrationsByDay = new Map();
+                const registrationsByMonth = new Map();
+
+                for (const p of dbPlayers) {
+                    const d = parseRegistrationDateFromPlayer(p);
+                    if (!d) continue;
+
+                    const key = formatLocalDateKey(d);
+                    registrationsByDay.set(key, (registrationsByDay.get(key) || 0) + 1);
+
+                    const y = d.getFullYear();
+                    const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    registrationsByMonth.set(ym, (registrationsByMonth.get(ym) || 0) + 1);
+                }
+
+                return {
+                    monthNames,
+                    getMonthBadge: (year, month) => {
+                        const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                        const monthCount = registrationsByMonth.get(ymKey) || 0;
+                        return monthCount > 0 ? `<span class="registration-count-badge">${monthCount}</span>` : '';
+                    },
+                    getDayCell: ({ key, dayNumber, todayKey }) => {
+                        const count = registrationsByDay.get(key) || 0;
+                        if (count > 0) {
+                            return { html: `<div class="dot has-registrations">${count}</div>` };
+                        }
+                        if (key === todayKey) {
+                            return { html: `<div class="dot today">${dayNumber}</div>` };
+                        }
+                        return null;
+                    }
+                };
+            }
+
+            if (calendarType === 'birthdays') {
+                const dbPlayers = getTournament().players || [];
+                const byMonthDay = new Map();
+                const byMonth = new Map();
+
+                for (const p of dbPlayers) {
+                    const md = parseBirthdayMonthDay(p?.birthday);
+                    if (!md) continue;
+                    const mm = String(md.month).padStart(2, '0');
+                    const dd = String(md.day).padStart(2, '0');
+                    const mdKey = `${mm}-${dd}`;
+                    if (!byMonthDay.has(mdKey)) {
+                        byMonthDay.set(mdKey, p);
+                    }
+                    byMonth.set(mm, (byMonth.get(mm) || 0) + 1);
+                }
+
+                const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+                return {
+                    monthNames,
+                    getMonthBadge: (year, month) => {
+                        const mm = String(month + 1).padStart(2, '0');
+                        const monthCount = byMonth.get(mm) || 0;
+                        return monthCount > 0 ? `<span class="registration-count-badge">${monthCount}</span>` : '';
+                    },
+                    getDayCell: ({ dt, dayNumber, todayKey }) => {
+                        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                        const dd = String(dayNumber).padStart(2, '0');
+                        const mdKey = `${mm}-${dd}`;
+                        const p = byMonthDay.get(mdKey);
+                        if (p && p.id != null) {
+                            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
+                            return {
+                                html: `<div class="dot birthday-photo"><img src="${playerPhotoUrl}" alt="" onerror="this.onerror=null;this.src='avatar.png';"></div>`
+                            };
+                        }
+
+                        const key = formatLocalDateKey(dt);
+                        if (key === todayKey) {
+                            return { html: `<div class="dot today">${dayNumber}</div>` };
+                        }
+
+                        return null;
+                    }
+                };
+            }
+
+            if (calendarType === 'tournaments') {
+                const tournaments = getTournamentsList();
+                const byDay = new Map();
+                const byMonth = new Map();
+
+                for (const t of tournaments) {
+                    const d = parseTournamentDate(t?.date);
+                    if (!d) continue;
+                    const key = formatLocalDateKey(d);
+
+                    if (!byDay.has(key)) {
+                        byDay.set(key, {
+                            playersCount: Number(t?.playersCount) || 0,
+                            status: String(t?.status || '').toLowerCase() || 'finished'
+                        });
+                    }
+
+                    const y = d.getFullYear();
+                    const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    byMonth.set(ym, (byMonth.get(ym) || 0) + 1);
+                }
+
+                return {
+                    monthNames,
+                    getMonthBadge: (year, month) => {
+                        const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                        const monthCount = byMonth.get(ymKey) || 0;
+                        return monthCount > 0 ? `<span class="registration-count-badge">${monthCount}</span>` : '';
+                    },
+                    getDayCell: ({ key, dayNumber, todayKey }) => {
+                        const info = byDay.get(key);
+                        if (info) {
+                            let dotClass = 'tournament-finished';
+                            if (info.status === 'active') dotClass = 'tournament-active';
+                            else if (info.status === 'scheduled') dotClass = 'tournament-scheduled';
+                            return { html: `<div class="dot ${dotClass}">${info.playersCount}</div>` };
+                        }
+                        if (key === todayKey) {
+                            return { html: `<div class="dot today">${dayNumber}</div>` };
+                        }
+                        return null;
+                    }
+                };
+            }
+
+            return {
+                monthNames,
+                getMonthBadge: () => '',
+                getDayCell: () => null
+            };
+        }
+
         function buildSingleMonthCalendarHTML({
             year,
             month,
             now,
-            monthNames
+            monthNames,
+            getMonthBadge,
+            getDayCell
         }) {
             const todayKey = formatLocalDateKey(now);
             const first = new Date(year, month, 1);
@@ -1962,7 +2147,8 @@
             const firstWeekdayMon0 = (first.getDay() + 6) % 7;
             let html = '';
 
-            html += `<div class="month-overlay-title">${monthNames[month]} ${year}</div>`;
+            const monthBadge = typeof getMonthBadge === 'function' ? (getMonthBadge(year, month) || '') : '';
+            html += `<div class="month-overlay-title">${monthNames[month]} ${year}${monthBadge}</div>`;
             html += `<div class="registration-month-grid">`;
 
             for (let i = 0; i < firstWeekdayMon0; i++) {
@@ -1977,10 +2163,19 @@
                 const isHoliday = isRussianFixedHoliday(dt);
                 const baseDayClass = `registration-day${isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')}`;
 
-                if (key === todayKey) {
-                    html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                const cell = typeof getDayCell === 'function'
+                    ? getDayCell({ dt, key, dayNumber: day, todayKey })
+                    : null;
+
+                if (cell && typeof cell === 'object') {
+                    const extraClass = cell.extraClass ? ` ${cell.extraClass}` : '';
+                    html += `<div class="${baseDayClass}${extraClass}">${cell.html || ''}</div>`;
                 } else {
-                    html += `<div class="${baseDayClass}">${day}</div>`;
+                    if (key === todayKey) {
+                        html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                    } else {
+                        html += `<div class="${baseDayClass}">${day}</div>`;
+                    }
                 }
             }
 
@@ -1998,6 +2193,15 @@
 
             const calendarType = getCalendarTypeFromMonthElement(monthEl);
 
+            const fromRect = monthEl.getBoundingClientRect();
+            const target = computeMonthOverlayTargetRect(fromRect);
+
+            const sourceParent = monthEl.parentNode;
+            const sourceNextSibling = monthEl.nextSibling;
+            const placeholderEl = document.createElement('div');
+            placeholderEl.className = 'registration-month month-overlay-placeholder';
+            placeholderEl.style.height = `${fromRect.height}px`;
+
             ensureMonthOverlay();
 
             monthOverlayPrevBackHandler = telegramBackHandler;
@@ -2008,56 +2212,84 @@
                 sourceMonthEl: monthEl,
                 year,
                 month,
-                calendarType
+                calendarType,
+                placeholderEl,
+                sourceParent,
+                sourceNextSibling,
+                anim: { dx: 0, dy: 0, s: 1 },
+                restoreStyle: {
+                    position: monthEl.style.position,
+                    left: monthEl.style.left,
+                    top: monthEl.style.top,
+                    width: monthEl.style.width,
+                    height: monthEl.style.height,
+                    transform: monthEl.style.transform,
+                    opacity: monthEl.style.opacity,
+                    zIndex: monthEl.style.zIndex,
+                    borderRadius: monthEl.style.borderRadius,
+                    pointerEvents: monthEl.style.pointerEvents
+                }
             };
 
-            const now = new Date();
-            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            const overlayNow = new Date();
+            const cfg = getMonthOverlayConfig(calendarType, overlayNow);
 
-            monthOverlayCalendarEl.innerHTML = buildSingleMonthCalendarHTML({ year, month, now, monthNames });
+            monthOverlayCalendarEl.innerHTML = buildSingleMonthCalendarHTML({
+                year,
+                month,
+                now: overlayNow,
+                monthNames: cfg.monthNames,
+                getMonthBadge: cfg.getMonthBadge,
+                getDayCell: cfg.getDayCell
+            });
             monthOverlayListEl.innerHTML = '';
 
+            monthOverlayCardEl.style.visibility = 'hidden';
+            monthOverlayCardEl.style.opacity = '0';
+            monthOverlayBackdropEl.style.opacity = '0';
             monthOverlayEl.classList.add('visible');
+
             safeAnimate(
                 monthOverlayBackdropEl,
                 [{ opacity: 0 }, { opacity: 1 }],
                 { duration: 220, easing: 'ease-out', fill: 'forwards' }
             );
 
-            const fromRect = monthEl.getBoundingClientRect();
+            if (sourceParent) {
+                sourceParent.insertBefore(placeholderEl, monthEl);
+                try {
+                    sourceParent.removeChild(monthEl);
+                } catch (e) {
+                }
+            }
 
-            const clone = monthEl.cloneNode(true);
-            clone.classList.add('month-overlay-anim-clone');
-            clone.style.left = `${fromRect.left}px`;
-            clone.style.top = `${fromRect.top}px`;
-            clone.style.width = `${fromRect.width}px`;
-            clone.style.height = `${fromRect.height}px`;
+            monthOverlayEl.appendChild(monthEl);
+            monthEl.classList.add('month-overlay-anim-clone');
+            monthEl.style.left = `${fromRect.left}px`;
+            monthEl.style.top = `${fromRect.top}px`;
+            monthEl.style.width = `${fromRect.width}px`;
+            monthEl.style.height = `${fromRect.height}px`;
+            monthEl.style.opacity = '1';
+            monthEl.style.pointerEvents = 'none';
+            monthEl.style.transform = 'translate(0px, 0px) scale(1, 1)';
 
-            monthOverlayEl.appendChild(clone);
-
-            monthOverlayCardEl.style.opacity = '0';
-            monthOverlayCardEl.style.transform = 'none';
-
-            const toRect = monthOverlayCardEl.getBoundingClientRect();
-            const dx = toRect.left - fromRect.left;
-            const dy = toRect.top - fromRect.top;
-            const sx = toRect.width / Math.max(1, fromRect.width);
-            const sy = toRect.height / Math.max(1, fromRect.height);
+            const dx = target.left - fromRect.left;
+            const dy = target.top - fromRect.top;
+            const s = target.scale;
+            monthOverlayOpenState.anim = { dx, dy, s };
 
             await safeAnimate(
-                clone,
+                monthEl,
                 [
                     { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px' },
-                    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: '0px' }
+                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px' }
                 ],
                 { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
             ).finished;
 
-            try {
-                clone.remove();
-            } catch (e) {
-            }
+            monthEl.style.opacity = '0';
 
+            monthOverlayCardEl.style.visibility = 'visible';
             safeAnimate(
                 monthOverlayCardEl,
                 [{ opacity: 0 }, { opacity: 1 }],
@@ -2073,10 +2305,11 @@
 
             const state = monthOverlayOpenState;
             const monthEl = state.sourceMonthEl;
-            const fromRect = monthOverlayCardEl.getBoundingClientRect();
-            const toRect = monthEl?.getBoundingClientRect ? monthEl.getBoundingClientRect() : null;
+            const placeholderEl = state.placeholderEl;
+            const sourceParent = state.sourceParent;
+            const sourceNextSibling = state.sourceNextSibling;
 
-            if (!toRect) {
+            if (!monthEl || !placeholderEl) {
                 monthOverlayEl.classList.remove('visible');
                 monthOverlayOpenState = null;
                 document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
@@ -2087,10 +2320,7 @@
                 return;
             }
 
-            const dx = toRect.left - fromRect.left;
-            const dy = toRect.top - fromRect.top;
-            const sx = toRect.width / Math.max(1, fromRect.width);
-            const sy = toRect.height / Math.max(1, fromRect.height);
+            const toRect = placeholderEl.getBoundingClientRect();
 
             safeAnimate(
                 monthOverlayBackdropEl,
@@ -2098,11 +2328,26 @@
                 { duration: 220, easing: 'ease-in', fill: 'forwards' }
             );
 
+            monthOverlayCardEl.style.opacity = '0';
+            monthOverlayCardEl.style.visibility = 'hidden';
+
+            const dx = state.anim?.dx || 0;
+            const dy = state.anim?.dy || 0;
+            const s = state.anim?.s || 1;
+
+            monthEl.style.opacity = '1';
+            monthEl.style.pointerEvents = 'none';
+            monthEl.style.left = `${toRect.left}px`;
+            monthEl.style.top = `${toRect.top}px`;
+            monthEl.style.width = `${toRect.width}px`;
+            monthEl.style.height = `${toRect.height}px`;
+            monthEl.style.transform = `translate(${dx}px, ${dy}px) scale(${s}, ${s})`;
+
             await safeAnimate(
-                monthOverlayCardEl,
+                monthEl,
                 [
-                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '0px', opacity: 1 },
-                    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: '18px', opacity: 0.98 }
+                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px' },
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px' }
                 ],
                 { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
             ).finished;
@@ -2114,6 +2359,45 @@
                 monthOverlayBackdropEl.style.opacity = '0';
             } catch (e) {
             }
+
+            try {
+                monthEl.classList.remove('month-overlay-anim-clone');
+            } catch (e) {
+            }
+
+            try {
+                if (placeholderEl.parentNode) {
+                    placeholderEl.parentNode.removeChild(placeholderEl);
+                }
+            } catch (e) {
+            }
+
+            try {
+                if (sourceParent) {
+                    if (sourceNextSibling && sourceNextSibling.parentNode === sourceParent) {
+                        sourceParent.insertBefore(monthEl, sourceNextSibling);
+                    } else {
+                        sourceParent.appendChild(monthEl);
+                    }
+                }
+            } catch (e) {
+            }
+
+            try {
+                const rs = state.restoreStyle || {};
+                monthEl.style.position = rs.position || '';
+                monthEl.style.left = rs.left || '';
+                monthEl.style.top = rs.top || '';
+                monthEl.style.width = rs.width || '';
+                monthEl.style.height = rs.height || '';
+                monthEl.style.transform = rs.transform || '';
+                monthEl.style.opacity = rs.opacity || '';
+                monthEl.style.zIndex = rs.zIndex || '';
+                monthEl.style.borderRadius = rs.borderRadius || '';
+                monthEl.style.pointerEvents = rs.pointerEvents || '';
+            } catch (e) {
+            }
+
             monthOverlayOpenState = null;
 
             document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
