@@ -2376,14 +2376,15 @@
                 { duration: 220, easing: 'ease-in', fill: 'forwards' }
             );
 
-            monthOverlayCardEl.style.opacity = '0';
-            monthOverlayCardEl.style.visibility = 'hidden';
+            monthOverlayCardEl.style.opacity = '1';
+            monthOverlayCardEl.style.visibility = 'visible';
 
             const dx = state.anim?.dx || 0;
             const dy = state.anim?.dy || 0;
             const s = state.anim?.s || 1;
 
-            monthEl.style.opacity = '1';
+            monthEl.style.visibility = 'visible';
+            monthEl.style.opacity = '0';
             monthEl.style.pointerEvents = 'none';
             monthEl.style.left = `${toRect.left}px`;
             monthEl.style.top = `${toRect.top}px`;
@@ -2391,14 +2392,28 @@
             monthEl.style.height = `${toRect.height}px`;
             monthEl.style.transform = `translate(${dx}px, ${dy}px) scale(${s}, ${s})`;
 
-            await safeAnimate(
+            const zoomDuration = 420;
+            const zoomEasing = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
+
+            const fadeOutCard = safeAnimate(
+                monthOverlayCardEl,
+                [{ opacity: 1 }, { opacity: 0 }],
+                { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
+            );
+
+            const shrinkAndFadeInMonth = safeAnimate(
                 monthEl,
                 [
-                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px' },
-                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px' }
+                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px', opacity: 0 },
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: 1 }
                 ],
-                { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
-            ).finished;
+                { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
+            );
+
+            await Promise.all([fadeOutCard.finished, shrinkAndFadeInMonth.finished]);
+
+            monthOverlayCardEl.style.opacity = '0';
+            monthOverlayCardEl.style.visibility = 'hidden';
 
             monthOverlayEl.classList.remove('visible');
             monthOverlayCardEl.style.transform = 'none';
@@ -2451,8 +2466,8 @@
             }
 
             try {
-                if (!monthEl.style.opacity) monthEl.style.opacity = '';
-                if (!monthEl.style.visibility) monthEl.style.visibility = '';
+                monthEl.style.opacity = rs.opacity || '';
+                monthEl.style.visibility = rs.visibility || '';
             } catch (e) {
             }
 
