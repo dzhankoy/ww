@@ -788,6 +788,87 @@
 
         .registration-month {
             min-width: 0;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .month-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+        }
+
+        .month-overlay.visible {
+            display: block;
+        }
+
+        .month-overlay-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            opacity: 0;
+        }
+
+        .month-overlay-card {
+            position: absolute;
+            inset: 0;
+            background: var(--bg-color);
+            border-radius: 0;
+            overflow: hidden;
+            transform-origin: top left;
+            opacity: 0;
+        }
+
+        .month-overlay-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .month-overlay-calendar {
+            flex: 0 0 auto;
+            padding: var(--spacing-md);
+        }
+
+        .month-overlay-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-color);
+            margin: 0 0 var(--spacing-md) 0;
+        }
+
+        .month-overlay-calendar .registration-month-grid {
+            gap: 6px;
+        }
+
+        .month-overlay-calendar .registration-day {
+            min-height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .month-overlay-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 var(--spacing-md) var(--spacing-lg) var(--spacing-md);
+        }
+
+        .month-overlay-anim-clone {
+            position: fixed;
+            left: 0;
+            top: 0;
+            transform-origin: top left;
+            will-change: transform;
+            z-index: 10000;
+            overflow: hidden;
+            border-radius: 18px;
+            background: var(--bg-color);
         }
 
         .registration-month-title {
@@ -1767,7 +1848,7 @@
                     const monthClass = `registration-month${isCurrentMonth ? ' current-month' : ''}`;
                     const monthBadge = typeof getMonthBadge === 'function' ? (getMonthBadge(year, month) || '') : '';
 
-                    html += `<div class="${monthClass}">`;
+                    html += `<div class="${monthClass}" data-calendar-month="1" data-year="${year}" data-month="${month}">`;
                     html += `<div class="registration-month-title">${monthNames[month]}${monthBadge}</div>`;
                     html += `<div class="registration-month-grid">`;
 
@@ -1809,6 +1890,252 @@
 
             return html;
         }
+
+        function safeAnimate(el, keyframes, options) {
+            try {
+                if (!el || typeof el.animate !== 'function') {
+                    return { finished: Promise.resolve() };
+                }
+                return el.animate(keyframes, options);
+            } catch (e) {
+                return { finished: Promise.resolve() };
+            }
+        }
+
+        let monthOverlayEl = null;
+        let monthOverlayBackdropEl = null;
+        let monthOverlayCardEl = null;
+        let monthOverlayCalendarEl = null;
+        let monthOverlayListEl = null;
+        let monthOverlayOpenState = null;
+        let monthOverlayPrevBackHandler = null;
+        let monthOverlayPrevBodyOverflow = null;
+
+        function ensureMonthOverlay() {
+            if (monthOverlayEl) return;
+
+            monthOverlayEl = document.createElement('div');
+            monthOverlayEl.className = 'month-overlay';
+
+            monthOverlayBackdropEl = document.createElement('div');
+            monthOverlayBackdropEl.className = 'month-overlay-backdrop';
+
+            monthOverlayCardEl = document.createElement('div');
+            monthOverlayCardEl.className = 'month-overlay-card';
+
+            const contentEl = document.createElement('div');
+            contentEl.className = 'month-overlay-content';
+
+            monthOverlayCalendarEl = document.createElement('div');
+            monthOverlayCalendarEl.className = 'month-overlay-calendar';
+
+            monthOverlayListEl = document.createElement('div');
+            monthOverlayListEl.className = 'month-overlay-list';
+
+            contentEl.appendChild(monthOverlayCalendarEl);
+            contentEl.appendChild(monthOverlayListEl);
+            monthOverlayCardEl.appendChild(contentEl);
+
+            monthOverlayEl.appendChild(monthOverlayBackdropEl);
+            monthOverlayEl.appendChild(monthOverlayCardEl);
+
+            document.body.appendChild(monthOverlayEl);
+        }
+
+        function getCalendarTypeFromMonthElement(monthEl) {
+            if (!monthEl) return 'generic';
+            if (monthEl.closest('#registrationCalendarScreen')) return 'registrations';
+            if (monthEl.closest('#birthdaysCalendarScreen')) return 'birthdays';
+            if (monthEl.closest('#tournamentsCalendarScreen')) return 'tournaments';
+            return 'generic';
+        }
+
+        function buildSingleMonthCalendarHTML({
+            year,
+            month,
+            now,
+            monthNames
+        }) {
+            const todayKey = formatLocalDateKey(now);
+            const first = new Date(year, month, 1);
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstWeekdayMon0 = (first.getDay() + 6) % 7;
+            let html = '';
+
+            html += `<div class="month-overlay-title">${monthNames[month]} ${year}</div>`;
+            html += `<div class="registration-month-grid">`;
+
+            for (let i = 0; i < firstWeekdayMon0; i++) {
+                html += `<div class="registration-day blank"></div>`;
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dt = new Date(year, month, day, 0, 0, 0, 0);
+                const key = formatLocalDateKey(dt);
+
+                const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
+                const isHoliday = isRussianFixedHoliday(dt);
+                const baseDayClass = `registration-day${isHoliday ? ' holiday' : (isWeekend ? ' weekend' : '')}`;
+
+                if (key === todayKey) {
+                    html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                } else {
+                    html += `<div class="${baseDayClass}">${day}</div>`;
+                }
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        async function openMonthOverlayFromElement(monthEl) {
+            if (!monthEl) return;
+            if (monthOverlayOpenState) return;
+
+            const year = Number(monthEl.getAttribute('data-year'));
+            const month = Number(monthEl.getAttribute('data-month'));
+            if (!Number.isFinite(year) || !Number.isFinite(month)) return;
+
+            const calendarType = getCalendarTypeFromMonthElement(monthEl);
+
+            ensureMonthOverlay();
+
+            monthOverlayPrevBackHandler = telegramBackHandler;
+            monthOverlayPrevBodyOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+
+            monthOverlayOpenState = {
+                sourceMonthEl: monthEl,
+                year,
+                month,
+                calendarType
+            };
+
+            const now = new Date();
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+            monthOverlayCalendarEl.innerHTML = buildSingleMonthCalendarHTML({ year, month, now, monthNames });
+            monthOverlayListEl.innerHTML = '';
+
+            monthOverlayEl.classList.add('visible');
+            safeAnimate(
+                monthOverlayBackdropEl,
+                [{ opacity: 0 }, { opacity: 1 }],
+                { duration: 220, easing: 'ease-out', fill: 'forwards' }
+            );
+
+            const fromRect = monthEl.getBoundingClientRect();
+
+            const clone = monthEl.cloneNode(true);
+            clone.classList.add('month-overlay-anim-clone');
+            clone.style.left = `${fromRect.left}px`;
+            clone.style.top = `${fromRect.top}px`;
+            clone.style.width = `${fromRect.width}px`;
+            clone.style.height = `${fromRect.height}px`;
+
+            monthOverlayEl.appendChild(clone);
+
+            monthOverlayCardEl.style.opacity = '0';
+            monthOverlayCardEl.style.transform = 'none';
+
+            const toRect = monthOverlayCardEl.getBoundingClientRect();
+            const dx = toRect.left - fromRect.left;
+            const dy = toRect.top - fromRect.top;
+            const sx = toRect.width / Math.max(1, fromRect.width);
+            const sy = toRect.height / Math.max(1, fromRect.height);
+
+            await safeAnimate(
+                clone,
+                [
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px' },
+                    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: '0px' }
+                ],
+                { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+            ).finished;
+
+            try {
+                clone.remove();
+            } catch (e) {
+            }
+
+            safeAnimate(
+                monthOverlayCardEl,
+                [{ opacity: 0 }, { opacity: 1 }],
+                { duration: 120, easing: 'ease-out', fill: 'forwards' }
+            );
+
+            showTelegramBackButton(closeMonthOverlayInternal);
+        }
+
+        async function closeMonthOverlayInternal() {
+            if (!monthOverlayOpenState) return;
+            if (!monthOverlayEl || !monthOverlayCardEl) return;
+
+            const state = monthOverlayOpenState;
+            const monthEl = state.sourceMonthEl;
+            const fromRect = monthOverlayCardEl.getBoundingClientRect();
+            const toRect = monthEl?.getBoundingClientRect ? monthEl.getBoundingClientRect() : null;
+
+            if (!toRect) {
+                monthOverlayEl.classList.remove('visible');
+                monthOverlayOpenState = null;
+                document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
+                if (monthOverlayPrevBackHandler) showTelegramBackButton(monthOverlayPrevBackHandler);
+                else hideTelegramBackButton();
+                monthOverlayPrevBackHandler = null;
+                monthOverlayPrevBodyOverflow = null;
+                return;
+            }
+
+            const dx = toRect.left - fromRect.left;
+            const dy = toRect.top - fromRect.top;
+            const sx = toRect.width / Math.max(1, fromRect.width);
+            const sy = toRect.height / Math.max(1, fromRect.height);
+
+            safeAnimate(
+                monthOverlayBackdropEl,
+                [{ opacity: 1 }, { opacity: 0 }],
+                { duration: 220, easing: 'ease-in', fill: 'forwards' }
+            );
+
+            await safeAnimate(
+                monthOverlayCardEl,
+                [
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '0px', opacity: 1 },
+                    { transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`, borderRadius: '18px', opacity: 0.98 }
+                ],
+                { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+            ).finished;
+
+            monthOverlayEl.classList.remove('visible');
+            monthOverlayCardEl.style.transform = 'none';
+            monthOverlayCardEl.style.opacity = '0';
+            try {
+                monthOverlayBackdropEl.style.opacity = '0';
+            } catch (e) {
+            }
+            monthOverlayOpenState = null;
+
+            document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
+
+            if (monthOverlayPrevBackHandler) showTelegramBackButton(monthOverlayPrevBackHandler);
+            else hideTelegramBackButton();
+            monthOverlayPrevBackHandler = null;
+            monthOverlayPrevBodyOverflow = null;
+        }
+
+        function onDocumentMonthClick(e) {
+            const target = e.target;
+            if (!target || !(target instanceof Element)) return;
+            if (monthOverlayEl && target.closest('.month-overlay')) return;
+
+            const monthEl = target.closest('.registration-month[data-calendar-month="1"]');
+            if (!monthEl) return;
+
+            openMonthOverlayFromElement(monthEl);
+        }
+
+        document.addEventListener('click', onDocumentMonthClick, { passive: true });
 
         // Сервис событий турнира
         class TournamentEventService {
