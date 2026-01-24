@@ -3297,7 +3297,13 @@
             try {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        restoreScrollPositionForScreen(tournamentsCalendarScreen);
+                        const restored = restoreScrollPositionForScreen(tournamentsCalendarScreen);
+                        if (!restored) {
+                            const currentYearEl = tournamentsCalendarList?.querySelector('.registration-year.current-year');
+                            if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
+                                currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
+                            }
+                        }
                     });
                 });
             } catch (e) {
@@ -3397,7 +3403,9 @@
             if (!registrationCalendarList) return;
 
             const scrollEl = document.scrollingElement || document.documentElement || document.body;
-            const savedScrollTop = scrollEl?.scrollTop || 0;
+            const savedScrollTop = registrationCalendarScreen?.id && screenScrollPositions.has(registrationCalendarScreen.id)
+                ? (screenScrollPositions.get(registrationCalendarScreen.id) || 0)
+                : 0;
 
             const dbPlayers = getTournament().players || [];
             const registrationsByDay = new Map();
@@ -3456,9 +3464,6 @@
                 try {
                     requestAnimationFrame(() => {
                         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
-                        if (registrationCalendarScreen?.id) {
-                            screenScrollPositions.set(registrationCalendarScreen.id, savedScrollTop);
-                        }
                     });
                 } catch (e) {
                 }
@@ -3522,7 +3527,9 @@
             if (!birthdaysCalendarList) return;
 
             const scrollEl = document.scrollingElement || document.documentElement || document.body;
-            const savedScrollTop = scrollEl?.scrollTop || 0;
+            const savedScrollTop = birthdaysCalendarScreen?.id && screenScrollPositions.has(birthdaysCalendarScreen.id)
+                ? (screenScrollPositions.get(birthdaysCalendarScreen.id) || 0)
+                : 0;
 
             const dbPlayers = getTournament().players || [];
             const byMonthDay = new Map();
@@ -3587,9 +3594,6 @@
                 try {
                     requestAnimationFrame(() => {
                         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
-                        if (birthdaysCalendarScreen?.id) {
-                            screenScrollPositions.set(birthdaysCalendarScreen.id, savedScrollTop);
-                        }
                     });
                 } catch (e) {
                 }
@@ -3610,7 +3614,9 @@
             if (!tournamentsCalendarList) return;
 
             const scrollEl = document.scrollingElement || document.documentElement || document.body;
-            const savedScrollTop = scrollEl?.scrollTop || 0;
+            const savedScrollTop = tournamentsCalendarScreen?.id && screenScrollPositions.has(tournamentsCalendarScreen.id)
+                ? (screenScrollPositions.get(tournamentsCalendarScreen.id) || 0)
+                : 0;
 
             const tournaments = getTournamentsList();
             const byDay = new Map();
@@ -3681,9 +3687,6 @@
                 try {
                     requestAnimationFrame(() => {
                         if (scrollEl) scrollEl.scrollTop = savedScrollTop;
-                        if (tournamentsCalendarScreen?.id) {
-                            screenScrollPositions.set(tournamentsCalendarScreen.id, savedScrollTop);
-                        }
                     });
                 } catch (e) {
                 }
@@ -5000,12 +5003,15 @@
                     renderDbPlayersList();
                 }
                 if (registrationCalendarScreen && !registrationCalendarScreen.classList.contains('hidden')) {
+                    saveScrollPositionForScreen(registrationCalendarScreen);
                     renderRegistrationCalendar();
                 }
                 if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
+                    saveScrollPositionForScreen(birthdaysCalendarScreen);
                     renderBirthdaysCalendar();
                 }
                 if (tournamentsCalendarScreen && !tournamentsCalendarScreen.classList.contains('hidden')) {
+                    saveScrollPositionForScreen(tournamentsCalendarScreen);
                     renderTournamentsCalendar();
                 }
                 
@@ -5745,12 +5751,15 @@
                         renderDbPlayersList();
                     }
                     if (registrationCalendarScreen && !registrationCalendarScreen.classList.contains('hidden')) {
+                        saveScrollPositionForScreen(registrationCalendarScreen);
                         renderRegistrationCalendar();
                     }
                     if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
+                        saveScrollPositionForScreen(birthdaysCalendarScreen);
                         renderBirthdaysCalendar();
                     }
                     if (tournamentsCalendarScreen && !tournamentsCalendarScreen.classList.contains('hidden')) {
+                        saveScrollPositionForScreen(tournamentsCalendarScreen);
                         renderTournamentsCalendar();
                     }
                 } catch (e) {
