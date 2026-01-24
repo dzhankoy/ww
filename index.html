@@ -752,13 +752,7 @@
 
         #birthdaysCalendarList,
         #tournamentsCalendarList {
-            flex: 1;
-            overflow-y: auto;
-            scroll-snap-type: y proximity;
             padding: 0 0 var(--spacing-lg) 0;
-            overscroll-behavior-y: contain;
-            -webkit-overflow-scrolling: touch;
-            touch-action: pan-y;
         }
 
         #registrationJournalScreen {
@@ -1598,8 +1592,6 @@
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let previousAdminCalls = []; // Предыдущий список вызовов админа
         let registrationJournalScrollListenerAttached = false;
-        let birthdaysCalendarScrollListenerAttached = false;
-        let tournamentsCalendarScrollListenerAttached = false;
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1697,8 +1689,6 @@
         function getScrollElementForScreen(screenEl) {
             if (!screenEl) return null;
             if (screenEl === registrationJournalScreen) return registrationJournalList;
-            if (screenEl === birthdaysCalendarScreen) return birthdaysCalendarList;
-            if (screenEl === tournamentsCalendarScreen) return tournamentsCalendarList;
             return document.scrollingElement || document.documentElement || document.body;
         }
 
@@ -3279,14 +3269,6 @@
 
             setTelegramVerticalSwipesEnabled(false);
 
-            if (birthdaysCalendarList && !birthdaysCalendarScrollListenerAttached) {
-                birthdaysCalendarScrollListenerAttached = true;
-                birthdaysCalendarList.addEventListener('scroll', () => {
-                    if (!birthdaysCalendarScreen?.id) return;
-                    screenScrollPositions.set(birthdaysCalendarScreen.id, birthdaysCalendarList.scrollTop || 0);
-                }, { passive: true });
-            }
-
             renderBirthdaysCalendar();
             try {
                 requestAnimationFrame(() => {
@@ -3314,14 +3296,6 @@
             }
 
             setTelegramVerticalSwipesEnabled(false);
-
-            if (tournamentsCalendarList && !tournamentsCalendarScrollListenerAttached) {
-                tournamentsCalendarScrollListenerAttached = true;
-                tournamentsCalendarList.addEventListener('scroll', () => {
-                    if (!tournamentsCalendarScreen?.id) return;
-                    screenScrollPositions.set(tournamentsCalendarScreen.id, tournamentsCalendarList.scrollTop || 0);
-                }, { passive: true });
-            }
 
             renderTournamentsCalendar();
             try {
@@ -3550,7 +3524,8 @@
         function renderBirthdaysCalendar() {
             if (!birthdaysCalendarList) return;
 
-            const savedScrollTop = birthdaysCalendarList.scrollTop || 0;
+            const scrollEl = document.scrollingElement || document.documentElement || document.body;
+            const savedScrollTop = scrollEl?.scrollTop || 0;
 
             const dbPlayers = getTournament().players || [];
             const byMonthDay = new Map();
@@ -3614,7 +3589,7 @@
             if (savedScrollTop > 0) {
                 try {
                     requestAnimationFrame(() => {
-                        birthdaysCalendarList.scrollTop = savedScrollTop;
+                        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
                         if (birthdaysCalendarScreen?.id) {
                             screenScrollPositions.set(birthdaysCalendarScreen.id, savedScrollTop);
                         }
@@ -3637,7 +3612,8 @@
         function renderTournamentsCalendar() {
             if (!tournamentsCalendarList) return;
 
-            const savedScrollTop = tournamentsCalendarList.scrollTop || 0;
+            const scrollEl = document.scrollingElement || document.documentElement || document.body;
+            const savedScrollTop = scrollEl?.scrollTop || 0;
 
             const tournaments = getTournamentsList();
             const byDay = new Map();
@@ -3707,7 +3683,7 @@
             if (savedScrollTop > 0) {
                 try {
                     requestAnimationFrame(() => {
-                        tournamentsCalendarList.scrollTop = savedScrollTop;
+                        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
                         if (tournamentsCalendarScreen?.id) {
                             screenScrollPositions.set(tournamentsCalendarScreen.id, savedScrollTop);
                         }
