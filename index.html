@@ -1443,8 +1443,10 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
+        let telegramVerticalSwipesEnabled = null;
         function setTelegramVerticalSwipesEnabled(enabled) {
             if (!tg) return;
+            if (telegramVerticalSwipesEnabled === enabled) return;
             try {
                 if (enabled) {
                     if (typeof tg.enableVerticalSwipes === 'function') {
@@ -1455,6 +1457,7 @@
                         tg.disableVerticalSwipes();
                     }
                 }
+                telegramVerticalSwipesEnabled = enabled;
             } catch (e) {
             }
         }
@@ -3234,8 +3237,6 @@
                 registrationCalendarScreen.classList.remove('hidden');
             }
 
-            setTelegramVerticalSwipesEnabled(false);
-
             renderRegistrationCalendar();
 
             try {
@@ -3263,8 +3264,6 @@
                 birthdaysCalendarScreen.classList.remove('hidden');
             }
 
-            setTelegramVerticalSwipesEnabled(false);
-
             renderBirthdaysCalendar();
             try {
                 requestAnimationFrame(() => {
@@ -3281,7 +3280,6 @@
         function backToTablesFromBirthdaysCalendar() {
             saveScrollPositionForScreen(birthdaysCalendarScreen);
             birthdaysCalendarScreen?.classList.add('hidden');
-            setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
         }
 
@@ -3290,8 +3288,6 @@
             if (tournamentsCalendarScreen) {
                 tournamentsCalendarScreen.classList.remove('hidden');
             }
-
-            setTelegramVerticalSwipesEnabled(false);
 
             renderTournamentsCalendar();
             try {
@@ -3315,14 +3311,12 @@
         function backToTablesFromTournamentsCalendar() {
             saveScrollPositionForScreen(tournamentsCalendarScreen);
             tournamentsCalendarScreen?.classList.add('hidden');
-            setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
         }
 
         function backToTablesFromRegistrationCalendar() {
             saveScrollPositionForScreen(registrationCalendarScreen);
             registrationCalendarScreen?.classList.add('hidden');
-            setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
         }
 
@@ -3550,7 +3544,7 @@
             const now = new Date();
             const currentYear = now.getFullYear();
             const minYear = currentYear;
-            const maxYear = currentYear + 1;
+            const maxYear = currentYear;
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
             const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -5775,6 +5769,8 @@
         function init() {
             // Инициализируем сервисы
             eventService = new TournamentEventService();
+
+            setTelegramVerticalSwipesEnabled(false);
             
             loadTournamentData();
             
