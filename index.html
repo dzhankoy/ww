@@ -867,6 +867,81 @@
             padding: 0 var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
         }
 
+        .month-overlay-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 10px;
+        }
+
+        .month-overlay-item-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex: 0 0 auto;
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .month-overlay-item-body {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .month-overlay-item-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .month-overlay-item-subtitle {
+            font-size: 13px;
+            color: var(--secondary-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .month-overlay-item-right {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .month-overlay-item-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-color);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .month-overlay-item-meta {
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
         .month-overlay-anim-clone {
             position: fixed;
             left: 0;
@@ -1973,6 +2048,56 @@
         let monthOverlayPrevBackHandler = null;
         let monthOverlayPrevBodyOverflow = null;
 
+        function buildMonthOverlayListPreviewHTML(calendarType) {
+            const title = calendarType === 'birthdays'
+                ? 'День рождения'
+                : (calendarType === 'tournaments' ? 'Турнир' : 'Регистрация');
+
+            const subtitle = calendarType === 'birthdays'
+                ? 'Игрок • 19:00'
+                : (calendarType === 'tournaments' ? 'Статус • 19:00' : 'Новые игроки • 19:00');
+
+            const icon = calendarType === 'birthdays'
+                ? '🎂'
+                : (calendarType === 'tournaments' ? '🏆' : '✅');
+
+            return `
+                <div class="month-overlay-item">
+                    <div class="month-overlay-item-icon">${icon}</div>
+                    <div class="month-overlay-item-body">
+                        <div class="month-overlay-item-title">${title} • Пример 1</div>
+                        <div class="month-overlay-item-subtitle">${subtitle}</div>
+                    </div>
+                    <div class="month-overlay-item-right">
+                        <div class="month-overlay-item-badge">+3</div>
+                        <div class="month-overlay-item-meta">Сегодня</div>
+                    </div>
+                </div>
+                <div class="month-overlay-item">
+                    <div class="month-overlay-item-icon">${icon}</div>
+                    <div class="month-overlay-item-body">
+                        <div class="month-overlay-item-title">${title} • Пример 2</div>
+                        <div class="month-overlay-item-subtitle">${subtitle}</div>
+                    </div>
+                    <div class="month-overlay-item-right">
+                        <div class="month-overlay-item-badge">+1</div>
+                        <div class="month-overlay-item-meta">Завтра</div>
+                    </div>
+                </div>
+                <div class="month-overlay-item">
+                    <div class="month-overlay-item-icon">${icon}</div>
+                    <div class="month-overlay-item-body">
+                        <div class="month-overlay-item-title">${title} • Пример 3</div>
+                        <div class="month-overlay-item-subtitle">${subtitle}</div>
+                    </div>
+                    <div class="month-overlay-item-right">
+                        <div class="month-overlay-item-badge">0</div>
+                        <div class="month-overlay-item-meta">Далее</div>
+                    </div>
+                </div>
+            `;
+        }
+
         function ensureMonthOverlay() {
             if (monthOverlayEl) return;
 
@@ -2215,6 +2340,14 @@
 
             const fromRect = monthEl.getBoundingClientRect();
 
+            let baseOpacity = 1;
+            try {
+                const cs = window.getComputedStyle ? window.getComputedStyle(monthEl) : null;
+                const op = cs ? Number(cs.opacity) : NaN;
+                if (Number.isFinite(op)) baseOpacity = op;
+            } catch (e) {
+            }
+
             const sourceParent = monthEl.parentNode;
             const sourceNextSibling = monthEl.nextSibling;
             const placeholderEl = document.createElement('div');
@@ -2236,6 +2369,7 @@
                 sourceParent,
                 sourceNextSibling,
                 anim: { dx: 0, dy: 0, s: 1 },
+                baseOpacity,
                 restoreStyle: {
                     position: monthEl.style.position,
                     left: monthEl.style.left,
@@ -2265,7 +2399,7 @@
                 getMonthBadge: cfg.getMonthBadge,
                 getDayCell: cfg.getDayCell
             });
-            monthOverlayListEl.innerHTML = '';
+            monthOverlayListEl.innerHTML = buildMonthOverlayListPreviewHTML(calendarType);
 
             monthOverlayCardEl.style.visibility = 'visible';
             monthOverlayCardEl.style.opacity = '0';
@@ -2312,7 +2446,8 @@
             monthEl.style.top = `${fromRect.top}px`;
             monthEl.style.width = `${fromRect.width}px`;
             monthEl.style.height = `${fromRect.height}px`;
-            monthEl.style.opacity = '1';
+            monthEl.style.opacity = '';
+            monthEl.style.visibility = 'visible';
             monthEl.style.pointerEvents = 'none';
             monthEl.style.transform = 'translate(0px, 0px) scale(1, 1)';
 
@@ -2333,7 +2468,7 @@
             const zoomAndFadeMonth = safeAnimate(
                 monthEl,
                 [
-                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: 1 },
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: baseOpacity },
                     { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px', opacity: 0 }
                 ],
                 { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
@@ -2382,6 +2517,7 @@
             const dx = state.anim?.dx || 0;
             const dy = state.anim?.dy || 0;
             const s = state.anim?.s || 1;
+            const baseOpacity = typeof state.baseOpacity === 'number' && Number.isFinite(state.baseOpacity) ? state.baseOpacity : 1;
 
             monthEl.style.visibility = 'visible';
             monthEl.style.opacity = '0';
@@ -2405,7 +2541,7 @@
                 monthEl,
                 [
                     { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px', opacity: 0 },
-                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: 1 }
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: baseOpacity }
                 ],
                 { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
             );
