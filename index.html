@@ -870,7 +870,7 @@
         .month-overlay-list-group {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 0;
             background: transparent;
             border-radius: 0;
             overflow: visible;
@@ -886,9 +886,13 @@
             font-size: 17px;
             transition: background-color 0.2s;
             border-radius: 0;
-            background: var(--card-bg);
+            background: transparent;
             border: none;
             margin-bottom: 0;
+        }
+
+        .month-overlay-item + .month-overlay-item {
+            border-top: 1px solid var(--border-color);
         }
 
         .month-overlay-item:active {
@@ -898,7 +902,7 @@
         .month-overlay-item-icon {
             width: 36px;
             height: 36px;
-            border-radius: 12px;
+            border-radius: 999px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1063,7 +1067,7 @@
         .registration-day .dot.today {
             background-color: transparent;
             color: var(--red);
-            box-shadow: inset 0 0 0 2px var(--red);
+            box-shadow: inset 0 0 0 1px var(--red);
         }
 
         .registration-day.today-cell .dot:not(.today)::after {
@@ -1071,8 +1075,16 @@
             position: absolute;
             inset: 0;
             border-radius: 999px;
-            box-shadow: inset 0 0 0 2px var(--red);
+            box-shadow: inset 0 0 0 1px var(--red);
             pointer-events: none;
+        }
+
+        .month-overlay-calendar .registration-day .dot.today {
+            box-shadow: inset 0 0 0 2px var(--red);
+        }
+
+        .month-overlay-calendar .registration-day.today-cell .dot:not(.today)::after {
+            box-shadow: inset 0 0 0 2px var(--red);
         }
 
         .registration-day .dot.has-registrations {
@@ -2424,6 +2436,10 @@
                 getDayCell: cfg.getDayCell
             });
             monthOverlayListEl.innerHTML = buildMonthOverlayListPreviewHTML(calendarType);
+            try {
+                monthOverlayListEl.scrollTop = 0;
+            } catch (e) {
+            }
 
             monthOverlayCardEl.style.visibility = 'visible';
             monthOverlayCardEl.style.opacity = '0';
