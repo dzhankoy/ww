@@ -740,14 +740,8 @@
             background-color: var(--border-color);
         }
 
-        #registrationJournalList {
-            flex: 1;
-            overflow-y: auto;
-            scroll-snap-type: y proximity;
+        #registrationCalendarList {
             padding: 0 0 var(--spacing-lg) 0;
-            overscroll-behavior-y: contain;
-            -webkit-overflow-scrolling: touch;
-            touch-action: pan-y;
         }
 
         #birthdaysCalendarList,
@@ -755,7 +749,7 @@
             padding: 0 0 var(--spacing-lg) 0;
         }
 
-        #registrationJournalScreen {
+        #registrationCalendarScreen {
             padding: 0;
         }
 
@@ -1217,8 +1211,8 @@
         <div class="loading">Загрузка данных...</div>
     </div>
 
-    <div id="registrationJournalScreen" class="screen hidden">
-        <div id="registrationJournalList"></div>
+    <div id="registrationCalendarScreen" class="screen hidden">
+        <div id="registrationCalendarList"></div>
     </div>
 
     <div id="birthdaysCalendarScreen" class="screen hidden">
@@ -1591,7 +1585,6 @@
         let pendingOperations = new Set();
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let previousAdminCalls = []; // Предыдущий список вызовов админа
-        let registrationJournalScrollListenerAttached = false;
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -1628,8 +1621,8 @@
         const birthdaysScreen = document.getElementById('birthdaysScreen');
         const birthdaysList = document.getElementById('birthdaysList');
         const birthdaysInfo = document.getElementById('birthdaysInfo');
-        const registrationJournalScreen = document.getElementById('registrationJournalScreen');
-        const registrationJournalList = document.getElementById('registrationJournalList');
+        const registrationCalendarScreen = document.getElementById('registrationCalendarScreen');
+        const registrationCalendarList = document.getElementById('registrationCalendarList');
         const birthdaysCalendarScreen = document.getElementById('birthdaysCalendarScreen');
         const birthdaysCalendarList = document.getElementById('birthdaysCalendarList');
         const tournamentsCalendarScreen = document.getElementById('tournamentsCalendarScreen');
@@ -1688,7 +1681,6 @@
 
         function getScrollElementForScreen(screenEl) {
             if (!screenEl) return null;
-            if (screenEl === registrationJournalScreen) return registrationJournalList;
             return document.scrollingElement || document.documentElement || document.body;
         }
 
@@ -1716,6 +1708,18 @@
                 scrollEl.scrollTop = saved;
             } catch (e) {
             }
+
+            try {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        try {
+                            scrollEl.scrollTop = saved;
+                        } catch (e) {
+                        }
+                    });
+                });
+            } catch (e) {
+            }
             return true;
         }
 
@@ -1723,7 +1727,7 @@
         function hideAllScreens() {
             document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
-             dbPlayersScreen, birthdaysScreen, registrationJournalScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen, playerSelectionScreen, 
+             dbPlayersScreen, birthdaysScreen, registrationCalendarScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => {
                 if (s && !s.classList.contains('hidden')) {
                     saveScrollPositionForScreen(s);
@@ -2510,7 +2514,7 @@
                 // При запланированном турнире не показываем список столов
                 renderAllPlayersPreview();
                 renderDbPlayersPreview();
-                renderRegistrationJournalPreview();
+                renderRegistrationCalendarPreview();
                 renderBirthdaysPreview();
                 renderBirthdaysCalendarPreview();
                 renderTournamentsPreview();
@@ -2601,7 +2605,7 @@
             // Рендерим превью списка игроков из базы
             renderDbPlayersPreview();
 
-            renderRegistrationJournalPreview();
+            renderRegistrationCalendarPreview();
             
             // Рендерим превью дней рождения
             renderBirthdaysPreview();
@@ -3222,32 +3226,24 @@
         }
 
         // Показать экран журнала регистраций
-        function showRegistrationJournalScreen() {
+        function showRegistrationCalendarScreen() {
             if (!fullTournamentData) return;
 
             hideAllScreens();
-            if (registrationJournalScreen) {
-                registrationJournalScreen.classList.remove('hidden');
+            if (registrationCalendarScreen) {
+                registrationCalendarScreen.classList.remove('hidden');
             }
 
             setTelegramVerticalSwipesEnabled(false);
 
-            if (registrationJournalList && !registrationJournalScrollListenerAttached) {
-                registrationJournalScrollListenerAttached = true;
-                registrationJournalList.addEventListener('scroll', () => {
-                    if (!registrationJournalScreen?.id) return;
-                    screenScrollPositions.set(registrationJournalScreen.id, registrationJournalList.scrollTop || 0);
-                }, { passive: true });
-            }
-
-            renderRegistrationJournal();
+            renderRegistrationCalendar();
 
             try {
                 requestAnimationFrame(() => {
                     requestAnimationFrame(() => {
-                        const restored = restoreScrollPositionForScreen(registrationJournalScreen);
+                        const restored = restoreScrollPositionForScreen(registrationCalendarScreen);
                         if (!restored) {
-                            const currentYearEl = registrationJournalList?.querySelector('.registration-year.current-year');
+                            const currentYearEl = registrationCalendarList?.querySelector('.registration-year.current-year');
                             if (currentYearEl && typeof currentYearEl.scrollIntoView === 'function') {
                                 currentYearEl.scrollIntoView({ block: 'start', inline: 'nearest' });
                             }
@@ -3256,7 +3252,7 @@
                 });
             } catch (e) {
             }
-            showTelegramBackButton(backToTablesFromRegistrationJournal);
+            showTelegramBackButton(backToTablesFromRegistrationCalendar);
         }
 
         function showBirthdaysCalendarScreen() {
@@ -3317,14 +3313,14 @@
             showTablesScreen();
         }
 
-        function backToTablesFromRegistrationJournal() {
-            saveScrollPositionForScreen(registrationJournalScreen);
-            registrationJournalScreen?.classList.add('hidden');
+        function backToTablesFromRegistrationCalendar() {
+            saveScrollPositionForScreen(registrationCalendarScreen);
+            registrationCalendarScreen?.classList.add('hidden');
             setTelegramVerticalSwipesEnabled(true);
             showTablesScreen();
         }
 
-        function renderRegistrationJournalPreview() {
+        function renderRegistrationCalendarPreview() {
             if (!dbPlayersPreviewList) return;
 
             const button = document.createElement('button');
@@ -3333,14 +3329,14 @@
             button.innerHTML = `
                 <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
                 <div class="player-info">
-                    <div class="player-nickname">Журнал регистраций</div>
+                    <div class="player-nickname">Календарь регистраций</div>
                     <div class="player-name">По дням</div>
                 </div>
                 <div class="chevron"></div>
             `;
 
             button.addEventListener('click', () => {
-                showRegistrationJournalScreen();
+                showRegistrationCalendarScreen();
             });
 
             dbPlayersPreviewList.appendChild(button);
@@ -3397,10 +3393,11 @@
             return false;
         }
 
-        function renderRegistrationJournal() {
-            if (!registrationJournalList) return;
+        function renderRegistrationCalendar() {
+            if (!registrationCalendarList) return;
 
-            const savedScrollTop = registrationJournalList.scrollTop || 0;
+            const scrollEl = document.scrollingElement || document.documentElement || document.body;
+            const savedScrollTop = scrollEl?.scrollTop || 0;
 
             const dbPlayers = getTournament().players || [];
             const registrationsByDay = new Map();
@@ -3429,7 +3426,7 @@
             if (minYear === null) minYear = currentYear;
 
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-            registrationJournalList.innerHTML = buildYearMonthCalendarHTML({
+            registrationCalendarList.innerHTML = buildYearMonthCalendarHTML({
                 minYear,
                 maxYear: currentYear,
                 now,
@@ -3458,9 +3455,9 @@
             if (savedScrollTop > 0) {
                 try {
                     requestAnimationFrame(() => {
-                        registrationJournalList.scrollTop = savedScrollTop;
-                        if (registrationJournalScreen?.id) {
-                            screenScrollPositions.set(registrationJournalScreen.id, savedScrollTop);
+                        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
+                        if (registrationCalendarScreen?.id) {
+                            screenScrollPositions.set(registrationCalendarScreen.id, savedScrollTop);
                         }
                     });
                 } catch (e) {
@@ -5002,8 +4999,8 @@
                 if (!dbPlayersScreen.classList.contains('hidden')) {
                     renderDbPlayersList();
                 }
-                if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
-                    renderRegistrationJournal();
+                if (registrationCalendarScreen && !registrationCalendarScreen.classList.contains('hidden')) {
+                    renderRegistrationCalendar();
                 }
                 if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
                     renderBirthdaysCalendar();
@@ -5747,8 +5744,8 @@
                     if (!dbPlayersScreen.classList.contains('hidden')) {
                         renderDbPlayersList();
                     }
-                    if (registrationJournalScreen && !registrationJournalScreen.classList.contains('hidden')) {
-                        renderRegistrationJournal();
+                    if (registrationCalendarScreen && !registrationCalendarScreen.classList.contains('hidden')) {
+                        renderRegistrationCalendar();
                     }
                     if (birthdaysCalendarScreen && !birthdaysCalendarScreen.classList.contains('hidden')) {
                         renderBirthdaysCalendar();
