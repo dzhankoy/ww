@@ -834,15 +834,13 @@
         }
 
         .month-overlay-title {
-            font-size: 26px;
-            font-weight: 800;
+            font-size: 32px;
+            font-weight: 700;
             color: var(--text-color);
             margin: 0 0 var(--spacing-md) 0;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 0.45em;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
+            gap: 0.35em;
         }
 
         .month-overlay-title.current-month {
@@ -854,12 +852,12 @@
         }
 
         .month-overlay-calendar .registration-day {
-            min-height: 48px;
+            min-height: 60px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 22px;
         }
 
         .month-overlay-list {
@@ -2215,7 +2213,6 @@
             const calendarType = getCalendarTypeFromMonthElement(monthEl);
 
             const fromRect = monthEl.getBoundingClientRect();
-            const target = computeMonthOverlayTargetRect(fromRect);
 
             const sourceParent = monthEl.parentNode;
             const sourceNextSibling = monthEl.nextSibling;
@@ -2265,6 +2262,16 @@
             });
             monthOverlayListEl.innerHTML = '';
 
+            const calendarRect = monthOverlayCalendarEl?.getBoundingClientRect
+                ? monthOverlayCalendarEl.getBoundingClientRect()
+                : null;
+
+            const fallbackTarget = computeMonthOverlayTargetRect(fromRect);
+            const targetLeft = calendarRect ? calendarRect.left : fallbackTarget.left;
+            const targetTop = calendarRect ? calendarRect.top : fallbackTarget.top;
+            const targetWidth = calendarRect ? calendarRect.width : (fromRect.width * fallbackTarget.scale);
+            const targetScale = targetWidth / Math.max(1, fromRect.width);
+
             monthOverlayCardEl.style.visibility = 'hidden';
             monthOverlayCardEl.style.opacity = '0';
             monthOverlayBackdropEl.style.opacity = '0';
@@ -2294,9 +2301,9 @@
             monthEl.style.pointerEvents = 'none';
             monthEl.style.transform = 'translate(0px, 0px) scale(1, 1)';
 
-            const dx = target.left - fromRect.left;
-            const dy = target.top - fromRect.top;
-            const s = target.scale;
+            const dx = targetLeft - fromRect.left;
+            const dy = targetTop - fromRect.top;
+            const s = targetScale;
             monthOverlayOpenState.anim = { dx, dy, s };
 
             await safeAnimate(
