@@ -1551,7 +1551,7 @@
             PHOTOS_BASE_URL: 'https://5970995-zo35356.twc1.net/pictures',
             REFRESH_INTERVAL: 30000,
             REQUEST_TIMEOUT: 10000,
-            MAX_REBUYS: 2
+            MAX_REBUYS: 3
         };
 
         // Типы событий турнира
@@ -2244,9 +2244,9 @@
         function renderRebuyDots(container, rebuysLeft) {
             if (!container) return;
             container.innerHTML = '';
-            for (let i = 0; i < 2; i++) {
+            for (let i = 0; i < CONFIG.MAX_REBUYS; i++) {
                 const dot = document.createElement('div');
-                dot.className = i < (2 - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
+                dot.className = i < (CONFIG.MAX_REBUYS - rebuysLeft) ? 'rebuy-dot used' : 'rebuy-dot';
                 container.appendChild(dot);
             }
         }
