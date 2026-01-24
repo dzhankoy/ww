@@ -2326,14 +2326,24 @@
                 { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
             ).finished;
 
-            monthEl.style.opacity = '0';
-
             monthOverlayCardEl.style.visibility = 'visible';
-            safeAnimate(
+            monthOverlayCardEl.style.opacity = '0';
+
+            const fadeDuration = 160;
+            const fadeOut = safeAnimate(
+                monthEl,
+                [{ opacity: 1 }, { opacity: 0 }],
+                { duration: fadeDuration, easing: 'ease-out', fill: 'forwards' }
+            );
+            const fadeIn = safeAnimate(
                 monthOverlayCardEl,
                 [{ opacity: 0 }, { opacity: 1 }],
-                { duration: 120, easing: 'ease-out', fill: 'forwards' }
+                { duration: fadeDuration, easing: 'ease-out', fill: 'forwards' }
             );
+
+            await Promise.all([fadeOut.finished, fadeIn.finished]);
+
+            monthEl.style.opacity = '0';
 
             showTelegramBackButton(closeMonthOverlayInternal);
         }
