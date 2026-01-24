@@ -868,25 +868,27 @@
         }
 
         .month-overlay-list-group {
-            border-radius: 18px;
-            overflow: hidden;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: transparent;
+            border-radius: 0;
+            overflow: visible;
+            border: none;
         }
 
         .month-overlay-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 12px 14px;
+            padding: 0 var(--spacing-md) 0 var(--spacing-lg);
+            min-height: var(--player-height);
+            font-size: 17px;
+            transition: background-color 0.2s;
             border-radius: 0;
-            background: transparent;
+            background: var(--card-bg);
             border: none;
             margin-bottom: 0;
-        }
-
-        .month-overlay-item + .month-overlay-item {
-            border-top: 1px solid var(--border-color);
         }
 
         .month-overlay-item:active {
@@ -915,7 +917,7 @@
         }
 
         .month-overlay-item-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--text-color);
             white-space: nowrap;
@@ -1051,13 +1053,26 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            box-sizing: border-box;
             font-size: 1em;
             font-weight: 700;
             color: #fff;
         }
 
         .registration-day .dot.today {
-            background-color: var(--red);
+            background-color: transparent;
+            color: var(--red);
+            box-shadow: inset 0 0 0 2px var(--red);
+        }
+
+        .registration-day.today-cell .dot:not(.today)::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 2px var(--red);
+            pointer-events: none;
         }
 
         .registration-day .dot.has-registrations {
@@ -1974,6 +1989,7 @@
                     for (let day = 1; day <= daysInMonth; day++) {
                         const dt = new Date(year, month, day, 0, 0, 0, 0);
                         const key = formatLocalDateKey(dt);
+                        const isToday = key === todayKey;
 
                         const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
                         const isHoliday = isRussianFixedHoliday(dt);
@@ -1984,11 +2000,14 @@
                             : null;
 
                         if (cell && typeof cell === 'object') {
-                            const extraClass = cell.extraClass ? ` ${cell.extraClass}` : '';
+                            const extraParts = [];
+                            if (cell.extraClass) extraParts.push(cell.extraClass);
+                            if (isToday) extraParts.push('today-cell');
+                            const extraClass = extraParts.length ? ` ${extraParts.join(' ')}` : '';
                             html += `<div class="${baseDayClass}${extraClass}">${cell.html || ''}</div>`;
                         } else {
-                            if (key === todayKey) {
-                                html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                            if (isToday) {
+                                html += `<div class="${baseDayClass} today-cell"><div class="dot today">${day}</div></div>`;
                             } else {
                                 html += `<div class="${baseDayClass}">${day}</div>`;
                             }
@@ -2304,6 +2323,7 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dt = new Date(year, month, day, 0, 0, 0, 0);
                 const key = formatLocalDateKey(dt);
+                const isToday = key === todayKey;
 
                 const isWeekend = dt.getDay() === 0 || dt.getDay() === 6;
                 const isHoliday = isRussianFixedHoliday(dt);
@@ -2314,11 +2334,14 @@
                     : null;
 
                 if (cell && typeof cell === 'object') {
-                    const extraClass = cell.extraClass ? ` ${cell.extraClass}` : '';
+                    const extraParts = [];
+                    if (cell.extraClass) extraParts.push(cell.extraClass);
+                    if (isToday) extraParts.push('today-cell');
+                    const extraClass = extraParts.length ? ` ${extraParts.join(' ')}` : '';
                     html += `<div class="${baseDayClass}${extraClass}">${cell.html || ''}</div>`;
                 } else {
-                    if (key === todayKey) {
-                        html += `<div class="${baseDayClass}"><div class="dot today">${day}</div></div>`;
+                    if (isToday) {
+                        html += `<div class="${baseDayClass} today-cell"><div class="dot today">${day}</div></div>`;
                     } else {
                         html += `<div class="${baseDayClass}">${day}</div>`;
                     }
