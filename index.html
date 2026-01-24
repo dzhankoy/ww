@@ -2244,6 +2244,10 @@
                     height: monthEl.style.height,
                     transform: monthEl.style.transform,
                     opacity: monthEl.style.opacity,
+                    display: monthEl.style.display,
+                    visibility: monthEl.style.visibility,
+                    background: monthEl.style.background,
+                    backgroundColor: monthEl.style.backgroundColor,
                     zIndex: monthEl.style.zIndex,
                     borderRadius: monthEl.style.borderRadius,
                     pointerEvents: monthEl.style.pointerEvents
@@ -2263,7 +2267,7 @@
             });
             monthOverlayListEl.innerHTML = '';
 
-            monthOverlayCardEl.style.visibility = 'hidden';
+            monthOverlayCardEl.style.visibility = 'visible';
             monthOverlayCardEl.style.opacity = '0';
             monthOverlayBackdropEl.style.opacity = '0';
             monthOverlayEl.classList.add('visible');
@@ -2317,33 +2321,28 @@
             const s = targetScale;
             monthOverlayOpenState.anim = { dx, dy, s };
 
-            await safeAnimate(
-                monthEl,
-                [
-                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px' },
-                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px' }
-                ],
-                { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
-            ).finished;
+            const zoomDuration = 420;
+            const zoomEasing = 'cubic-bezier(0.22, 0.61, 0.36, 1)';
 
-            monthOverlayCardEl.style.visibility = 'visible';
-            monthOverlayCardEl.style.opacity = '0';
-
-            const fadeDuration = 160;
-            const fadeOut = safeAnimate(
-                monthEl,
-                [{ opacity: 1 }, { opacity: 0 }],
-                { duration: fadeDuration, easing: 'ease-out', fill: 'forwards' }
-            );
-            const fadeIn = safeAnimate(
+            const fadeInCard = safeAnimate(
                 monthOverlayCardEl,
                 [{ opacity: 0 }, { opacity: 1 }],
-                { duration: fadeDuration, easing: 'ease-out', fill: 'forwards' }
+                { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
             );
 
-            await Promise.all([fadeOut.finished, fadeIn.finished]);
+            const zoomAndFadeMonth = safeAnimate(
+                monthEl,
+                [
+                    { transform: 'translate(0px, 0px) scale(1, 1)', borderRadius: '18px', opacity: 1 },
+                    { transform: `translate(${dx}px, ${dy}px) scale(${s}, ${s})`, borderRadius: '0px', opacity: 0 }
+                ],
+                { duration: zoomDuration, easing: zoomEasing, fill: 'forwards' }
+            );
+
+            await Promise.all([fadeInCard.finished, zoomAndFadeMonth.finished]);
 
             monthEl.style.opacity = '0';
+            monthEl.style.visibility = 'hidden';
 
             showTelegramBackButton(closeMonthOverlayInternal);
         }
@@ -2441,9 +2440,19 @@
                 monthEl.style.height = rs.height || '';
                 monthEl.style.transform = rs.transform || '';
                 monthEl.style.opacity = rs.opacity || '';
+                monthEl.style.display = rs.display || '';
+                monthEl.style.visibility = rs.visibility || '';
+                monthEl.style.background = rs.background || '';
+                monthEl.style.backgroundColor = rs.backgroundColor || '';
                 monthEl.style.zIndex = rs.zIndex || '';
                 monthEl.style.borderRadius = rs.borderRadius || '';
                 monthEl.style.pointerEvents = rs.pointerEvents || '';
+            } catch (e) {
+            }
+
+            try {
+                if (!monthEl.style.opacity) monthEl.style.opacity = '';
+                if (!monthEl.style.visibility) monthEl.style.visibility = '';
             } catch (e) {
             }
 
