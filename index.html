@@ -880,11 +880,16 @@
         .month-overlay-calendar .registration-day.selected-day::before {
             content: '';
             position: absolute;
-            width: 38px;
-            height: 38px;
+            inset: 0;
             border-radius: 999px;
             background: transparent;
             border: 2px solid rgba(10, 132, 255, 0.55);
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        .month-overlay-calendar .registration-day.selected-day.selected-day-has-dot::before {
+            opacity: 0;
         }
 
         .month-overlay-calendar .registration-day.selected-day > * {
@@ -2258,8 +2263,24 @@
                 try {
                     if (!monthOverlayOpenState) return;
                     const target = e?.target;
+
+                    const titleEl = target && target.closest ? target.closest('.month-overlay-title') : null;
+                    if (titleEl) {
+                        setMonthOverlaySelectedDay(null);
+                        return;
+                    }
+
+                    const anyDayCell = target && target.closest ? target.closest('.registration-day') : null;
+                    if (anyDayCell && !anyDayCell.hasAttribute('data-day-key')) {
+                        setMonthOverlaySelectedDay(null);
+                        return;
+                    }
+
                     const cell = target && target.closest ? target.closest('.registration-day[data-day-key]') : null;
-                    if (!cell) return;
+                    if (!cell) {
+                        setMonthOverlaySelectedDay(null);
+                        return;
+                    }
                     const key = cell.getAttribute('data-day-key') || '';
                     if (!key) return;
                     setMonthOverlaySelectedDay(key);
@@ -2275,7 +2296,10 @@
                     if (!monthOverlayOpenState) return;
                     const target = e?.target;
                     const row = target && target.closest ? target.closest('.month-overlay-item[data-item-index]') : null;
-                    if (!row) return;
+                    if (!row) {
+                        setMonthOverlaySelectedDay(null);
+                        return;
+                    }
                     const idx = Number(row.getAttribute('data-item-index'));
                     if (!Number.isFinite(idx)) return;
                     const items = monthOverlayOpenState.items;
@@ -2667,10 +2691,18 @@
 
             try {
                 const prev = monthOverlayCalendarEl.querySelector('.registration-day.selected-day');
-                if (prev) prev.classList.remove('selected-day');
+                if (prev) {
+                    prev.classList.remove('selected-day');
+                    prev.classList.remove('selected-day-has-dot');
+                    prev.classList.remove('selected-day-no-dot');
+                }
                 if (nextKey) {
                     const next = monthOverlayCalendarEl.querySelector(`.registration-day[data-day-key="${CSS.escape(nextKey)}"]`);
-                    if (next) next.classList.add('selected-day');
+                    if (next) {
+                        next.classList.add('selected-day');
+                        const hasDot = !!(next.querySelector && next.querySelector('.dot'));
+                        next.classList.add(hasDot ? 'selected-day-has-dot' : 'selected-day-no-dot');
+                    }
                 }
             } catch (e) {
             }
