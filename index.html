@@ -859,6 +859,7 @@
             align-items: center;
             justify-content: center;
             font-size: 22px;
+            position: relative;
         }
 
         .month-overlay-calendar .registration-day[data-day-key] {
@@ -871,7 +872,27 @@
         }
 
         .month-overlay-calendar .registration-day.selected-day {
-            background: var(--border-color);
+            background: transparent;
+            font-weight: 800;
+            color: var(--blue);
+        }
+
+        .month-overlay-calendar .registration-day.selected-day::before {
+            content: '';
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 999px;
+            background: rgba(10, 132, 255, 0.14);
+        }
+
+        .month-overlay-calendar .registration-day.selected-day > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .month-overlay-calendar .registration-day.selected-day .dot {
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
         }
 
         .month-overlay-list {
@@ -903,6 +924,11 @@
             border: none;
             margin-bottom: 0;
             position: relative;
+            width: 100%;
+            text-align: left;
+            appearance: none;
+            -webkit-appearance: none;
+            font: inherit;
         }
 
         .month-overlay-item + .month-overlay-item::before {
@@ -933,6 +959,29 @@
             background: var(--border-color);
             color: var(--text-color);
             position: relative;
+        }
+
+        .month-overlay-item-icon.playing {
+            background-color: var(--green);
+            color: #fff;
+        }
+
+        .month-overlay-item-icon.dealer {
+            background-color: var(--blue);
+            color: #fff;
+        }
+
+        .month-overlay-item-icon.finished {
+            background-color: var(--border-color);
+            color: var(--secondary-text);
+        }
+
+        .month-overlay-item-icon img {
+            width: 100%;
+            height: 100%;
+            border-radius: 999px;
+            object-fit: cover;
+            display: block;
         }
 
         .month-overlay-item-icon::after {
@@ -1158,6 +1207,21 @@
         .registration-day .dot.tournament-scheduled {
             background-color: var(--blue);
             color: #fff;
+        }
+
+        .registration-day .dot.playing {
+            background-color: var(--green);
+            color: #fff;
+        }
+
+        .registration-day .dot.dealer {
+            background-color: var(--blue);
+            color: #fff;
+        }
+
+        .registration-day .dot.finished {
+            background-color: var(--border-color);
+            color: var(--secondary-text);
         }
         
         .position-indicator.medal {
@@ -2205,6 +2269,38 @@
             monthOverlayListEl = document.createElement('div');
             monthOverlayListEl.className = 'month-overlay-list';
 
+            monthOverlayListEl.addEventListener('click', async (e) => {
+                try {
+                    if (!monthOverlayOpenState) return;
+                    const target = e?.target;
+                    const row = target && target.closest ? target.closest('.month-overlay-item[data-item-index]') : null;
+                    if (!row) return;
+                    const idx = Number(row.getAttribute('data-item-index'));
+                    if (!Number.isFinite(idx)) return;
+                    const items = monthOverlayOpenState.items;
+                    const item = Array.isArray(items) ? items[idx] : null;
+                    if (!item) return;
+
+                    const calendarType = monthOverlayOpenState.calendarType;
+                    await closeMonthOverlayInternal();
+
+                    if (item.type === 'player' && item.player) {
+                        if (calendarType === 'birthdays') {
+                            showDbPlayerCardInternal(item.player, backToBirthdaysCalendarFromAction);
+                        } else {
+                            showDbPlayerCardInternal(item.player, backToRegistrationCalendarFromAction);
+                        }
+                        return;
+                    }
+
+                    if (item.type === 'tournament' && item.tournament) {
+                        showTournamentInfo(item.tournament);
+                        return;
+                    }
+                } catch (err) {
+                }
+            });
+
             contentEl.appendChild(monthOverlayCalendarEl);
             contentEl.appendChild(monthOverlayListEl);
             monthOverlayCardEl.appendChild(contentEl);
@@ -2226,11 +2322,22 @@
         function getMonthOverlayConfig(calendarType, now) {
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
+            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const getPlayerPhotoUrl = (playerId) => `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${cacheBuster}`;
+
+            const getPlayerDisplayName = (p) => {
+                const first = String(p?.firstName || '').trim();
+                const last = String(p?.lastName || '').trim();
+                const full = `${first} ${last}`.trim();
+                return full || String(p?.name || p?.fullName || '').trim();
+            };
+
             if (calendarType === 'registrations') {
                 const dbPlayers = getTournament().players || [];
                 const registrationsByDay = new Map();
                 const registrationPlayersByDay = new Map();
                 const registrationsByMonth = new Map();
+                const registrationPlayersByMonth = new Map();
 
                 for (const p of dbPlayers) {
                     const d = parseRegistrationDateFromPlayer(p);
@@ -2244,6 +2351,9 @@
                     const y = d.getFullYear();
                     const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                     registrationsByMonth.set(ym, (registrationsByMonth.get(ym) || 0) + 1);
+
+                    if (!registrationPlayersByMonth.has(ym)) registrationPlayersByMonth.set(ym, []);
+                    registrationPlayersByMonth.get(ym).push(p);
                 }
 
                 return {
@@ -2267,11 +2377,39 @@
                         const players = registrationPlayersByDay.get(key) || [];
                         return players.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
-                            const subtitle = String(p?.name || p?.fullName || '').trim();
+                            const fullName = getPlayerDisplayName(p) || '—';
+                            const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
                             return {
-                                icon: '✅',
+                                type: 'player',
+                                player: p,
+                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: subtitle && subtitle !== nickname ? subtitle : 'Регистрация'
+                                subtitle: `${fullName} • ${regDate}`
+                            };
+                        });
+                    },
+                    getMonthItems: ({ year, month }) => {
+                        const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
+                        const players = registrationPlayersByMonth.get(ym) || [];
+                        const sorted = [...players].sort((a, b) => {
+                            const da = parseRegistrationDateFromPlayer(a);
+                            const db = parseRegistrationDateFromPlayer(b);
+                            if (!da && !db) return 0;
+                            if (!da) return 1;
+                            if (!db) return -1;
+                            return da - db;
+                        });
+
+                        return sorted.map(p => {
+                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const fullName = getPlayerDisplayName(p) || '—';
+                            const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
+                            return {
+                                type: 'player',
+                                player: p,
+                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                title: nickname,
+                                subtitle: `${fullName} • ${regDate}`
                             };
                         });
                     }
@@ -2282,6 +2420,7 @@
                 const dbPlayers = getTournament().players || [];
                 const byMonthDay = new Map();
                 const byMonth = new Map();
+                const playersByMonth = new Map();
 
                 for (const p of dbPlayers) {
                     const md = parseBirthdayMonthDay(p?.birthday);
@@ -2292,9 +2431,10 @@
                     if (!byMonthDay.has(mdKey)) byMonthDay.set(mdKey, []);
                     byMonthDay.get(mdKey).push(p);
                     byMonth.set(mm, (byMonth.get(mm) || 0) + 1);
-                }
 
-                const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    if (!playersByMonth.has(mm)) playersByMonth.set(mm, []);
+                    playersByMonth.get(mm).push(p);
+                }
 
                 return {
                     monthNames,
@@ -2331,11 +2471,38 @@
                         const players = byMonthDay.get(mdKey) || [];
                         return players.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
-                            const subtitle = String(p?.name || p?.fullName || '').trim();
+                            const fullName = getPlayerDisplayName(p) || '—';
+                            const birthday = String(p?.birthday || '').trim() || `${dd}.${mm}`;
                             return {
-                                icon: '🎂',
+                                type: 'player',
+                                player: p,
+                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: subtitle && subtitle !== nickname ? subtitle : 'День рождения'
+                                subtitle: `${fullName} • ${birthday}`
+                            };
+                        });
+                    },
+                    getMonthItems: ({ month }) => {
+                        const mm = String(month + 1).padStart(2, '0');
+                        const players = playersByMonth.get(mm) || [];
+                        const sorted = [...players].sort((a, b) => {
+                            const ma = parseBirthdayMonthDay(a?.birthday);
+                            const mb = parseBirthdayMonthDay(b?.birthday);
+                            const da = ma ? ma.day : 0;
+                            const db = mb ? mb.day : 0;
+                            return da - db;
+                        });
+
+                        return sorted.map(p => {
+                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const fullName = getPlayerDisplayName(p) || '—';
+                            const birthday = String(p?.birthday || '').trim() || `??.${mm}`;
+                            return {
+                                type: 'player',
+                                player: p,
+                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                title: nickname,
+                                subtitle: `${fullName} • ${birthday}`
                             };
                         });
                     }
@@ -2347,6 +2514,7 @@
                 const byDay = new Map();
                 const tournamentsByDay = new Map();
                 const byMonth = new Map();
+                const tournamentsByMonth = new Map();
 
                 for (const t of tournaments) {
                     const d = parseTournamentDate(t?.date);
@@ -2366,7 +2534,30 @@
                     const y = d.getFullYear();
                     const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                     byMonth.set(ym, (byMonth.get(ym) || 0) + 1);
+
+                    if (!tournamentsByMonth.has(ym)) tournamentsByMonth.set(ym, []);
+                    tournamentsByMonth.get(ym).push(t);
                 }
+
+                const tournamentStatusMeta = (tournament) => {
+                    let statusClass = 'finished';
+                    let statusText = 'Завершён';
+                    if (tournament?.status === 'active') {
+                        statusClass = 'playing';
+                        statusText = 'Активен';
+                    } else if (tournament?.status === 'scheduled') {
+                        statusClass = 'dealer';
+                        statusText = 'Запланирован';
+                    }
+
+                    const infoLine = tournament?.status === 'active'
+                        ? `Игроков: ${tournament?.playersCount}, столов: ${tournament?.tablesCount}`
+                        : tournament?.status === 'scheduled'
+                            ? `Зарегистрировано: ${tournament?.playersCount}`
+                            : `Игроков было: ${tournament?.playersCount}`;
+
+                    return { statusClass, statusText, infoLine };
+                };
 
                 return {
                     monthNames,
@@ -2378,9 +2569,9 @@
                     getDayCell: ({ key, dayNumber, todayKey }) => {
                         const info = byDay.get(key);
                         if (info) {
-                            let dotClass = 'tournament-finished';
-                            if (info.status === 'active') dotClass = 'tournament-active';
-                            else if (info.status === 'scheduled') dotClass = 'tournament-scheduled';
+                            let dotClass = 'finished';
+                            if (info.status === 'active') dotClass = 'playing';
+                            else if (info.status === 'scheduled') dotClass = 'dealer';
                             return { html: `<div class="dot ${dotClass}">${info.playersCount}</div>` };
                         }
                         if (key === todayKey) {
@@ -2391,12 +2582,40 @@
                     getDayItems: ({ key }) => {
                         const arr = tournamentsByDay.get(key) || [];
                         return arr.map(t => {
-                            const title = String(t?.name || t?.title || 'Турнир').trim();
-                            const status = String(t?.status || '').toLowerCase() || 'finished';
-                            const playersCount = Number(t?.playersCount) || 0;
-                            const subtitle = `Игроков: ${playersCount} • Статус: ${status}`;
+                            const title = `${String(t?.date || '').trim()} • ${String(t?.title || t?.name || 'Турнир').trim()}`;
+                            const meta = tournamentStatusMeta(t);
+                            const subtitle = `${meta.statusText} • ${meta.infoLine}`;
                             return {
+                                type: 'tournament',
+                                tournament: t,
                                 icon: '🏆',
+                                iconClass: meta.statusClass,
+                                title,
+                                subtitle
+                            };
+                        });
+                    },
+                    getMonthItems: ({ year, month }) => {
+                        const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+                        const arr = tournamentsByMonth.get(ymKey) || [];
+                        const sorted = [...arr].sort((a, b) => {
+                            const da = parseTournamentDate(a?.date);
+                            const db = parseTournamentDate(b?.date);
+                            if (!da && !db) return 0;
+                            if (!da) return 1;
+                            if (!db) return -1;
+                            return db - da;
+                        });
+
+                        return sorted.map(t => {
+                            const title = `${String(t?.date || '').trim()} • ${String(t?.title || t?.name || 'Турнир').trim()}`;
+                            const meta = tournamentStatusMeta(t);
+                            const subtitle = `${meta.statusText} • ${meta.infoLine}`;
+                            return {
+                                type: 'tournament',
+                                tournament: t,
+                                icon: '🏆',
+                                iconClass: meta.statusClass,
                                 title,
                                 subtitle
                             };
@@ -2419,18 +2638,20 @@
             }
 
             let rows = '';
-            for (const it of items) {
-                const icon = it?.icon != null ? String(it.icon) : '';
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const icon = it?.iconHtml != null ? String(it.iconHtml) : (it?.icon != null ? String(it.icon) : '');
+                const iconClass = it?.iconClass != null ? String(it.iconClass) : '';
                 const title = it?.title != null ? String(it.title) : '';
                 const subtitle = it?.subtitle != null ? String(it.subtitle) : '';
                 rows += `
-                    <div class="month-overlay-item">
-                        <div class="month-overlay-item-icon">${icon}</div>
+                    <button type="button" class="month-overlay-item" data-item-index="${i}">
+                        <div class="month-overlay-item-icon ${iconClass}">${icon}</div>
                         <div class="month-overlay-item-body">
                             <div class="month-overlay-item-title">${escapeHtml(title)}</div>
                             <div class="month-overlay-item-subtitle">${escapeHtml(subtitle)}</div>
                         </div>
-                    </div>
+                    </button>
                 `;
             }
             return `<div class="month-overlay-list-group">${rows}</div>`;
@@ -2438,28 +2659,55 @@
 
         function setMonthOverlaySelectedDay(dayKey) {
             if (!monthOverlayOpenState || !monthOverlayCalendarEl || !monthOverlayListEl) return;
-            if (!dayKey) return;
-            monthOverlayOpenState.selectedDayKey = dayKey;
+            const nextKey = dayKey ? String(dayKey) : '';
+            monthOverlayOpenState.selectedDayKey = nextKey || null;
 
             try {
                 const prev = monthOverlayCalendarEl.querySelector('.registration-day.selected-day');
                 if (prev) prev.classList.remove('selected-day');
-                const next = monthOverlayCalendarEl.querySelector(`.registration-day[data-day-key="${CSS.escape(dayKey)}"]`);
-                if (next) next.classList.add('selected-day');
+                if (nextKey) {
+                    const next = monthOverlayCalendarEl.querySelector(`.registration-day[data-day-key="${CSS.escape(nextKey)}"]`);
+                    if (next) next.classList.add('selected-day');
+                }
             } catch (e) {
             }
 
             const cfg = monthOverlayOpenState.cfg;
-            const dt = parseLocalDateKey(dayKey);
-            const items = cfg && typeof cfg.getDayItems === 'function'
-                ? (cfg.getDayItems({ key: dayKey, dt }) || [])
-                : [];
+            const year = monthOverlayOpenState.year;
+            const month = monthOverlayOpenState.month;
+            const dt = nextKey ? parseLocalDateKey(nextKey) : null;
+
+            const items = nextKey
+                ? (cfg && typeof cfg.getDayItems === 'function' ? (cfg.getDayItems({ key: nextKey, dt }) || []) : [])
+                : (cfg && typeof cfg.getMonthItems === 'function' ? (cfg.getMonthItems({ year, month }) || []) : []);
+
+            monthOverlayOpenState.items = items;
 
             monthOverlayListEl.innerHTML = renderMonthOverlayListItems(items);
             try {
                 monthOverlayListEl.scrollTop = 0;
             } catch (e) {
             }
+        }
+
+        function backToRegistrationCalendarFromAction() {
+            saveScrollPositionForScreen(actionScreen);
+            actionScreen.classList.add('hidden');
+            cameFromBirthdays = false;
+            cameFromDbPlayers = false;
+            selectedBox = null;
+            currentDbPlayer = null;
+            showRegistrationCalendarScreen();
+        }
+
+        function backToBirthdaysCalendarFromAction() {
+            saveScrollPositionForScreen(actionScreen);
+            actionScreen.classList.add('hidden');
+            cameFromBirthdays = false;
+            cameFromDbPlayers = false;
+            selectedBox = null;
+            currentDbPlayer = null;
+            showBirthdaysCalendarScreen();
         }
 
         function parseLocalDateKey(key) {
@@ -2573,6 +2821,8 @@
                 year,
                 month,
                 calendarType,
+                items: [],
+                selectedDayKey: null,
                 placeholderEl,
                 sourceParent,
                 sourceNextSibling,
@@ -2630,10 +2880,7 @@
                 }
             });
 
-            const todayKey = formatLocalDateKey(overlayNow);
-            const inSameMonth = overlayNow.getFullYear() === year && overlayNow.getMonth() === month;
-            const defaultKey = inSameMonth ? todayKey : `${year}-${String(month + 1).padStart(2, '0')}-01`;
-            setMonthOverlaySelectedDay(defaultKey);
+            setMonthOverlaySelectedDay(null);
 
             try {
                 monthOverlayListEl.scrollTop = 0;
