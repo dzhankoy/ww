@@ -888,13 +888,8 @@
             inset: 0;
             border-radius: 999px;
             background: transparent;
-            border: 2px solid rgba(10, 132, 255, 0.55);
-            box-sizing: border-box;
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
             pointer-events: none;
-        }
-
-        .month-overlay-calendar .registration-day.selected-day.selected-day-has-dot::before {
-            opacity: 0;
         }
 
         .month-overlay-calendar .registration-day.selected-day > * {
@@ -902,9 +897,7 @@
             z-index: 1;
         }
 
-        .month-overlay-calendar .registration-day.selected-day .dot {
-            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
-        }
+        
 
         .month-overlay-list {
             flex: 1;
@@ -2697,15 +2690,11 @@
                 const prev = monthOverlayCalendarEl.querySelector('.registration-day.selected-day');
                 if (prev) {
                     prev.classList.remove('selected-day');
-                    prev.classList.remove('selected-day-has-dot');
-                    prev.classList.remove('selected-day-no-dot');
                 }
                 if (nextKey) {
                     const next = monthOverlayCalendarEl.querySelector(`.registration-day[data-day-key="${CSS.escape(nextKey)}"]`);
                     if (next) {
                         next.classList.add('selected-day');
-                        const hasDot = !!(next.querySelector && next.querySelector('.dot'));
-                        next.classList.add(hasDot ? 'selected-day-has-dot' : 'selected-day-no-dot');
                     }
                 }
             } catch (e) {
