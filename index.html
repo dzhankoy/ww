@@ -2760,6 +2760,14 @@
             cameFromDbPlayers = false;
             selectedBox = null;
             currentDbPlayer = null;
+            try {
+                const underlying = monthOverlayOpenState?.underlyingScreenEl;
+                if (underlying && underlying.classList && underlying.classList.contains('hidden')) {
+                    underlying.classList.remove('hidden');
+                    restoreScrollPositionForScreen(underlying);
+                }
+            } catch (e) {
+            }
             resumeMonthOverlayInternal();
             showTelegramBackButton(closeMonthOverlayInternal);
         }
@@ -2877,6 +2885,7 @@
                 calendarType,
                 items: [],
                 selectedDayKey: null,
+                underlyingScreenEl: monthEl.closest ? monthEl.closest('.screen') : null,
                 placeholderEl,
                 sourceParent,
                 sourceNextSibling,
