@@ -1398,8 +1398,20 @@
             justify-content: center;
             align-items: center;
             flex: 1;
+            flex-direction: column;
+            gap: var(--spacing-lg);
             font-size: 17px;
             color: var(--secondary-text);
+        }
+
+        .loading-logo {
+            width: 60vw;
+            height: auto;
+            display: block;
+        }
+
+        .loading-text {
+            text-align: center;
         }
         
         .error-message {
@@ -1541,7 +1553,10 @@
 <body>
     <!-- Экран загрузки -->
     <div id="loadingScreen" class="screen">
-        <div class="loading">Загрузка данных...</div>
+        <div class="loading">
+            <img src="/logo.png" alt="Club logo" class="loading-logo" onerror="this.onerror=null;this.src='logo.png';">
+            <div class="loading-text">Загрузка данных...</div>
+        </div>
     </div>
 
     <div id="registrationCalendarScreen" class="screen hidden">
