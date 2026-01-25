@@ -861,6 +861,19 @@
             font-size: 22px;
         }
 
+        .month-overlay-calendar .registration-day[data-day-key] {
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .month-overlay-calendar .registration-day[data-day-key]:active {
+            background: var(--border-color);
+        }
+
+        .month-overlay-calendar .registration-day.selected-day {
+            background: var(--border-color);
+        }
+
         .month-overlay-list {
             flex: 1;
             overflow-y: auto;
@@ -880,7 +893,7 @@
         .month-overlay-item {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
+            gap: var(--spacing-lg);
             padding: 0 var(--spacing-md) 0 var(--spacing-lg);
             min-height: var(--player-height);
             font-size: 17px;
@@ -983,6 +996,12 @@
         .month-overlay-item-meta {
             font-size: 12px;
             color: var(--secondary-text);
+        }
+
+        .month-overlay-empty {
+            padding: var(--spacing-lg);
+            color: var(--secondary-text);
+            font-size: 15px;
         }
 
         .month-overlay-anim-clone {
@@ -2170,6 +2189,19 @@
             monthOverlayCalendarEl = document.createElement('div');
             monthOverlayCalendarEl.className = 'month-overlay-calendar';
 
+            monthOverlayCalendarEl.addEventListener('click', (e) => {
+                try {
+                    if (!monthOverlayOpenState) return;
+                    const target = e?.target;
+                    const cell = target && target.closest ? target.closest('.registration-day[data-day-key]') : null;
+                    if (!cell) return;
+                    const key = cell.getAttribute('data-day-key') || '';
+                    if (!key) return;
+                    setMonthOverlaySelectedDay(key);
+                } catch (err) {
+                }
+            });
+
             monthOverlayListEl = document.createElement('div');
             monthOverlayListEl.className = 'month-overlay-list';
 
@@ -2197,6 +2229,7 @@
             if (calendarType === 'registrations') {
                 const dbPlayers = getTournament().players || [];
                 const registrationsByDay = new Map();
+                const registrationPlayersByDay = new Map();
                 const registrationsByMonth = new Map();
 
                 for (const p of dbPlayers) {
@@ -2205,6 +2238,8 @@
 
                     const key = formatLocalDateKey(d);
                     registrationsByDay.set(key, (registrationsByDay.get(key) || 0) + 1);
+                    if (!registrationPlayersByDay.has(key)) registrationPlayersByDay.set(key, []);
+                    registrationPlayersByDay.get(key).push(p);
 
                     const y = d.getFullYear();
                     const ym = `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -2227,6 +2262,18 @@
                             return { html: `<div class="dot today">${dayNumber}</div>` };
                         }
                         return null;
+                    },
+                    getDayItems: ({ key }) => {
+                        const players = registrationPlayersByDay.get(key) || [];
+                        return players.map(p => {
+                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const subtitle = String(p?.name || p?.fullName || '').trim();
+                            return {
+                                icon: '✅',
+                                title: nickname,
+                                subtitle: subtitle && subtitle !== nickname ? subtitle : 'Регистрация'
+                            };
+                        });
                     }
                 };
             }
@@ -2242,9 +2289,8 @@
                     const mm = String(md.month).padStart(2, '0');
                     const dd = String(md.day).padStart(2, '0');
                     const mdKey = `${mm}-${dd}`;
-                    if (!byMonthDay.has(mdKey)) {
-                        byMonthDay.set(mdKey, p);
-                    }
+                    if (!byMonthDay.has(mdKey)) byMonthDay.set(mdKey, []);
+                    byMonthDay.get(mdKey).push(p);
                     byMonth.set(mm, (byMonth.get(mm) || 0) + 1);
                 }
 
@@ -2261,7 +2307,8 @@
                         const mm = String(dt.getMonth() + 1).padStart(2, '0');
                         const dd = String(dayNumber).padStart(2, '0');
                         const mdKey = `${mm}-${dd}`;
-                        const p = byMonthDay.get(mdKey);
+                        const arr = byMonthDay.get(mdKey) || [];
+                        const p = arr.length ? arr[0] : null;
                         if (p && p.id != null) {
                             const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
                             return {
@@ -2275,6 +2322,22 @@
                         }
 
                         return null;
+                    },
+                    getDayItems: ({ dt }) => {
+                        if (!dt) return [];
+                        const mm = String(dt.getMonth() + 1).padStart(2, '0');
+                        const dd = String(dt.getDate()).padStart(2, '0');
+                        const mdKey = `${mm}-${dd}`;
+                        const players = byMonthDay.get(mdKey) || [];
+                        return players.map(p => {
+                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const subtitle = String(p?.name || p?.fullName || '').trim();
+                            return {
+                                icon: '🎂',
+                                title: nickname,
+                                subtitle: subtitle && subtitle !== nickname ? subtitle : 'День рождения'
+                            };
+                        });
                     }
                 };
             }
@@ -2282,12 +2345,16 @@
             if (calendarType === 'tournaments') {
                 const tournaments = getTournamentsList();
                 const byDay = new Map();
+                const tournamentsByDay = new Map();
                 const byMonth = new Map();
 
                 for (const t of tournaments) {
                     const d = parseTournamentDate(t?.date);
                     if (!d) continue;
                     const key = formatLocalDateKey(d);
+
+                    if (!tournamentsByDay.has(key)) tournamentsByDay.set(key, []);
+                    tournamentsByDay.get(key).push(t);
 
                     if (!byDay.has(key)) {
                         byDay.set(key, {
@@ -2320,6 +2387,20 @@
                             return { html: `<div class="dot today">${dayNumber}</div>` };
                         }
                         return null;
+                    },
+                    getDayItems: ({ key }) => {
+                        const arr = tournamentsByDay.get(key) || [];
+                        return arr.map(t => {
+                            const title = String(t?.name || t?.title || 'Турнир').trim();
+                            const status = String(t?.status || '').toLowerCase() || 'finished';
+                            const playersCount = Number(t?.playersCount) || 0;
+                            const subtitle = `Игроков: ${playersCount} • Статус: ${status}`;
+                            return {
+                                icon: '🏆',
+                                title,
+                                subtitle
+                            };
+                        });
                     }
                 };
             }
@@ -2327,8 +2408,77 @@
             return {
                 monthNames,
                 getMonthBadge: () => '',
-                getDayCell: () => null
+                getDayCell: () => null,
+                getDayItems: () => []
             };
+        }
+
+        function renderMonthOverlayListItems(items) {
+            if (!Array.isArray(items) || !items.length) {
+                return `<div class="month-overlay-empty">Нет событий</div>`;
+            }
+
+            let rows = '';
+            for (const it of items) {
+                const icon = it?.icon != null ? String(it.icon) : '';
+                const title = it?.title != null ? String(it.title) : '';
+                const subtitle = it?.subtitle != null ? String(it.subtitle) : '';
+                rows += `
+                    <div class="month-overlay-item">
+                        <div class="month-overlay-item-icon">${icon}</div>
+                        <div class="month-overlay-item-body">
+                            <div class="month-overlay-item-title">${escapeHtml(title)}</div>
+                            <div class="month-overlay-item-subtitle">${escapeHtml(subtitle)}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            return `<div class="month-overlay-list-group">${rows}</div>`;
+        }
+
+        function setMonthOverlaySelectedDay(dayKey) {
+            if (!monthOverlayOpenState || !monthOverlayCalendarEl || !monthOverlayListEl) return;
+            if (!dayKey) return;
+            monthOverlayOpenState.selectedDayKey = dayKey;
+
+            try {
+                const prev = monthOverlayCalendarEl.querySelector('.registration-day.selected-day');
+                if (prev) prev.classList.remove('selected-day');
+                const next = monthOverlayCalendarEl.querySelector(`.registration-day[data-day-key="${CSS.escape(dayKey)}"]`);
+                if (next) next.classList.add('selected-day');
+            } catch (e) {
+            }
+
+            const cfg = monthOverlayOpenState.cfg;
+            const dt = parseLocalDateKey(dayKey);
+            const items = cfg && typeof cfg.getDayItems === 'function'
+                ? (cfg.getDayItems({ key: dayKey, dt }) || [])
+                : [];
+
+            monthOverlayListEl.innerHTML = renderMonthOverlayListItems(items);
+            try {
+                monthOverlayListEl.scrollTop = 0;
+            } catch (e) {
+            }
+        }
+
+        function parseLocalDateKey(key) {
+            const m = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(String(key || ''));
+            if (!m) return null;
+            const y = Number(m[1]);
+            const mo = Number(m[2]) - 1;
+            const d = Number(m[3]);
+            if (!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+            return new Date(y, mo, d, 0, 0, 0, 0);
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
 
         function buildSingleMonthCalendarHTML({
@@ -2372,12 +2522,12 @@
                     if (cell.extraClass) extraParts.push(cell.extraClass);
                     if (isToday) extraParts.push('today-cell');
                     const extraClass = extraParts.length ? ` ${extraParts.join(' ')}` : '';
-                    html += `<div class="${baseDayClass}${extraClass}">${cell.html || ''}</div>`;
+                    html += `<div class="${baseDayClass}${extraClass}" data-day-key="${key}">${cell.html || ''}</div>`;
                 } else {
                     if (isToday) {
-                        html += `<div class="${baseDayClass} today-cell"><div class="dot today">${day}</div></div>`;
+                        html += `<div class="${baseDayClass} today-cell" data-day-key="${key}"><div class="dot today">${day}</div></div>`;
                     } else {
-                        html += `<div class="${baseDayClass}">${day}</div>`;
+                        html += `<div class="${baseDayClass}" data-day-key="${key}">${day}</div>`;
                     }
                 }
             }
@@ -2448,6 +2598,7 @@
 
             const overlayNow = new Date();
             const cfg = getMonthOverlayConfig(calendarType, overlayNow);
+            monthOverlayOpenState.cfg = cfg;
 
             monthOverlayCalendarEl.innerHTML = buildSingleMonthCalendarHTML({
                 year,
@@ -2457,7 +2608,7 @@
                 getMonthBadge: cfg.getMonthBadge,
                 getDayCell: cfg.getDayCell
             });
-            monthOverlayListEl.innerHTML = buildMonthOverlayListPreviewHTML(calendarType);
+            monthOverlayListEl.innerHTML = '';
 
             monthOverlayCardEl.style.visibility = 'visible';
             monthOverlayCardEl.style.opacity = '0';
@@ -2478,6 +2629,11 @@
                     resolve();
                 }
             });
+
+            const todayKey = formatLocalDateKey(overlayNow);
+            const inSameMonth = overlayNow.getFullYear() === year && overlayNow.getMonth() === month;
+            const defaultKey = inSameMonth ? todayKey : `${year}-${String(month + 1).padStart(2, '0')}-01`;
+            setMonthOverlaySelectedDay(defaultKey);
 
             try {
                 monthOverlayListEl.scrollTop = 0;
