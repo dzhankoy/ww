@@ -841,7 +841,12 @@
             display: inline-flex;
             align-items: center;
             gap: 0.35em;
-            text-transform: uppercase;
+            text-transform: none;
+        }
+
+        .month-overlay.suspended {
+            visibility: hidden;
+            pointer-events: none;
         }
 
         .month-overlay-title.current-month {
@@ -2307,13 +2312,12 @@
                     if (!item) return;
 
                     const calendarType = monthOverlayOpenState.calendarType;
-                    await closeMonthOverlayInternal();
-
                     if (item.type === 'player' && item.player) {
+                        suspendMonthOverlayInternal();
                         if (calendarType === 'birthdays') {
-                            showDbPlayerCardInternal(item.player, backToBirthdaysCalendarFromAction);
+                            showDbPlayerCardInternal(item.player, backToMonthOverlayFromAction);
                         } else {
-                            showDbPlayerCardInternal(item.player, backToRegistrationCalendarFromAction);
+                            showDbPlayerCardInternal(item.player, backToMonthOverlayFromAction);
                         }
                         return;
                     }
@@ -2743,6 +2747,31 @@
             selectedBox = null;
             currentDbPlayer = null;
             showBirthdaysCalendarScreen();
+        }
+
+        function suspendMonthOverlayInternal() {
+            if (!monthOverlayOpenState || !monthOverlayEl) return;
+            monthOverlayOpenState.suspended = true;
+            monthOverlayEl.classList.add('suspended');
+            document.body.style.overflow = monthOverlayPrevBodyOverflow;
+        }
+
+        function resumeMonthOverlayInternal() {
+            if (!monthOverlayOpenState || !monthOverlayEl) return;
+            monthOverlayOpenState.suspended = false;
+            monthOverlayEl.classList.remove('suspended');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function backToMonthOverlayFromAction() {
+            saveScrollPositionForScreen(actionScreen);
+            actionScreen.classList.add('hidden');
+            cameFromBirthdays = false;
+            cameFromDbPlayers = false;
+            selectedBox = null;
+            currentDbPlayer = null;
+            resumeMonthOverlayInternal();
+            showTelegramBackButton(closeMonthOverlayInternal);
         }
 
         function parseLocalDateKey(key) {
