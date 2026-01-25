@@ -361,7 +361,7 @@
             cursor: not-allowed;
         }
         
-        .player-button.finished { opacity: 0.6; }
+        .player-button.out { opacity: 0.6; }
         .player-button.gold { background-color: rgba(255, 215, 0, 0.25) !important; }
         .player-button.silver { background-color: rgba(192, 192, 192, 0.35) !important; }
         .player-button.bronze { background-color: rgba(205, 127, 50, 0.25) !important; }
@@ -492,13 +492,13 @@
             border-color: var(--blue);
         }
 
-        .position-indicator.dealer-finished {
+        .position-indicator.dealer-out {
             background-color: rgba(10, 132, 255, 0.22);
             color: var(--blue);
             border-color: var(--blue);
         }
         
-        .position-indicator.finished {
+        .position-indicator.out {
             background-color: var(--border-color);
             color: var(--secondary-text);
             border-color: var(--border-color);
@@ -978,7 +978,7 @@
             color: #fff;
         }
 
-        .month-overlay-item-icon.finished {
+        .month-overlay-item-icon.out {
             background-color: var(--border-color);
             color: var(--secondary-text);
         }
@@ -1226,7 +1226,7 @@
             color: #fff;
         }
 
-        .registration-day .dot.finished {
+        .registration-day .dot.out {
             background-color: var(--border-color);
             color: var(--secondary-text);
         }
@@ -1279,7 +1279,7 @@
             background-color: var(--gray);
         }
         
-        .player-finish-info {
+        .player-out-info {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
@@ -1322,10 +1322,97 @@
             color: #fff;
         }
         
-        .finish-time {
+        .out-time {
             font-size: 14px;
             color: var(--secondary-text);
             margin-top: 0;
+        }
+
+        .out-by-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: var(--spacing-lg);
+        }
+
+        .out-by-overlay-card {
+            width: 100%;
+            max-width: 520px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .out-by-overlay-title {
+            padding: var(--spacing-lg);
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .out-by-overlay-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .out-by-choice {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: 0 var(--spacing-md) 0 var(--spacing-lg);
+            min-height: var(--player-height);
+            border: none;
+            border-top: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-color);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .out-by-choice:active {
+            background-color: var(--border-color);
+        }
+
+        .out-by-choice-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .out-by-choice-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .out-by-choice-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .out-by-choice-nick {
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .out-by-choice-name {
+            font-size: 13px;
+            color: var(--secondary-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .chevron {
@@ -1741,9 +1828,9 @@
                 <span id="rebuyText">Сделать ребай</span>
                 <div class="action-info" id="rebuyInfo"></div>
             </button>
-            <button class="action-button destructive" id="finishButton">
+            <button class="action-button destructive" id="outButton">
                 <span>Игрок вылетел</span>
-                <div class="action-info" id="finishInfo"></div>
+                <div class="action-info" id="outInfo"></div>
             </button>
             <button class="action-button" id="messagePlayerButton" style="display:none;">
                 <span>Написать игроку</span>
@@ -1896,7 +1983,7 @@
         // Типы событий турнира
         const TOURNAMENT_EVENTS = {
             PLAYER_REBUY: 'player_rebuy',
-            PLAYER_FINISH: 'player_finish',
+            PLAYER_OUT: 'player_out',
             ADMIN_CALL: 'admin_call',
             SET_DEALER: 'set_dealer'
         };
@@ -1926,7 +2013,7 @@
         let isGameFinished = false;
         let gameStartTime = null;
         let currentTableId = null;
-        let globalFinishPlaces = new Map();
+        let globalOutPlaces = new Map();
         let globalRatingPlaces = new Map();
         let tournamentStatsCache = null;
         let viewerIsAdmin = false;
@@ -2008,7 +2095,7 @@
         const gameFinishedElement = document.getElementById('gameFinished');
         const playerPhotoImage = document.getElementById('playerPhotoImage');
         const rebuyButton = document.getElementById('rebuyButton');
-        const finishButton = document.getElementById('finishButton');
+        const outButton = document.getElementById('outButton');
         const messagePlayerButton = document.getElementById('messagePlayerButton');
         const assignDealerButton = document.getElementById('assignDealerButton');
         const playerAdminButton = document.getElementById('playerAdminButton');
@@ -2017,11 +2104,13 @@
         const tournamentTimerToggleButton = document.getElementById('tournamentTimerToggleButton');
         const playSoundButton = document.getElementById('playSoundButton');
         const rebuyInfo = document.getElementById('rebuyInfo');
-        const finishInfo = document.getElementById('finishInfo');
+        const outInfo = document.getElementById('outInfo');
         const messagePlayerInfo = document.getElementById('messagePlayerInfo');
         const errorText = document.getElementById('errorText');
         const retryButton = document.getElementById('retryButton');
         const rebuyText = document.getElementById('rebuyText');
+
+        let outByOverlayEl = null;
 
         // Хелпер для доступа к данным турнира
         function getTournament() {
@@ -3241,10 +3330,12 @@
                 });
             }
             
-            async playerFinish(playerId) {
-                return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_FINISH, {
+            async playerOut(playerId, outByChatId, outByNick) {
+                return await this.sendEvent(TOURNAMENT_EVENTS.PLAYER_OUT, {
                     playerId: playerId,
-                    tournamentDate: getTournament().date || null
+                    tournamentDate: getTournament().date || null,
+                    outByChatId,
+                    outByNick
                 });
             }
             
@@ -3458,7 +3549,7 @@
                 const fullData = await fetchTournamentData();
                 fullTournamentData = fullData;
                 
-                recalculateGlobalFinishPlaces();
+                recalculateGlobalOutPlaces();
                 recalculateGlobalRatingPlaces();
                 applySnapshotToUI();
                 updatePlayersList();
@@ -3498,14 +3589,14 @@
             }
         }
 
-        function recalculateGlobalFinishPlaces() {
-            globalFinishPlaces.clear();
+        function recalculateGlobalOutPlaces() {
+            globalOutPlaces.clear();
 
             if (!fullTournamentData || !fullTournamentData.tournament || !Array.isArray(fullTournamentData.tournament.tables)) {
                 return;
             }
 
-            const earliestFinishByPlayer = new Map(); // playerId -> earliest finish timestamp
+            const earliestOutByPlayer = new Map(); // playerId -> earliest out timestamp
             const allPlayersSet = new Set();           // множество всех игроков турнира (по id)
 
             const tables = fullTournamentData.tournament.tables || [];
@@ -3516,27 +3607,27 @@
                         allPlayersSet.add(p.id);
                     }
 
-                    if (!p.finishTime) return;
-                    const t = new Date(p.finishTime).getTime();
+                    if (!p.outTime) return;
+                    const t = new Date(p.outTime).getTime();
                     if (isNaN(t)) return;
-                    const existing = earliestFinishByPlayer.get(p.id);
+                    const existing = earliestOutByPlayer.get(p.id);
                     if (existing == null || t < existing) {
-                        earliestFinishByPlayer.set(p.id, t);
+                        earliestOutByPlayer.set(p.id, t);
                     }
                 });
             });
 
-            if (earliestFinishByPlayer.size === 0 || allPlayersSet.size === 0) {
+            if (earliestOutByPlayer.size === 0 || allPlayersSet.size === 0) {
                 return;
             }
 
             const totalPlayers = allPlayersSet.size;
-            const sorted = Array.from(earliestFinishByPlayer.entries()).sort((a, b) => a[1] - b[1]);
+            const sorted = Array.from(earliestOutByPlayer.entries()).sort((a, b) => a[1] - b[1]);
 
             // Первый вылетевший получает худшее место (max), последний вылетевший -> 2, последний оставшийся -> 1
             sorted.forEach(([playerId], index) => {
                 const placeFromEnd = totalPlayers - index;
-                globalFinishPlaces.set(playerId, placeFromEnd);
+                globalOutPlaces.set(playerId, placeFromEnd);
             });
         }
 
@@ -3601,9 +3692,9 @@
         }
 
         // Хелпер для управления видимостью кнопок
-        function setButtonsVisibility({ rebuy = null, finish = null, admin = null, playerAdmin = null } = {}) {
+        function setButtonsVisibility({ rebuy = null, out = null, admin = null, playerAdmin = null } = {}) {
             if (rebuyButton && rebuy !== null) rebuyButton.style.display = rebuy;
-            if (finishButton && finish !== null) finishButton.style.display = finish;
+            if (outButton && out !== null) outButton.style.display = out;
             if (adminButton && admin !== null) adminButton.style.display = admin;
             if (playerAdminButton && playerAdmin !== null) playerAdminButton.style.display = playerAdmin;
         }
@@ -3652,7 +3743,7 @@
             if (isTournamentAdmin) {
                 currentTableId = null;
                 hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
                 showTablesScreen();
                 return;
             }
@@ -3660,7 +3751,7 @@
             // ПРИОРИТЕТ 2: Дилер — экран списка игроков своего стола
             if (viewerPlayer && viewerPlayer.dealer) {
                 hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: '', finish: '', admin: '', playerAdmin: 'none' });
+                setButtonsVisibility({ rebuy: '', out: '', admin: '', playerAdmin: 'none' });
                 showPlayerSelection();
                 return;
             }
@@ -3668,7 +3759,7 @@
             // ПРИОРИТЕТ 3: Обычный игрок (не админ и не дилер)
             if (viewerPlayer) {
                 hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: 'none', finish: 'none', playerAdmin: '' });
+                setButtonsVisibility({ rebuy: 'none', out: 'none', playerAdmin: '' });
                 
                 // Находим бокс игрока и открываем его карточку
                 if (currentBoxes) {
@@ -3683,7 +3774,7 @@
 
                 const dbViewerPlayer = getDbPlayerById(viewerChatId);
                 if (dbViewerPlayer) {
-                    setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                    setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
                     showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
                     return;
                 }
@@ -3694,7 +3785,7 @@
             const dbViewerPlayer = getDbPlayerById(viewerChatId);
             if (dbViewerPlayer) {
                 hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
                 // Показываем профиль без возможности вернуться назад (это его личный экран)
                 showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
                 return;
@@ -3706,14 +3797,14 @@
                 viewerAdminName = 'Debug Admin';
                 currentTableId = null;
                 hideTelegramBackButton();
-                setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+                setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
                 showTablesScreen();
                 return;
             }
 
             // Неизвестный пользователь — показываем заглушку
             hideTelegramBackButton();
-            setButtonsVisibility({ rebuy: 'none', finish: 'none', admin: 'none', playerAdmin: 'none' });
+            setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
             showUnknownUserScreen();
         }
 
@@ -3774,12 +3865,12 @@
                 if (t.status === 'active') {
                     const activePlayersTotal = tables.reduce((sum, table) => {
                         const players = Array.isArray(table.players) ? table.players : [];
-                        return sum + players.filter(p => p && !p.finishTime).length;
+                        return sum + players.filter(p => p && !p.outTime).length;
                     }, 0);
 
                     const activeTablesCount = tables.reduce((sum, table) => {
                         const players = Array.isArray(table.players) ? table.players : [];
-                        return sum + (players.some(p => p && !p.finishTime) ? 1 : 0);
+                        return sum + (players.some(p => p && !p.outTime) ? 1 : 0);
                     }, 0);
 
                     const minTablesNeeded = Math.max(0, Math.ceil(activePlayersTotal / 9));
@@ -3818,14 +3909,14 @@
 
                 let totalPlayers = 0;
                 let totalActive = 0;
-                let totalFinished = 0;
+                let totalOut = 0;
                 let totalRebuys = 0;
 
                 tables.forEach((table, index) => {
                     const players = Array.isArray(table.players) ? table.players : [];
                     totalPlayers += players.length;
-                    totalActive += players.filter(p => !p.finishTime).length;
-                    totalFinished += players.filter(p => !!p.finishTime).length;
+                    totalActive += players.filter(p => !p.outTime).length;
+                    totalOut += players.filter(p => !!p.outTime).length;
 
                     players.forEach(p => {
                         if (typeof p.rebuysLeft === 'number') {
@@ -3861,7 +3952,7 @@
                     stack: t.stack ?? null,
                     totalPlayers,
                     totalActive,
-                    totalFinished,
+                    totalOut,
                     totalRebuys,
                     startDate,
                     adminName: viewerAdminName || ''
@@ -3898,8 +3989,8 @@
 
             tables.forEach((table, index) => {
                 const players = Array.isArray(table.players) ? table.players : [];
-                const activePlayers = players.filter(p => !p.finishTime);
-                const finishedPlayersCount = players.filter(p => !!p.finishTime).length;
+                const activePlayers = players.filter(p => !p.outTime);
+                const outPlayersCount = players.filter(p => !!p.outTime).length;
 
                 // Ребаи только по этому столу
                 let tableRebuys = 0;
@@ -3941,7 +4032,7 @@
                     <div class="table-indicator${indicatorWarningClass}">${table.id}</div>
                     <div class="player-info">
                         <div class="player-nickname"><!--Стол ${table.id}, дилер -->${dealerNickname}</div>
-                        <div class="player-name">Игроков: ${activePlayers.length}, вылетело: ${finishedPlayersCount}, ребаев: ${tableRebuys}</div>
+                        <div class="player-name">Игроков: ${activePlayers.length}, вылетело: ${outPlayersCount}, ребаев: ${tableRebuys}</div>
                     </div>
                     <div class="chevron"></div>
                 `;
@@ -3963,8 +4054,8 @@
                     if (rebuyButton) {
                         rebuyButton.style.display = isViewerDealerHere ? '' : 'none';
                     }
-                    if (finishButton) {
-                        finishButton.style.display = isViewerDealerHere ? '' : 'none';
+                    if (outButton) {
+                        outButton.style.display = isViewerDealerHere ? '' : 'none';
                     }
                     
                     showPlayerSelection();
@@ -4157,14 +4248,14 @@
             const hasBoxes = tournamentHasAssignedBoxes();
             if (tablePlayers.length > 0 && hasBoxes) {
                 tablePlayers.sort((a, b) => {
-                    const aFinished = !!a.finishTime;
-                    const bFinished = !!b.finishTime;
+                    const aOut = !!a.outTime;
+                    const bOut = !!b.outTime;
 
-                    if (aFinished && !bFinished) return 1;
-                    if (!aFinished && bFinished) return -1;
+                    if (aOut && !bOut) return 1;
+                    if (!aOut && bOut) return -1;
 
-                    if (aFinished && bFinished) {
-                        return new Date(b.finishTime) - new Date(a.finishTime);
+                    if (aOut && bOut) {
+                        return new Date(b.outTime) - new Date(a.outTime);
                     }
 
                     if (a.tableId !== b.tableId) return a.tableId - b.tableId;
@@ -4185,7 +4276,7 @@
                 tableId: null,
                 box: null,
                 dealer: p.dealer === true,
-                finishTime: null,
+                outTime: null,
                 rebuysLeft: 0,
                 adminCall: adminCalls.some(id => String(id) === String(p.id))
             }));
@@ -4225,8 +4316,8 @@
             const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
             const maxDealersCount = registrationsMode ? Math.max(1, Math.ceil(allPlayers.length / 9)) : 0;
             const dealersText = registrationsMode ? `, дилеров: ${dealersCount} из ${maxDealersCount}` : '';
-            const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
-            const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
+            const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.outTime);
+            const outPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.outTime);
             
             allPlayersPreviewList.innerHTML = '';
             
@@ -4237,7 +4328,7 @@
                 <div class="table-indicator">👤</div>
                 <div class="player-info">
                     <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации' : 'Все игроки турнира'}</div>
-                    <div class="player-name">${registrationsMode ? `Игроков: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`}</div>
+                    <div class="player-name">${registrationsMode ? `Игроков: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${outPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -4288,8 +4379,8 @@
             const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
             const maxPlayers = Number(t.max_players);
             const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
-            const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.finishTime);
-            const finishedPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.finishTime);
+            const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.outTime);
+            const outPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.outTime);
             const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
             const maxDealersCount = registrationsMode ? Math.max(1, Math.ceil(allPlayers.length / 9)) : 0;
             const dealersText = registrationsMode ? `, дилеров: ${dealersCount} из ${maxDealersCount}` : '';
@@ -4297,7 +4388,7 @@
             if (allPlayersInfo) {
                 allPlayersInfo.textContent = registrationsMode
                     ? `Зарегистрировано: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}`
-                    : `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${finishedPlayers.length}`;
+                    : `Всего: ${allPlayers.length}, в игре: ${activePlayers.length}, вылетело: ${outPlayers.length}`;
             }
             
             renderAllPlayersList();
@@ -4344,7 +4435,7 @@
                     button.classList.add('admin-call-active');
                 }
                 
-                const isFinished = !!player.finishTime;
+                const isOut = !!player.outTime;
                 const nicknameDisplay = player.nickname || 'Игрок';
                 const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                 const isDealer = registrationsMode
@@ -4352,8 +4443,8 @@
                     : dealersOnTables.has(String(player.id));
                 const positionClass = registrationsMode
                     ? (isDealer ? 'dealer' : 'playing')
-                    : isFinished
-                        ? (isDealer ? 'dealer-finished' : 'finished')
+                    : isOut
+                        ? (isDealer ? 'dealer-out' : 'out')
                         : isDealer
                             ? 'dealer'
                             : 'playing';
@@ -4381,16 +4472,16 @@
                     if (rebuysElement) {
                         rebuysElement.style.display = 'none';
                     }
-                } else if (isFinished) {
+                } else if (isOut) {
                     // Для завершенных игроков показываем место
                     if (rebuysElement) {
                         rebuysElement.style.display = 'none';
                     }
-                    const globalPlace = globalFinishPlaces.get(player.id) || '?';
-                    const finishTime = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : 'неизвестно';
+                    const globalPlace = globalOutPlaces.get(player.id) || '?';
+                    const outTime = player.outTime ? formatOutTime(new Date(player.outTime)) : 'неизвестно';
                     
                     const finishInfoContainer = document.createElement('div');
-                    finishInfoContainer.className = 'player-finish-info';
+                    finishInfoContainer.className = 'player-out-info';
                     const place = Number(globalPlace);
                     let badgeClass = 'player-position-badge';
                     if (place === 1) badgeClass += ' gold';
@@ -4399,7 +4490,7 @@
 
                     finishInfoContainer.innerHTML = `
                         <div class="player-position"><span class="${badgeClass}">${globalPlace}</span>место</div>
-                        <div class="finish-time">${finishTime}</div>
+                        <div class="out-time">${outTime}</div>
                     `;
                     const chevron = button.querySelector('.chevron');
                     button.insertBefore(finishInfoContainer, chevron);
@@ -4464,8 +4555,8 @@
             }
             
             const allPlayers = getAllTournamentPlayers();
-            const activePlayers = allPlayers.filter(p => !p.finishTime);
-            const finishedPlayers = allPlayers.filter(p => !!p.finishTime);
+            const activePlayers = allPlayers.filter(p => !p.outTime);
+            const outPlayers = allPlayers.filter(p => !!p.outTime);
             
             if (telegramTableInfo) {
                 const t = getTournament();
@@ -4492,15 +4583,15 @@
             
             // Сортируем: сначала вылетевшие по месту (1,2,3...), потом активные
             const sortedPlayers = [...allPlayers].sort((a, b) => {
-                const aFinished = !!a.finishTime;
-                const bFinished = !!b.finishTime;
+                const aOut = !!a.outTime;
+                const bOut = !!b.outTime;
                 
-                if (aFinished && !bFinished) return -1;
-                if (!aFinished && bFinished) return 1;
+                if (aOut && !bOut) return -1;
+                if (!aOut && bOut) return 1;
                 
-                if (aFinished && bFinished) {
-                    const placeA = globalFinishPlaces.get(a.id) || 999;
-                    const placeB = globalFinishPlaces.get(b.id) || 999;
+                if (aOut && bOut) {
+                    const placeA = globalOutPlaces.get(a.id) || 999;
+                    const placeB = globalOutPlaces.get(b.id) || 999;
                     return placeA - placeB;
                 }
                 
@@ -4511,7 +4602,7 @@
                 const button = document.createElement('button');
                 button.classList.add('player-button');
                 
-                const isFinished = !!player.finishTime;
+                const isOut = !!player.outTime;
                 const nickname = player.nickname || 'Игрок';
                 const photoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg`;
                 
@@ -4521,7 +4612,7 @@
                 const ratingPlace = globalRatingPlaces.get(player.id);
                 const ratingDisplay = rating > 0 ? `⭐ ${rating}${ratingPlace ? ` (#${ratingPlace})` : ''}` : '';
                 
-                const positionClass = isFinished ? 'finished' : 'playing';
+                const positionClass = isOut ? 'out' : 'playing';
                 
                 // Фото вместо номера бокса
                 button.innerHTML = `
@@ -4535,12 +4626,12 @@
                     <div class="chevron"></div>
                 `;
                 
-                if (isFinished) {
-                    const globalPlace = globalFinishPlaces.get(player.id) || '?';
-                    const finishTime = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : 'неизвестно';
+                if (isOut) {
+                    const globalPlace = globalOutPlaces.get(player.id) || '?';
+                    const outTime = player.outTime ? formatOutTime(new Date(player.outTime)) : 'неизвестно';
                     
                     const finishInfoContainer = document.createElement('div');
-                    finishInfoContainer.className = 'player-finish-info';
+                    finishInfoContainer.className = 'player-out-info';
                     const place = Number(globalPlace);
                     let badgeClass = 'player-position-badge';
                     if (place === 1) badgeClass += ' gold';
@@ -4549,7 +4640,7 @@
 
                     finishInfoContainer.innerHTML = `
                         <div class="player-position"><span class="${badgeClass}">${globalPlace}</span>место</div>
-                        <div class="finish-time">${finishTime}</div>
+                        <div class="out-time">${outTime}</div>
                     `;
                     const chevron = button.querySelector('.chevron');
                     button.insertBefore(finishInfoContainer, chevron);
@@ -5871,7 +5962,7 @@
             
             // Скрываем кнопки ребай и финиш (игрок из БД, не в турнире)
             rebuyButton.style.display = 'none';
-            finishButton.style.display = 'none';
+            outButton.style.display = 'none';
             
             // Кнопка написать игроку (скрываем для своего профиля)
             if (messagePlayerButton) {
@@ -6194,7 +6285,7 @@
                 stack,
                 totalPlayers,
                 totalActive,
-                totalFinished,
+                totalOut,
                 totalRebuys,
                 startDate,
                 adminName
@@ -6247,7 +6338,7 @@
                 return;
             }
 
-            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalFinished}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${avgStackSuffix}${callsSuffix}${adminSuffix}`;
+            tablesTournamentStats.textContent = `Столов: ${tablesCount}, игроков: ${totalPlayers}, в игре: ${totalActive}, вылетело: ${totalOut}, ${timeText}, ребаи: ${totalRebuys}, входы: ${totalEntries}${stackSuffix}${avgStackSuffix}${callsSuffix}${adminSuffix}`;
 
             const ratio = (typeof totalPlayers === 'number' && totalPlayers > 0) ? (totalActive / totalPlayers) : 0;
             applyAggregatesProgress(ratio);
@@ -6288,13 +6379,13 @@
                         : (player.nickname || 'Игрок');
 
                     const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-                    const isFinished = !!player.finishTime;
+                    const isOut = !!player.outTime;
                     
                     // Проверяем, есть ли активная операция для этого бокса
                     const isPending = pendingOperations.has(box);
 
-                    const positionClass = isFinished
-                        ? (player.dealer ? 'dealer-finished' : 'finished')
+                    const positionClass = isOut
+                        ? (player.dealer ? 'dealer-out' : 'out')
                         : player.dealer
                             ? 'dealer'
                             : 'playing';
@@ -6330,16 +6421,16 @@
                             rebuysElement.style.display = 'flex';
                             rebuysElement.innerHTML = '<div class="rebuy-dot" style="animation: pulse 1s infinite;">⏳</div>';
                         }
-                    } else if (isFinished) {
+                    } else if (isOut) {
                         // Для завершенных игроков показываем место
                         if (rebuysElement) {
                             rebuysElement.style.display = 'none';
                         }
-                        const globalPlace = globalFinishPlaces.get(player.id) || '?';
-                        const finishTime = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : 'неизвестно';
+                        const globalPlace = globalOutPlaces.get(player.id) || '?';
+                        const outTime = player.outTime ? formatOutTime(new Date(player.outTime)) : 'неизвестно';
                         
                         const finishInfoContainer = document.createElement('div');
-                        finishInfoContainer.className = 'player-finish-info';
+                        finishInfoContainer.className = 'player-out-info';
                         const place = Number(globalPlace);
                         let badgeClass = 'player-position-badge';
                         if (place === 1) badgeClass += ' gold';
@@ -6348,7 +6439,7 @@
 
                         finishInfoContainer.innerHTML = `
                             <div class="player-position"><span class="${badgeClass}">${globalPlace}</span>место</div>
-                            <div class="finish-time">${finishTime}</div>
+                            <div class="out-time">${outTime}</div>
                         `;
                         const chevron = button.querySelector('.chevron');
                         button.insertBefore(finishInfoContainer, chevron);
@@ -6372,7 +6463,7 @@
                 const fullData = await fetchTournamentData();
                 fullTournamentData = fullData;
                 
-                recalculateGlobalFinishPlaces();
+                recalculateGlobalOutPlaces();
                 recalculateGlobalRatingPlaces();
                 applySnapshotToUI();
                 updatePlayersList();
@@ -6424,7 +6515,7 @@
             selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
             const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
             const ratingText = player.rating ? `${player.rating}` : '';
-            const isFinished = !!player.finishTime;
+            const isOut = !!player.outTime;
             
             // Проверяем роли через snapshot
             const isViewerDealerCheck = isViewerDealer();
@@ -6466,7 +6557,7 @@
             // Информация о столе/боксе или финише
             const selectedTable = getSelectedTable();
             if (selectedPlayerTableInfo && selectedTable) {
-                if (!isFinished) {
+                if (!isOut) {
                     selectedPlayerTableInfo.innerHTML = `
                         <span class="table-label">Стол<\/span>
                         <span class="table-badge">${selectedTable.id || '1'}<\/span>
@@ -6474,13 +6565,13 @@
                         <span class="table-badge">${box}<\/span>
                     `;
                 } else {
-                    const finishTimeLabel = player.finishTime ? formatFinishTime(new Date(player.finishTime)) : '—';
-                    const place = globalFinishPlaces.get(player.id) || '?';
+                    const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
+                    const place = globalOutPlaces.get(player.id) || '?';
                     selectedPlayerTableInfo.innerHTML = `
-                        <span class="table-label">Закончил<\/span>
-                        <span class="table-badge">${finishTimeLabel}<\/span>
-                        <span class="table-label">Место<\/span>
-                        <span class="table-badge">${place}<\/span>
+                        <span class="table-label">Закончил</span>
+                        <span class="table-badge">${outTimeLabel}</span>
+                        <span class="table-label">Место</span>
+                        <span class="table-badge">${place}</span>
                     `;
                 }
             }
@@ -6607,7 +6698,7 @@
             }
             
             updateRebuyButtonStateForPlayer(player);
-            updateFinishButtonStateForPlayer(player);
+            updateOutButtonStateForPlayer(player);
             
             saveScrollPositionForScreen(playerSelectionScreen);
             playerSelectionScreen.classList.add('hidden');
@@ -6653,9 +6744,9 @@
 
         // Новые функции обновления состояния кнопок для player из API
         function updateRebuyButtonStateForPlayer(player) {
-            const isFinished = !!player.finishTime;
+            const isOut = !!player.outTime;
             const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-            if (rebuysLeft <= 0 || isFinished) {
+            if (rebuysLeft <= 0 || isOut) {
                 rebuyButton.disabled = true;
                 rebuyInfo.textContent = 'Ребаев больше нет';
             } else {
@@ -6664,18 +6755,18 @@
             }
         }
 
-        function updateFinishButtonStateForPlayer(player) {
-            const isFinished = !!player.finishTime;
-            const finishButtonText = finishButton.querySelector('span');
-            if (isFinished) {
-                finishButton.disabled = true;
-                const place = globalFinishPlaces.get(player.id) || '?';
-                if (finishButtonText) finishButtonText.textContent = `Игрок занял ${place} место`;
-                finishInfo.textContent = formatFinishTimeInfo(player.finishTime);
+        function updateOutButtonStateForPlayer(player) {
+            const isOut = !!player.outTime;
+            const outButtonText = outButton.querySelector('span');
+            if (isOut) {
+                outButton.disabled = true;
+                const place = globalOutPlaces.get(player.id) || '?';
+                if (outButtonText) outButtonText.textContent = `Игрок занял ${place} место`;
+                outInfo.textContent = formatOutTimeInfo(player.outTime);
             } else {
-                finishButton.disabled = false;
-                if (finishButtonText) finishButtonText.textContent = 'Игрок вылетел';
-                finishInfo.textContent = '';
+                outButton.disabled = false;
+                if (outButtonText) outButtonText.textContent = 'Игрок вылетел';
+                outInfo.textContent = '';
             }
         }
 
@@ -6706,12 +6797,12 @@
         }
 
         // Вспомогательные функции
-        function formatFinishTimeInfo(finishTime) {
-            const finishDate = new Date(finishTime);
-            const calendarTime = finishDate.toLocaleTimeString('ru-RU', {
+        function formatOutTimeInfo(outTime) {
+            const outDate = new Date(outTime);
+            const calendarTime = outDate.toLocaleTimeString('ru-RU', {
                 hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
-            const timeDiff = finishDate - gameStartTime;
+            const timeDiff = outDate - gameStartTime;
             const hours = Math.floor(timeDiff / (1000 * 60 * 60));
             const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
@@ -6719,8 +6810,8 @@
             return `Закончил в ${calendarTime} (${relativeTime})`;
         }
 
-        function formatFinishTime(finishTime) {
-            const timeDiff = finishTime - gameStartTime;
+        function formatOutTime(outTime) {
+            const timeDiff = outTime - gameStartTime;
             const hours = Math.floor(timeDiff / (1000 * 60 * 60));
             const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
@@ -6742,7 +6833,7 @@
                 case 1: return 'gold';
                 case 2: return 'silver';
                 case 3: return 'bronze';
-                default: return 'finished';
+                default: return 'out';
             }
         }
 
@@ -6765,7 +6856,7 @@
             const selectedTable = getSelectedTable();
             const players = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
             const totalPlayers = players.length;
-            const activePlayers = totalPlayers > 0 ? players.filter(p => p && !p.finishTime).length : 0;
+            const activePlayers = totalPlayers > 0 ? players.filter(p => p && !p.outTime).length : 0;
             const playersSuffix = totalPlayers > 0 ? `, игроков ${activePlayers} из ${totalPlayers}` : '';
             
             const now = new Date();
@@ -6852,9 +6943,9 @@
             const player = getPlayerByBox(selectedBox);
             if (!player) return;
             
-            const isFinished = !!player.finishTime;
+            const isOut = !!player.outTime;
             const rebuysLeft = typeof player.rebuysLeft === 'number' ? player.rebuysLeft : 0;
-            if (rebuysLeft <= 0 || isFinished) {
+            if (rebuysLeft <= 0 || isOut) {
                 return;
             }
 
@@ -6882,38 +6973,115 @@
             }
         });
 
-        // Обработчик финиша с использованием selectedBox
-        finishButton.addEventListener('click', async () => {
+        function closeOutByOverlay() {
+            if (outByOverlayEl) {
+                outByOverlayEl.remove();
+                outByOverlayEl = null;
+            }
+        }
+
+        function openOutByOverlay(outPlayer) {
+            closeOutByOverlay();
+
+            const selectedTable = getSelectedTable();
+            const tablePlayers = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
+            const choices = tablePlayers.filter(p => p && p.id != null && !p.outTime && String(p.id) !== String(outPlayer.id));
+
+            const overlay = document.createElement('div');
+            overlay.className = 'out-by-overlay';
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closeOutByOverlay();
+            });
+
+            const card = document.createElement('div');
+            card.className = 'out-by-overlay-card';
+
+            const title = document.createElement('div');
+            title.className = 'out-by-overlay-title';
+            title.textContent = 'Кто выбил?';
+
+            const list = document.createElement('div');
+            list.className = 'out-by-overlay-list';
+
+            const adminNick = viewerAdminName || 'Admin';
+            const adminChoice = {
+                id: viewerChatId,
+                nickname: adminNick,
+                firstName: adminNick,
+                lastName: ''
+            };
+
+            function renderChoice(p, { isAdmin = false } = {}) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'out-by-choice';
+
+                const photoWrap = document.createElement('div');
+                photoWrap.className = 'out-by-choice-photo';
+                const img = document.createElement('img');
+                img.src = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg`;
+                img.onerror = () => { img.src = 'avatar.png'; };
+                photoWrap.appendChild(img);
+
+                const text = document.createElement('div');
+                text.className = 'out-by-choice-text';
+                const nickEl = document.createElement('div');
+                nickEl.className = 'out-by-choice-nick';
+                nickEl.textContent = isAdmin ? `Админ (${p.nickname || 'Admin'})` : (p.nickname || 'Игрок');
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'out-by-choice-name';
+                nameEl.textContent = isAdmin ? 'Технически' : (`${p.firstName || ''} ${p.lastName || ''}`.trim() || '');
+
+                text.appendChild(nickEl);
+                if (nameEl.textContent) text.appendChild(nameEl);
+
+                btn.appendChild(photoWrap);
+                btn.appendChild(text);
+
+                btn.addEventListener('click', async () => {
+                    closeOutByOverlay();
+
+                    const boxToUpdate = selectedBox;
+                    backToPlayerList();
+                    pendingOperations.add(boxToUpdate);
+                    updatePlayersList();
+
+                    try {
+                        await eventService.playerOut(outPlayer.id, p.id, p.nickname || p.firstName || '');
+                    } catch (error) {
+                    } finally {
+                        await refreshTournamentData();
+                        pendingOperations.delete(boxToUpdate);
+                        updatePlayersList();
+                    }
+                });
+
+                return btn;
+            }
+
+            list.appendChild(renderChoice(adminChoice, { isAdmin: true }));
+            choices.forEach(p => list.appendChild(renderChoice(p)));
+
+            card.appendChild(title);
+            card.appendChild(list);
+            overlay.appendChild(card);
+
+            document.body.appendChild(overlay);
+            outByOverlayEl = overlay;
+        }
+
+        // Обработчик out с использованием selectedBox
+        outButton.addEventListener('click', async () => {
             const player = getPlayerByBox(selectedBox);
             if (!player) return;
             
-            const isFinished = !!player.finishTime;
-            if (isFinished) {
+            const isOut = !!player.outTime;
+            if (isOut) {
                 return;
             }
 
-            // Сохраняем бокс до сброса в backToPlayerList
-            const boxToUpdate = selectedBox;
-
-            // 1. Сразу переходим на список игроков
-            backToPlayerList();
-            
-            // 2. Добавляем бокс в pending и показываем индикатор
-            pendingOperations.add(boxToUpdate);
-            updatePlayersList();
-            
-            // 3. Отправляем запрос на сервер
-            try {
-                await eventService.playerFinish(player.id);
-            } catch (error) {
-            } finally {
-                // 4. Обновляем данные с сервера
-                await refreshTournamentData();
-                
-                // 5. Убираем индикатор и обновляем список
-                pendingOperations.delete(boxToUpdate);
-                updatePlayersList();
-            }
+            openOutByOverlay(player);
         });
 
         // Кнопка "Написать игроку" — открыть чат в Telegram по username через https://t.me/
