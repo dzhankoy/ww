@@ -883,7 +883,8 @@
             width: 38px;
             height: 38px;
             border-radius: 999px;
-            background: rgba(10, 132, 255, 0.14);
+            background: transparent;
+            border: 2px solid rgba(10, 132, 255, 0.55);
         }
 
         .month-overlay-calendar .registration-day.selected-day > * {
@@ -2384,7 +2385,7 @@
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: `${fullName} • ${regDate}`
+                                subtitle: `${regDate} • ${fullName}`
                             };
                         });
                     },
@@ -2409,7 +2410,7 @@
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: `${fullName} • ${regDate}`
+                                subtitle: `${regDate} • ${fullName}`
                             };
                         });
                     }
@@ -2478,7 +2479,7 @@
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: `${fullName} • ${birthday}`
+                                subtitle: `${birthday} • ${fullName}`
                             };
                         });
                     },
@@ -2502,7 +2503,7 @@
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
-                                subtitle: `${fullName} • ${birthday}`
+                                subtitle: `${birthday} • ${fullName}`
                             };
                         });
                     }
@@ -2582,9 +2583,10 @@
                     getDayItems: ({ key }) => {
                         const arr = tournamentsByDay.get(key) || [];
                         return arr.map(t => {
-                            const title = `${String(t?.date || '').trim()} • ${String(t?.title || t?.name || 'Турнир').trim()}`;
+                            const dateText = String(t?.date || '').trim();
+                            const title = `${String(t?.title || t?.name || 'Турнир').trim()}`;
                             const meta = tournamentStatusMeta(t);
-                            const subtitle = `${meta.statusText} • ${meta.infoLine}`;
+                            const subtitle = `${dateText} • ${meta.statusText} • ${meta.infoLine}`;
                             return {
                                 type: 'tournament',
                                 tournament: t,
@@ -2608,9 +2610,10 @@
                         });
 
                         return sorted.map(t => {
-                            const title = `${String(t?.date || '').trim()} • ${String(t?.title || t?.name || 'Турнир').trim()}`;
+                            const dateText = String(t?.date || '').trim();
+                            const title = `${String(t?.title || t?.name || 'Турнир').trim()}`;
                             const meta = tournamentStatusMeta(t);
-                            const subtitle = `${meta.statusText} • ${meta.infoLine}`;
+                            const subtitle = `${dateText} • ${meta.statusText} • ${meta.infoLine}`;
                             return {
                                 type: 'tournament',
                                 tournament: t,
@@ -4634,7 +4637,7 @@
         }
 
         function parseRegistrationDateFromPlayer(player) {
-            const raw = player?.registrationDate ?? player?.reg_date ?? player?.regDate ?? null;
+            const raw = player?.reg_date ?? player?.regDate ?? player?.registrationDate ?? null;
             if (!raw) return null;
 
             if (raw instanceof Date && !isNaN(raw.getTime())) {
@@ -4642,6 +4645,11 @@
             }
 
             const str = String(raw).trim();
+
+            if (str.includes('.') && str.includes(':') && str.includes(' ')) {
+                const d = parseTournamentRegDateTime(str);
+                return d && !isNaN(d.getTime()) ? d : null;
+            }
 
             if (str.includes('T') || str.includes('Z')) {
                 const d = new Date(str);
