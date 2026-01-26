@@ -1336,6 +1336,29 @@
             margin-right: 3px;
         }
 
+        .player-killcount {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 8px;
+            color: var(--secondary-text);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .player-killcount-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: var(--badge-bg);
+            color: var(--badge-color);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
         .player-position-badge.gold {
             background-color: var(--gold);
             color: #000;
@@ -4617,6 +4640,13 @@
             
             const allPlayers = getAllTournamentPlayers();
             telegramTableList.innerHTML = '';
+
+            const outCountsByChatId = new Map();
+            for (const p of allPlayers) {
+                if (!p || p.outByChatId == null) continue;
+                const k = String(p.outByChatId);
+                outCountsByChatId.set(k, (outCountsByChatId.get(k) || 0) + 1);
+            }
             
             // Сортируем: сначала вылетевшие по месту (1,2,3...), потом активные
             const sortedPlayers = [...allPlayers].sort((a, b) => {
@@ -4666,6 +4696,8 @@
                 if (isOut) {
                     const globalPlace = globalOutPlaces.get(player.id) || '?';
                     const outTime = player.outTime ? formatOutTime(new Date(player.outTime)) : 'неизвестно';
+                    const outByNick = player.outByNick ? escapeHtml(player.outByNick) : '';
+                    const outCount = outCountsByChatId.get(String(player.id)) || 0;
                     
                     const finishInfoContainer = document.createElement('div');
                     finishInfoContainer.className = 'player-out-info';
@@ -4676,8 +4708,8 @@
                     else if (place === 3) badgeClass += ' bronze';
 
                     finishInfoContainer.innerHTML = `
-                        <div class="player-position"><span class="${badgeClass}">${globalPlace}</span>место</div>
-                        <div class="out-time">${outTime}</div>
+                        <div class="player-position">${outCount > 0 ? `<span class=\"player-killcount\"><span class=\"player-killcount-badge\">${outCount}</span>аутов</span>` : ''}<span class="${badgeClass}">${globalPlace}</span>место</div>
+                        ${outByNick ? `<div class="out-by-time">${outByNick} @ ${outTime}</div>` : `<div class="out-time">${outTime}</div>`}
                     `;
                     const chevron = button.querySelector('.chevron');
                     button.insertBefore(finishInfoContainer, chevron);
