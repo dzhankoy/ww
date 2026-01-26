@@ -3398,11 +3398,13 @@
                 });
             }
             
-            async callAdmin(reason, tableNumber, dealerName) {
+            async callAdmin(reason, tableNumber, dealerName, callerNick, callerBox) {
                 return await this.sendEvent(TOURNAMENT_EVENTS.ADMIN_CALL, {
                     reason: reason,
                     tableNumber: tableNumber,
                     dealerName: dealerName,
+                    callerNick: callerNick,
+                    callerBox: callerBox,
                     userData: window.Telegram.WebApp.initDataUnsafe.user
                 });
             }
@@ -7193,10 +7195,8 @@
                 tg.openTelegramLink(`https://t.me/${encodeURIComponent(username)}`);
             });
         }
-
         async function handleAdminCall() {
             try {
-                // Блокируем кнопки и меняем текст
                 if (adminButton) {
                     adminButton.disabled = true;
                     adminButton.textContent = 'Администратор вызван';
@@ -7208,11 +7208,30 @@
                 
                 const currentTableNumber = tableNumber.textContent;
                 const currentDealerName = dealerName.textContent;
+
+                let callerNick = '';
+                let callerBox = null;
+                try {
+                    const selectedTable = getSelectedTable();
+                    const players = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
+                    const me = viewerChatId ? players.find(p => p && String(p.id) === String(viewerChatId)) : null;
+                    if (me) {
+                        callerNick = String(me.nickname || '').trim();
+                        callerBox = me.box != null ? me.box : null;
+                    }
+                    if (!callerNick) {
+                        const initUser = window.Telegram.WebApp.initDataUnsafe?.user;
+                        callerNick = String(initUser?.username || initUser?.first_name || '').trim();
+                    }
+                } catch (e) {
+                }
                 
                 await eventService.callAdmin(
                     'user_requested_assistance', 
                     currentTableNumber, 
-                    currentDealerName
+                    currentDealerName,
+                    callerNick,
+                    callerBox
                 );
                 
                 // Уведомление пользователю после успешного вызова администратора
