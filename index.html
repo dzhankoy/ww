@@ -5,6 +5,23 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        function getZodiacSign(day, month) {
+            if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return '♈';
+            if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return '♉';
+            if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return '♊';
+            if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return '♋';
+            if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return '♌';
+            if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return '♍';
+            if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return '♎';
+            if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return '♏';
+            if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return '♐';
+            if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return '♑';
+            if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return '♒';
+            if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return '♓';
+            return '';
+        }
+    </script>
     <style>
         :root {
             --bg-color: #000000;
@@ -1059,15 +1076,7 @@
         }
 
         .month-overlay-item-icon::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            border-radius: 999px;
-            border: 1px solid var(--indicator-border, currentColor);
-            pointer-events: none;
+            display: none;
         }
 
         .month-overlay-item-body {
@@ -2585,6 +2594,7 @@
 
                 return {
                     monthNames,
+                    emptyText: 'Регистраций нет',
                     getMonthBadge: (year, month) => {
                         const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
                         const monthCount = registrationsByMonth.get(ymKey) || 0;
@@ -2667,6 +2677,7 @@
 
                 return {
                     monthNames,
+                    emptyText: 'Дней рождений нет',
                     getMonthBadge: (year, month) => {
                         const mm = String(month + 1).padStart(2, '0');
                         const monthCount = byMonth.get(mm) || 0;
@@ -2703,13 +2714,15 @@
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
+                            const zodiac = md ? getZodiacSign(md.day, md.month) : '';
+                            const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
                             return {
                                 type: 'player',
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: birthday
+                                badge: badgeText
                             };
                         });
                     },
@@ -2729,13 +2742,15 @@
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
+                            const zodiac = md ? getZodiacSign(md.day, md.month) : '';
+                            const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
                             return {
                                 type: 'player',
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: birthday
+                                badge: badgeText
                             };
                         });
                     }
@@ -2794,6 +2809,7 @@
 
                 return {
                     monthNames,
+                    emptyText: 'Турниров нет',
                     getMonthBadge: (year, month) => {
                         const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
                         const monthCount = byMonth.get(ymKey) || 0;
@@ -2871,9 +2887,9 @@
             };
         }
 
-        function renderMonthOverlayListItems(items) {
+        function renderMonthOverlayListItems(items, emptyText) {
             if (!Array.isArray(items) || !items.length) {
-                return `<div class="month-overlay-empty">Нет событий</div>`;
+                return `<div class="month-overlay-empty">${emptyText || 'Нет событий'}</div>`;
             }
 
             let rows = '';
@@ -2937,7 +2953,8 @@
 
             monthOverlayOpenState.items = items;
 
-            monthOverlayListEl.innerHTML = renderMonthOverlayListItems(items);
+            const emptyText = monthOverlayOpenState.cfg?.emptyText || 'Нет событий';
+            monthOverlayListEl.innerHTML = renderMonthOverlayListItems(items, emptyText);
             try {
                 monthOverlayListEl.scrollTop = 0;
             } catch (e) {
