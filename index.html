@@ -998,7 +998,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 999px;
+            border-radius: 12px;
             background: transparent;
             box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
             pointer-events: none;
@@ -1270,7 +1270,6 @@
             position: relative;
             box-sizing: border-box;
             font-size: 1em;
-            font-weight: 700;
             color: #fff;
         }
 
@@ -5685,7 +5684,7 @@
                             <img src="${playerPhotoUrl}" alt="${nickname}" onerror="this.src='avatar.png'">
                         </div>
                         <div class="player-info">
-                            <div class="player-nickname">${dayStr}.${monthStr} ${zodiacEmoji} ${nickname}</div>
+                            <div class="player-nickname">${dayStr}.${monthStr} <span style="font-family: ui-monospace, monospace; width: 1.2em; display: inline-block; text-align: center;">${zodiacEmoji}</span> ${nickname}</div>
                             <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
                         </div>
                         <div class="chevron"></div>
