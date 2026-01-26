@@ -205,11 +205,12 @@
             background-color: var(--card-bg);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
+            aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            min-height: 90px;
+            min-height: 0;
             text-align: center;
             box-sizing: border-box;
         }
@@ -1085,10 +1086,14 @@
             border-radius: 0;
             overflow: visible;
             border: none;
-            flex: 0 0 auto;
+            flex: 1 1 auto;
         }
 
         .month-overlay-list.bounce-only .month-overlay-list-group {
+            min-height: calc(100% + 2px);
+        }
+
+        .month-overlay-list.bounce-only .month-overlay-empty {
             min-height: calc(100% + 2px);
         }
 
@@ -1577,9 +1582,8 @@
 
         .finance-cents,
         .finance-currency {
-            font-size: 0.85em;
-            opacity: 0.25;
-            font-weight: 600;
+            opacity: 1;
+            font-weight: 700;
         }
 
         .finance-amount-wrap {
@@ -1594,9 +1598,10 @@
 
         .finance-amount-secondary {
             font-size: 13px;
-            opacity: 0.6;
+            opacity: 0.9;
             font-weight: 600;
             white-space: nowrap;
+            color: var(--red);
         }
 
         .out-by-overlay-title {
@@ -1611,6 +1616,7 @@
             flex-direction: column;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            padding-top: var(--spacing-sm);
         }
 
         .out-by-choice {
@@ -2257,6 +2263,8 @@
         if (tg && typeof tg.onEvent === 'function') {
             tg.onEvent('themeChanged', applyTelegramTheme);
         }
+
+        const INDEX_HTML_LAST_EDITED = '2026-01-26 19:03';
 
         const CONFIG = {
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
@@ -3119,7 +3127,7 @@
 
         function renderMonthOverlayListItems(items, emptyText) {
             if (!Array.isArray(items) || !items.length) {
-                return `<div class="month-overlay-empty">${emptyText || 'Нет событий'}</div>`;
+                return `<div class="month-overlay-list-group"><div class="month-overlay-empty">${emptyText || 'Нет событий'}</div></div>`;
             }
 
             let rows = '';
@@ -4276,7 +4284,7 @@
                 tablesTournamentTitle.textContent = t.title || 'Турнир';
             }
             if (tablesTournamentInfo) {
-                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}`.trim();
+                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
             }
 
             // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
@@ -7707,6 +7715,10 @@
                         overlay.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     } catch (e) {
                     }
+                    try {
+                        overlay.style.opacity = '1';
+                    } catch (e) {
+                    }
                     startTranslateY = Math.max(0, getTranslateY(card));
                     applyY(startTranslateY);
                 };
@@ -7743,9 +7755,9 @@
                     );
                 };
 
-                title.addEventListener('touchstart', onStart, { passive: true });
-                title.addEventListener('touchmove', onMove, { passive: false });
-                title.addEventListener('touchend', onEnd, { passive: true });
+                card.addEventListener('touchstart', onStart, { passive: true });
+                card.addEventListener('touchmove', onMove, { passive: false });
+                card.addEventListener('touchend', onEnd, { passive: true });
             } catch (e) {
             }
         }
@@ -7760,7 +7772,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--red);">💸</div>
                 <div class="player-info">
                     <div class="player-nickname">Долги</div>
-                    <div class="player-name">Игроки и суммы</div>
+                    <div class="player-name">Должники • Сумма долга</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7773,7 +7785,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--green);">💰</div>
                 <div class="player-info">
                     <div class="player-nickname">Балансы</div>
-                    <div class="player-name">Игроки и суммы</div>
+                    <div class="player-name">Игроки • Выручка • Долги</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7825,7 +7837,7 @@
             const fmtMoneyHtml = (amount, { forceSign = true } = {}) => {
                 const n = Math.abs(Math.round(Number(amount) || 0));
                 const sign = Number(amount) < 0 ? '-' : (forceSign ? '+' : '');
-                return `${sign}${n}<span class="finance-currency"> ₽</span><span class="finance-cents">.00</span>`;
+                return `${sign}${n}<span class="finance-cents">.00</span><span class="finance-currency">₽</span>`;
             };
 
             if (mode === 'debts') {
@@ -7844,7 +7856,7 @@
 
                 const totalDebt = picked.reduce((sum, it) => sum + (it.debt || 0), 0);
                 if (infoEl) {
-                    infoEl.textContent = `Должников ${picked.length} • Сумма долга ${totalDebt} ₽`;
+                    infoEl.textContent = `Должников ${picked.length} • Сумма долга ${totalDebt}.00₽`;
                 }
 
                 for (const it of picked) {
@@ -7883,8 +7895,9 @@
 
             const totalRevenue = balances.reduce((sum, it) => sum + (it.revenue || 0), 0);
             const debtorsCount = balances.reduce((sum, it) => sum + (it.debt > 0 ? 1 : 0), 0);
+            const totalDebt = balances.reduce((sum, it) => sum + (it.debt || 0), 0);
             if (infoEl) {
-                infoEl.textContent = `Игроков ${balances.length} • Выручка ${totalRevenue} ₽ • Долгов ${debtorsCount}`;
+                infoEl.textContent = `Игроков ${balances.length} • Выручка ${totalRevenue}.00₽ • Должников ${debtorsCount} • Долгов ${totalDebt}.00₽`;
             }
 
             for (const it of balances) {
