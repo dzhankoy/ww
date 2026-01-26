@@ -2085,6 +2085,7 @@
         let currentBoxes = null;
         let pendingOperations = new Set();
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
+        let cameFromAdminCalls = false; // Флаг: пришли из секции вызовов на главном экране
         let previousAdminCalls = []; // Предыдущий список вызовов админа
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
@@ -4236,6 +4237,10 @@
                 // Клик по игроку - всегда открываем профиль, без пустых экранов
                 button.addEventListener('click', () => {
                     cameFromAllPlayers = false;
+                    cameFromAdminCalls = true;
+
+                    // Сохраняем позицию на главном экране (экран столов)
+                    saveScrollPositionForScreen(tablesScreen);
 
                     // 1) Если игрок реально сидит за столом и есть бокс — открываем турнирную карточку
                     if (player.tableId != null && player.box != null) {
@@ -4257,7 +4262,7 @@
                     const dbPlayer = getDbPlayerById(player.id);
                     if (dbPlayer) {
                         const backHandler = viewerIsAdmin
-                            ? () => showTablesScreen()
+                            ? () => { cameFromAdminCalls = false; showTablesScreen(); }
                             : () => showPlayerSelection();
                         showDbPlayerCardInternal(dbPlayer, backHandler);
                         return;
@@ -6819,7 +6824,9 @@
 
             if (isPrivilegedHere) {
                 // Если пришли с экрана всех игроков - кнопка назад ведёт туда
-                if (cameFromAllPlayers) {
+                if (cameFromAdminCalls) {
+                    showTelegramBackButton(backToTablesFromPlayers);
+                } else if (cameFromAllPlayers) {
                     showTelegramBackButton(backToAllPlayersFromAction);
                 } else {
                     showTelegramBackButton(backToPlayerList);
@@ -6834,6 +6841,7 @@
             saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
             cameFromAllPlayers = false;
+            cameFromAdminCalls = false;
             selectedBox = null;
             showAllPlayersScreen();
         }
@@ -7012,17 +7020,12 @@
         function backToPlayerList() {
             saveScrollPositionForScreen(actionScreen);
             actionScreen.classList.add('hidden');
-            playerSelectionScreen.classList.remove('hidden');
-            restoreScrollPositionForScreen(playerSelectionScreen);
             selectedBox = null;
-            cameFromAllPlayers = false; // Сбрасываем флаг
+            cameFromAdminCalls = false;
 
-            // После возврата к списку игроков у админа кнопка Telegram ведёт обратно к списку столов
-            if (viewerIsAdmin) {
-                showTelegramBackButton(backToTablesFromPlayers);
-            } else {
-                hideTelegramBackButton();
-            }
+            showPlayerSelection();
+            updatePlayersList();
+            restoreScrollPositionForScreen(playerSelectionScreen);
         }
 
         // Возврат с списка игроков к списку столов (для админа)
@@ -7031,6 +7034,7 @@
             saveScrollPositionForScreen(actionScreen);
             playerSelectionScreen.classList.add('hidden');
             actionScreen.classList.add('hidden');
+            cameFromAdminCalls = false;
             showTablesScreen();
         }
 
