@@ -2648,23 +2648,26 @@
                         }
                         return null;
                     },
-                    getDayItems: ({ key }) => {
+                    getDayItems: ({ key, todayKey }) => {
                         const players = registrationPlayersByDay.get(key) || [];
                         return players.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
+                            const regDateParsed = parseRegistrationDateFromPlayer(p);
+                            const isToday = regDateParsed && formatLocalDateKey(regDateParsed) === todayKey;
                             return {
                                 type: 'player',
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: regDate
+                                badge: regDate,
+                                isToday
                             };
                         });
                     },
-                    getMonthItems: ({ year, month }) => {
+                    getMonthItems: ({ year, month, todayKey }) => {
                         const ym = `${year}-${String(month + 1).padStart(2, '0')}`;
                         const players = registrationPlayersByMonth.get(ym) || [];
                         const sorted = [...players].sort((a, b) => {
@@ -2680,13 +2683,16 @@
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
+                            const regDateParsed = parseRegistrationDateFromPlayer(p);
+                            const isToday = regDateParsed && formatLocalDateKey(regDateParsed) === todayKey;
                             return {
                                 type: 'player',
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: regDate
+                                badge: regDate,
+                                isToday
                             };
                         });
                     }
@@ -2876,7 +2882,7 @@
                         }
                         return null;
                     },
-                    getDayItems: ({ key }) => {
+                    getDayItems: ({ key, todayKey }) => {
                         const arr = tournamentsByDay.get(key) || [];
                         return arr.map(t => {
                             const dateText = String(t?.date || '').trim();
@@ -2884,6 +2890,8 @@
                             const dateTimeText = timeText ? `${dateText} ${timeText}` : dateText;
                             const title = `${String(t?.title || t?.name || 'Турнир').trim()}`;
                             const meta = tournamentStatusMeta(t);
+                            const tDate = parseTournamentDate(t?.date);
+                            const isToday = tDate && formatLocalDateKey(tDate) === todayKey;
                             return {
                                 type: 'tournament',
                                 tournament: t,
@@ -2891,11 +2899,12 @@
                                 iconClass: meta.statusClass,
                                 title,
                                 subtitle: meta.infoLine,
-                                badge: dateTimeText
+                                badge: dateTimeText,
+                                isToday
                             };
                         });
                     },
-                    getMonthItems: ({ year, month }) => {
+                    getMonthItems: ({ year, month, todayKey }) => {
                         const ymKey = `${year}-${String(month + 1).padStart(2, '0')}`;
                         const arr = tournamentsByMonth.get(ymKey) || [];
                         const sorted = [...arr].sort((a, b) => {
@@ -2913,6 +2922,8 @@
                             const dateTimeText = timeText ? `${dateText} ${timeText}` : dateText;
                             const title = `${String(t?.title || t?.name || 'Турнир').trim()}`;
                             const meta = tournamentStatusMeta(t);
+                            const tDate = parseTournamentDate(t?.date);
+                            const isToday = tDate && formatLocalDateKey(tDate) === todayKey;
                             return {
                                 type: 'tournament',
                                 tournament: t,
@@ -2920,7 +2931,8 @@
                                 iconClass: meta.statusClass,
                                 title,
                                 subtitle: meta.infoLine,
-                                badge: dateTimeText
+                                badge: dateTimeText,
+                                isToday
                             };
                         });
                     }
@@ -2995,10 +3007,12 @@
             const year = monthOverlayOpenState.year;
             const month = monthOverlayOpenState.month;
             const dt = nextKey ? parseLocalDateKey(nextKey) : null;
+            const now = new Date();
+            const todayKey = formatLocalDateKey(now);
 
             const items = nextKey
-                ? (cfg && typeof cfg.getDayItems === 'function' ? (cfg.getDayItems({ key: nextKey, dt }) || []) : [])
-                : (cfg && typeof cfg.getMonthItems === 'function' ? (cfg.getMonthItems({ year, month }) || []) : []);
+                ? (cfg && typeof cfg.getDayItems === 'function' ? (cfg.getDayItems({ key: nextKey, dt, todayKey }) || []) : [])
+                : (cfg && typeof cfg.getMonthItems === 'function' ? (cfg.getMonthItems({ year, month, todayKey }) || []) : []);
 
             monthOverlayOpenState.items = items;
 
