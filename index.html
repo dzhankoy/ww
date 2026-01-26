@@ -128,6 +128,10 @@
             color: var(--secondary-text);
         }
 
+        .zodiac-glyph {
+            font-weight: 700;
+        }
+
         /* Имя/фамилия крупнее на странице игрока */
         #selectedPlayerName {
             font-size: 17px;
@@ -1548,7 +1552,7 @@
             position: fixed;
             inset: 0;
             z-index: 9999;
-            background: rgba(0, 0, 0, 0.80);
+            background: transparent;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -1558,7 +1562,7 @@
         .out-by-overlay-card {
             width: 100%;
             max-width: 520px;
-            background: var(--card-bg);
+            background: rgba(28, 28, 30, 0.80);
             border-radius: 18px 18px 0 0;
             overflow: hidden;
             height: calc(100dvh - 96px);
@@ -1567,6 +1571,17 @@
             will-change: transform;
             margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
             padding-bottom: env(safe-area-inset-bottom, 0px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .out-by-overlay-handle {
+            width: 44px;
+            height: 5px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.35);
+            margin: 10px auto 6px;
+            flex: 0 0 auto;
         }
 
         .finance-amount {
@@ -1609,6 +1624,7 @@
             font-size: 22px;
             font-weight: 700;
             border-bottom: 1px solid var(--border-color);
+            flex: 0 0 auto;
         }
 
         .out-by-overlay-list {
@@ -1616,6 +1632,7 @@
             flex-direction: column;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            flex: 1 1 auto;
         }
 
         .out-by-choice {
@@ -1934,7 +1951,6 @@
                 <img src="/logo.png" alt="Club logo" class="club-logo" onerror="this.onerror=null;this.src='logo.png';">
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
-                    <!-- APP_VERSION_FULL: 1.5.1 -->
                     <div class="tournament-date" id="tablesTournamentInfo"></div>
                 </div>
             </div>
@@ -4282,7 +4298,8 @@
                 tablesTournamentTitle.textContent = t.title || 'Турнир';
             }
             if (tablesTournamentInfo) {
-                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}${APP_VERSION_FULL ? ` • v${APP_VERSION_FULL}` : ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
+                const dateShort = formatShortYearDate(t.date || '');
+                tablesTournamentInfo.textContent = `${dateShort || ''} • ${t.time || ''}${APP_VERSION_FULL ? ` • v${APP_VERSION_FULL}` : ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
             }
 
             // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
@@ -6337,9 +6354,10 @@
                         const md = parseBirthdayMonthDay(player.birthday);
                         const zodiacGlyph = md ? getZodiacSign(md.day, md.month, false) : '';
                         const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
-                        const zodiacFull = zodiacGlyph && zodiacText ? `${zodiacGlyph} ${zodiacText}` : '';
+                        const zodiacFull = zodiacGlyph && zodiacText ? `<span class="zodiac-glyph">${zodiacGlyph}</span> ${zodiacText}` : '';
+
                         birthdayValue.textContent = player.birthday;
-                        
+
                         if (daysUntil === 0) {
                             birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null && daysUntil < 0) {
@@ -6350,7 +6368,7 @@
                         } else if (daysUntil !== null) {
                             birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else {
-                            birthdayLabel.textContent = zodiacFull ? zodiacFull : 'День рождения';
+                            birthdayLabel.innerHTML = zodiacFull ? zodiacFull : 'День рождения';
                         }
                     } else {
                         birthdayValue.textContent = '—';
@@ -7511,6 +7529,7 @@
 
             const elToRemove = outByOverlayEl;
             const card = elToRemove.querySelector('.out-by-overlay-card');
+            outByOverlayEl = null;
 
             try {
                 if (outByOverlayPrevBackHandler) {
@@ -7527,7 +7546,6 @@
                     if (card) {
                         card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     }
-                    elToRemove.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                 } catch (e) {
                 }
 
@@ -7550,38 +7568,34 @@
                     return 0;
                 };
 
-                let startOpacity = 1;
-                try {
-                    const v = parseFloat(window.getComputedStyle(elToRemove).opacity);
-                    startOpacity = Number.isFinite(v) ? v : 1;
-                } catch (e) {
-                }
-
                 const vh = window.innerHeight || 0;
+                let anim = null;
                 if (card) {
                     const startY = Math.max(0, getTranslateY(card));
-                    safeAnimate(
+                    anim = safeAnimate(
                         card,
                         [{ transform: `translateY(${startY}px)` }, { transform: `translateY(${vh}px)` }],
                         { duration: 360, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                     );
                 }
-                safeAnimate(
-                    elToRemove,
-                    [{ opacity: startOpacity }, { opacity: 0 }],
-                    { duration: 220, easing: 'ease-in', fill: 'forwards' }
-                );
+
+                const done = anim && anim.finished ? anim.finished : new Promise(resolve => setTimeout(resolve, 380));
+                done.then(() => {
+                    try {
+                        document.body.style.overflow = '';
+                    } catch (e) {
+                    }
+                    try { elToRemove.remove(); } catch (e) {}
+                });
+                return;
             } catch (e) {
             }
 
-            outByOverlayEl = null;
-            setTimeout(() => {
-                try {
-                    document.body.style.overflow = '';
-                } catch (e) {
-                }
-                try { elToRemove.remove(); } catch (e) {}
-            }, 380);
+            try {
+                document.body.style.overflow = '';
+            } catch (e) {
+            }
+            try { elToRemove.remove(); } catch (e) {}
         }
 
         function openOutByOverlay(outPlayer) {
@@ -7599,6 +7613,9 @@
 
             const card = document.createElement('div');
             card.className = 'out-by-overlay-card';
+
+            const handle = document.createElement('div');
+            handle.className = 'out-by-overlay-handle';
 
             const title = document.createElement('div');
             title.className = 'out-by-overlay-title';
@@ -7669,6 +7686,7 @@
             list.appendChild(renderChoice(adminChoice, { isAdmin: true }));
             choices.forEach(p => list.appendChild(renderChoice(p)));
 
+            card.appendChild(handle);
             card.appendChild(title);
             card.appendChild(list);
             overlay.appendChild(card);
@@ -7688,12 +7706,6 @@
             }
 
             try {
-                overlay.style.opacity = '0';
-                safeAnimate(
-                    overlay,
-                    [{ opacity: 0 }, { opacity: 1 }],
-                    { duration: 220, easing: 'ease-out', fill: 'forwards' }
-                );
                 const vh = window.innerHeight || 0;
                 safeAnimate(
                     card,
@@ -7708,6 +7720,7 @@
                 let lastY = 0;
                 let startTranslateY = 0;
                 let dragging = false;
+                let canStartDrag = false;
                 let rafId = 0;
 
                 const getTranslateY = (el) => {
@@ -7744,12 +7757,13 @@
                     dragStartY = t.clientY;
                     dragging = false;
                     try {
-                        card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
-                        overlay.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
+                        const target = ev && ev.target && ev.target.closest ? ev.target : null;
+                        canStartDrag = !!(target && (target.closest('.out-by-overlay-title') || target.closest('.out-by-overlay-handle')));
                     } catch (e) {
+                        canStartDrag = false;
                     }
                     try {
-                        overlay.style.opacity = '1';
+                        card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     } catch (e) {
                     }
                     startTranslateY = Math.max(0, getTranslateY(card));
@@ -7762,7 +7776,7 @@
                     const dy = t.clientY - dragStartY;
 
                     if (!dragging) {
-                        const canDrag = (list && list.scrollTop <= 0) && dy > 0;
+                        const canDrag = canStartDrag && (list && list.scrollTop <= 0) && dy > 0;
                         if (!canDrag) return;
                         dragging = true;
                     }
@@ -7812,7 +7826,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--red);">💸</div>
                 <div class="player-info">
                     <div class="player-nickname">Долги</div>
-                    <div class="player-name">${stats && stats.debtsPreviewHtml ? stats.debtsPreviewHtml : 'Должники • Сумма долга'}</div>
+                    <div class="player-name">${stats && stats.debtsPreviewHtml ? stats.debtsPreviewHtml : 'Должники • Долг'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7825,7 +7839,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--green);">💰</div>
                 <div class="player-info">
                     <div class="player-nickname">Балансы</div>
-                    <div class="player-name">${stats && stats.balancesPreviewHtml ? stats.balancesPreviewHtml : 'Игроки • Выручка • Долги'}</div>
+                    <div class="player-name">${stats && stats.balancesPreviewHtml ? stats.balancesPreviewHtml : 'Игроки • Выручка • Долг'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7880,14 +7894,14 @@
                 const n = Math.abs(Math.round(Number(amount) || 0));
                 const sign = Number(amount) < 0 ? '-' : (forceSign ? '+' : '');
                 const rub = formatThousands(n);
-                return `${sign}${rub}<span class="finance-cents">.00</span><span class="finance-currency"> ₽</span>`;
+                return `${sign}${rub}<span class="finance-currency"> ₽</span>`;
             };
 
             if (mode === 'debts') {
                 const picked = stats && Array.isArray(stats.debtsPicked) ? stats.debtsPicked : [];
                 const totalDebt = stats && typeof stats.totalDebt === 'number' ? stats.totalDebt : 0;
                 if (infoEl) {
-                    infoEl.innerHTML = `Должников ${picked.length} • Сумма долга ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
+                    infoEl.innerHTML = `Должников ${picked.length} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
                 }
 
                 for (const it of picked) {
@@ -7917,10 +7931,9 @@
 
             const balances = stats && Array.isArray(stats.balances) ? stats.balances : [];
             const totalRevenue = stats && typeof stats.totalRevenue === 'number' ? stats.totalRevenue : 0;
-            const debtorsCount = stats && typeof stats.debtorsCount === 'number' ? stats.debtorsCount : 0;
             const totalDebt = stats && typeof stats.totalDebtBalances === 'number' ? stats.totalDebtBalances : 0;
             if (infoEl) {
-                infoEl.innerHTML = `Игроков ${balances.length} • Выручка ${fmtMoneyHtml(totalRevenue, { forceSign: false })} • Должников ${debtorsCount} • Долгов ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
+                infoEl.innerHTML = `Игроков ${balances.length} • <span style="color: var(--green); font-weight: 700;">Выручка</span> ${fmtMoneyHtml(totalRevenue, { forceSign: false })} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
             }
 
             for (const it of balances) {
@@ -7996,12 +8009,11 @@
             balances.sort((a, b) => b.revenue - a.revenue);
 
             const totalRevenue = balances.reduce((sum, it) => sum + (it.revenue || 0), 0);
-            const debtorsCount = balances.reduce((sum, it) => sum + (it.debt > 0 ? 1 : 0), 0);
             const totalDebtBalances = balances.reduce((sum, it) => sum + (it.debt || 0), 0);
 
             const fmtPreview = (n) => {
                 const rub = formatThousands(n);
-                return `${rub}<span class="finance-cents">.00</span><span class="finance-currency"> ₽</span>`;
+                return `${rub}<span class="finance-currency"> ₽</span>`;
             };
 
             financeStatsCache = {
@@ -8010,12 +8022,19 @@
                 totalDebt,
                 balances,
                 totalRevenue,
-                debtorsCount,
                 totalDebtBalances,
-                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг ${fmtPreview(totalDebt)}`,
-                balancesPreviewHtml: `Игроков ${balances.length} • Выручка ${fmtPreview(totalRevenue)} • Долг ${fmtPreview(totalDebtBalances)}`
+                debtsPreviewHtml: `Должников ${debtsPicked.length} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtPreview(totalDebt)}`,
+                balancesPreviewHtml: `Игроков ${balances.length} • <span style="color: var(--green); font-weight: 700;">Выручка</span> ${fmtPreview(totalRevenue)} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtPreview(totalDebtBalances)}`
             };
             return financeStatsCache;
+        }
+
+        function formatShortYearDate(dateStr) {
+            const s = String(dateStr || '').trim();
+            const parts = s.split('.');
+            if (parts.length !== 3) return s;
+            const yy = String(parts[2] || '').slice(-2);
+            return `${parts[0]}.${parts[1]}.${yy}`;
         }
 
         // Обработчик out с использованием selectedBox
@@ -8312,9 +8331,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 1;
 var APP_VERSION_MINOR = 5;
-var APP_EDIT_NUMBER = 1;
-var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_EDIT_NUMBER}`;
-var INDEX_HTML_LAST_EDITED = '26.01.2026 19:59:00';
+var APP_VERSION_PATCH = 9;
+var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
+var INDEX_HTML_LAST_EDITED = '27.01.26 02:14';
 
 init();
 </script>
