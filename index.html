@@ -870,7 +870,7 @@
 
         .month-overlay-calendar {
             flex: 0 0 auto;
-            padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-md) var(--spacing-lg);
+            padding: var(--spacing-sm) var(--spacing-lg) 0 var(--spacing-lg);
         }
 
         .month-overlay-title {
@@ -896,41 +896,46 @@
 
         .month-overlay-calendar .registration-month-grid {
             gap: 6px;
+            row-gap: 12px;
             position: relative;
-            padding: 12px 0;
+            padding: 0;
         }
 
         .month-overlay-calendar .registration-month-grid::before {
             content: '';
             position: absolute;
-            left: 0;
-            right: 0;
-            top: 0;
+            left: var(--spacing-lg);
+            right: var(--spacing-md);
+            top: -6px;
             height: 1px;
             background-color: var(--border-color);
+            opacity: 0.25;
             pointer-events: none;
         }
 
         .month-overlay-calendar .registration-month-grid::after {
             content: '';
             position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            left: var(--spacing-lg);
+            right: var(--spacing-md);
+            bottom: -6px;
             height: 1px;
             background-color: var(--border-color);
+            opacity: 0.25;
             pointer-events: none;
         }
 
         .month-overlay-calendar .registration-day:nth-child(7n + 1):not(:nth-child(-n + 7))::before {
             content: '';
             position: absolute;
-            left: calc(-6px - 100%);
-            right: calc(-6px * 6 - 100% * 6);
+            left: calc(var(--spacing-lg) - 6px - 100%);
+            right: calc(var(--spacing-md) - 6px * 6 - 100% * 6);
             top: -6px;
             height: 1px;
             background-color: var(--border-color);
+            opacity: 0.25;
             pointer-events: none;
+            z-index: -1;
         }
 
         .month-overlay-calendar .registration-day {
@@ -2490,6 +2495,13 @@
                     }
                     const key = cell.getAttribute('data-day-key') || '';
                     if (!key) return;
+                    
+                    // Toggle: если кликнули на уже выделенный день, снимаем выделение
+                    if (monthOverlayOpenState.selectedDayKey === key) {
+                        setMonthOverlaySelectedDay(null);
+                        return;
+                    }
+                    
                     setMonthOverlaySelectedDay(key);
                 } catch (err) {
                 }
