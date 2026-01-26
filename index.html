@@ -749,7 +749,11 @@
             display: flex;
             flex-direction: column;
             gap: var(--spacing-sm);
-            margin-top: var(--spacing-lg);
+            margin-top: var(--spacing-xs);
+        }
+
+        #adminCallsSection.tables-section-block {
+            margin-bottom: 0;
         }
 
         .tables-action-button {
@@ -1742,7 +1746,7 @@
             <div class="tables-aggregates-text" id="tablesTournamentStats"></div>
         </div>
         <div class="players-list-container tables-section-block" id="adminCallsSection" style="display: none;">
-            <div class="tables-active-title tables-section-padding" style="color: var(--yellow);">🔔 Вызовы</div>
+            <div class="tables-active-title tables-section-padding" style="color: var(--yellow);">Вызовы</div>
             <div class="players-list" id="adminCallsList"></div>
         </div>
         <div class="players-list-container tables-section-block">
@@ -4223,7 +4227,7 @@
                         ${boxText}
                     </div>
                     <div class="player-info">
-                        <div class="player-nickname">🔔 ${nicknameDisplay}</div>
+                        <div class="player-nickname">${nicknameDisplay}</div>
                         <div class="player-name">${playerName} • ${tableBoxInfo}</div>
                     </div>
                     <div class="chevron"></div>
@@ -7211,15 +7215,19 @@
 
                 let callerNick = '';
                 let callerBox = null;
+                let isDealerCaller = false;
                 try {
                     const selectedTable = getSelectedTable();
                     const players = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
                     const me = viewerChatId ? players.find(p => p && String(p.id) === String(viewerChatId)) : null;
                     if (me) {
-                        callerNick = String(me.nickname || '').trim();
-                        callerBox = me.box != null ? me.box : null;
+                        isDealerCaller = !!me.dealer;
+                        if (!isDealerCaller) {
+                            callerNick = String(me.nickname || '').trim();
+                            callerBox = me.box != null ? me.box : null;
+                        }
                     }
-                    if (!callerNick) {
+                    if (!callerNick && !isDealerCaller) {
                         const initUser = window.Telegram.WebApp.initDataUnsafe?.user;
                         callerNick = String(initUser?.username || initUser?.first_name || '').trim();
                     }
