@@ -263,10 +263,13 @@
 
         .club-logo {
             display: block;
-            width: var(--position-size);
             height: var(--position-size);
+            width: auto;
+            max-width: calc(var(--position-size) * 2);
+            flex-shrink: 0;
             border-radius: 0;
-            object-fit: cover;
+            object-fit: contain !important;
+            object-position: center;
             margin-right: var(--spacing-sm);
         }
 
@@ -994,18 +997,21 @@
             color: var(--blue);
         }
 
-        .month-overlay-calendar .registration-day.selected-day .dot {
-            outline: 2px solid rgba(10, 132, 255, 0.55);
-            outline-offset: 0px;
+        .month-overlay-calendar .registration-day {
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .month-overlay-calendar .registration-day.selected-day:not(:has(.dot))::before {
+        .month-overlay-calendar .registration-day .dot::before {
             content: '';
             position: absolute;
-            inset: 0;
+            inset: -2px;
             border-radius: 999px;
-            outline: 2px solid rgba(10, 132, 255, 0.55);
+            border: 2px solid transparent;
             pointer-events: none;
+        }
+
+        .month-overlay-calendar .registration-day.selected-day .dot::before {
+            border-color: rgba(10, 132, 255, 0.55);
         }
 
         
@@ -1014,12 +1020,17 @@
             flex: 1;
             overflow-y: scroll;
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
             padding: 0 0 var(--spacing-lg) 0;
             position: relative;
             z-index: 0;
             display: flex;
             flex-direction: column;
+        }
+
+        .month-overlay-list.bounce-only::after {
+            content: '';
+            display: block;
+            height: 1px;
         }
 
         .month-overlay-list-group {
@@ -1030,7 +1041,11 @@
             border-radius: 0;
             overflow: visible;
             border: none;
-            flex: 1;
+            flex: 0 0 auto;
+        }
+
+        .month-overlay-list.bounce-only .month-overlay-list-group {
+            min-height: calc(100% + 2px);
         }
 
         .month-overlay-item {
@@ -1272,6 +1287,11 @@
             box-sizing: border-box;
             font-size: 1em;
             color: #fff;
+        }
+
+        .registration-day .dot.empty {
+            background-color: transparent;
+            color: inherit;
         }
 
         .registration-day .dot.today {
@@ -2454,6 +2474,16 @@
         let monthOverlayOpenState = null;
         let monthOverlayPrevBackHandler = null;
         let monthOverlayPrevBodyOverflow = null;
+        let monthOverlayBounceResetTimer = null;
+
+        function updateMonthOverlayListBounce() {
+            if (!monthOverlayListEl) return;
+            try {
+                const isShort = monthOverlayListEl.scrollHeight <= monthOverlayListEl.clientHeight + 1;
+                monthOverlayListEl.classList.toggle('bounce-only', !!isShort);
+            } catch (e) {
+            }
+        }
 
         function buildMonthOverlayListPreviewHTML(calendarType) {
             const title = calendarType === 'birthdays'
@@ -2547,6 +2577,23 @@
 
             monthOverlayListEl = document.createElement('div');
             monthOverlayListEl.className = 'month-overlay-list';
+
+            const bounceReset = () => {
+                if (!monthOverlayListEl) return;
+                if (!monthOverlayListEl.classList.contains('bounce-only')) return;
+                if (monthOverlayBounceResetTimer) {
+                    clearTimeout(monthOverlayBounceResetTimer);
+                }
+                monthOverlayBounceResetTimer = setTimeout(() => {
+                    try {
+                        monthOverlayListEl.scrollTop = 0;
+                    } catch (e) {
+                    }
+                }, 60);
+            };
+
+            monthOverlayListEl.addEventListener('touchend', bounceReset, { passive: true });
+            monthOverlayListEl.addEventListener('mouseup', bounceReset);
 
             monthOverlayListEl.addEventListener('click', async (e) => {
                 try {
@@ -3029,6 +3076,7 @@
                 monthOverlayListEl.scrollTop = 0;
             } catch (e) {
             }
+            updateMonthOverlayListBounce();
         }
 
         function backToRegistrationCalendarFromAction() {
@@ -3152,7 +3200,7 @@
                     if (isToday) {
                         html += `<div class="${baseDayClass} today-cell" data-day-key="${key}"><div class="dot today">${day}</div></div>`;
                     } else {
-                        html += `<div class="${baseDayClass}" data-day-key="${key}">${day}</div>`;
+                        html += `<div class="${baseDayClass}" data-day-key="${key}"><div class="dot empty">${day}</div></div>`;
                     }
                 }
 
@@ -5814,7 +5862,6 @@
         }
 
         // Расчёт дней до следующей даты (дня рождения или годовщины)
-        // Возвращает объект { days, isPast } где isPast=true если дата была менее полугода назад
         function getDaysUntilDate(dateStr, hasYear = true) {
             if (!dateStr) return null;
             
