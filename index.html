@@ -994,19 +994,17 @@
             color: var(--blue);
         }
 
-        .month-overlay-calendar .registration-day.selected-day::before {
+        .month-overlay-calendar .registration-day.selected-day .dot {
+            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
+        }
+
+        .month-overlay-calendar .registration-day.selected-day:not(:has(.dot))::before {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 12px;
-            background: transparent;
+            border-radius: 999px;
             box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
             pointer-events: none;
-        }
-
-        .month-overlay-calendar .registration-day.selected-day > * {
-            position: relative;
-            z-index: 1;
         }
 
         
@@ -2117,6 +2115,7 @@
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
             TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
             PHOTOS_BASE_URL: 'https://5970995-zo35356.twc1.net/pictures',
+            PHOTOS_VERSION: 2,
             REFRESH_INTERVAL: 30000,
             REQUEST_TIMEOUT: 10000,
             MAX_REBUYS: 3
@@ -2601,7 +2600,7 @@
         function getMonthOverlayConfig(calendarType, now) {
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const getPlayerPhotoUrl = (playerId) => `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${cacheBuster}`;
 
             const getPlayerDisplayName = (p) => {
@@ -5289,7 +5288,7 @@
             const maxYear = currentYear;
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             birthdaysCalendarList.innerHTML = buildYearMonthCalendarHTML({
                 minYear,
@@ -5656,7 +5655,7 @@
                     button.classList.add('player-button');
                     
                     const now = new Date();
-                    const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                     const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
                     
                     const nickname = player.nickname || 'Неизвестно';
@@ -6216,7 +6215,7 @@
             
             // Фото игрока
             const now = new Date();
-            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
             if (playerPhotoImage) {
                 let fallbackApplied = false;
@@ -7005,7 +7004,7 @@
             
             // Фото игрока
             const now = new Date();
-            const cacheBuster = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
             const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
             if (playerPhotoImage) {
                 let fallbackApplied = false;
