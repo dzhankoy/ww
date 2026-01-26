@@ -691,11 +691,10 @@
         .tables-progress-title,
         .tables-actions-title {
             font-size: 13px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
+            font-weight: 400;
             text-transform: uppercase;
             color: var(--secondary-text);
-            margin-top: var(--spacing-lg);    /* более компактный стандартный отступ сверху */
+            margin-top: var(--spacing-lg);
             margin-bottom: var(--spacing-xs);
             text-align: left;
         }
@@ -920,7 +919,6 @@
 
         .month-overlay-calendar .registration-day.selected-day {
             background: transparent;
-            font-weight: 800;
             color: var(--blue);
         }
 
@@ -1122,7 +1120,6 @@
             color: var(--text-color);
             margin: 0 0 6px 0;
             white-space: nowrap;
-            text-transform: uppercase;
             display: inline-flex;
             align-items: center;
             gap: 0.35em;
@@ -1161,6 +1158,13 @@
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             gap: 2px;
+            row-gap: 0;
+        }
+
+        .registration-month-grid > .registration-day:nth-child(7n + 1):nth-last-child(n + 8),
+        .registration-month-grid > .registration-day:nth-child(7n + 1):nth-last-child(n + 8) ~ .registration-day:nth-child(-n + 7) {
+            padding-bottom: 2px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .registration-day {
