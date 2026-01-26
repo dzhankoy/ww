@@ -1561,8 +1561,8 @@
             background: var(--card-bg);
             border-radius: 18px 18px 0 0;
             overflow: hidden;
-            height: calc(100dvh - 12px);
-            max-height: calc(100dvh - 12px);
+            height: calc(100dvh - 96px);
+            max-height: calc(100dvh - 96px);
             transform: translateY(120%);
             will-change: transform;
             margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
@@ -1582,7 +1582,7 @@
 
         .finance-cents,
         .finance-currency {
-            opacity: 1;
+            opacity: 0.35;
             font-weight: 700;
         }
 
@@ -1605,7 +1605,7 @@
         }
 
         .out-by-overlay-title {
-            padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+            padding: var(--spacing-md) var(--spacing-lg);
             font-size: 22px;
             font-weight: 700;
             border-bottom: 1px solid var(--border-color);
@@ -1616,7 +1616,6 @@
             flex-direction: column;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding-top: var(--spacing-sm);
         }
 
         .out-by-choice {
@@ -2264,7 +2263,7 @@
             tg.onEvent('themeChanged', applyTelegramTheme);
         }
 
-        const INDEX_HTML_LAST_EDITED = '2026-01-26 19:03';
+        const INDEX_HTML_LAST_EDITED = '2026-01-26 19:48';
 
         const CONFIG = {
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
@@ -7511,10 +7510,8 @@
         function closeOutByOverlay() {
             if (!outByOverlayEl) return;
 
-            try {
-                document.body.style.overflow = '';
-            } catch (e) {
-            }
+            const elToRemove = outByOverlayEl;
+            const card = elToRemove.querySelector('.out-by-overlay-card');
 
             try {
                 if (outByOverlayPrevBackHandler) {
@@ -7527,26 +7524,63 @@
             }
 
             try {
-                const card = outByOverlayEl.querySelector('.out-by-overlay-card');
+                try {
+                    if (card) {
+                        card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
+                    }
+                    elToRemove.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
+                } catch (e) {
+                }
+
+                const getTranslateY = (el) => {
+                    try {
+                        const tr = window.getComputedStyle(el).transform;
+                        if (!tr || tr === 'none') return 0;
+                        const m = tr.match(/^matrix\((.+)\)$/);
+                        if (m) {
+                            const parts = m[1].split(',').map(s => parseFloat(s.trim()));
+                            return Number.isFinite(parts[5]) ? parts[5] : 0;
+                        }
+                        const m3 = tr.match(/^matrix3d\((.+)\)$/);
+                        if (m3) {
+                            const parts = m3[1].split(',').map(s => parseFloat(s.trim()));
+                            return Number.isFinite(parts[13]) ? parts[13] : 0;
+                        }
+                    } catch (e) {
+                    }
+                    return 0;
+                };
+
+                let startOpacity = 1;
+                try {
+                    const v = parseFloat(window.getComputedStyle(elToRemove).opacity);
+                    startOpacity = Number.isFinite(v) ? v : 1;
+                } catch (e) {
+                }
+
+                const vh = window.innerHeight || 0;
                 if (card) {
-                    const vh = window.innerHeight || 0;
+                    const startY = Math.max(0, getTranslateY(card));
                     safeAnimate(
                         card,
-                        [{ transform: 'translateY(0px)' }, { transform: `translateY(${vh}px)` }],
+                        [{ transform: `translateY(${startY}px)` }, { transform: `translateY(${vh}px)` }],
                         { duration: 360, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                     );
                 }
                 safeAnimate(
-                    outByOverlayEl,
-                    [{ opacity: 1 }, { opacity: 0 }],
+                    elToRemove,
+                    [{ opacity: startOpacity }, { opacity: 0 }],
                     { duration: 220, easing: 'ease-in', fill: 'forwards' }
                 );
             } catch (e) {
             }
 
-            const elToRemove = outByOverlayEl;
             outByOverlayEl = null;
             setTimeout(() => {
+                try {
+                    document.body.style.overflow = '';
+                } catch (e) {
+                }
                 try { elToRemove.remove(); } catch (e) {}
             }, 380);
         }
@@ -7766,13 +7800,20 @@
             if (!financePreviewList) return;
             financePreviewList.innerHTML = '';
 
+            const t = getTournament();
+            const players = (t && Array.isArray(t.players) ? t.players : getAllTournamentPlayers())
+                .filter(p => p && p.id != null)
+                .slice();
+
+            const stats = computeFinanceStats(players);
+
             const debtsBtn = document.createElement('button');
             debtsBtn.classList.add('player-button');
             debtsBtn.innerHTML = `
                 <div class="table-indicator emoji" style="background-color: var(--red);">💸</div>
                 <div class="player-info">
                     <div class="player-nickname">Долги</div>
-                    <div class="player-name">Должники • Сумма долга</div>
+                    <div class="player-name">${stats && stats.debtsPreviewHtml ? stats.debtsPreviewHtml : 'Должники • Сумма долга'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7785,7 +7826,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--green);">💰</div>
                 <div class="player-info">
                     <div class="player-nickname">Балансы</div>
-                    <div class="player-name">Игроки • Выручка • Долги</div>
+                    <div class="player-name">${stats && stats.balancesPreviewHtml ? stats.balancesPreviewHtml : 'Игроки • Выручка • Долги'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -7834,29 +7875,20 @@
             const now = new Date();
             const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+            const stats = computeFinanceStats(players);
+
             const fmtMoneyHtml = (amount, { forceSign = true } = {}) => {
                 const n = Math.abs(Math.round(Number(amount) || 0));
                 const sign = Number(amount) < 0 ? '-' : (forceSign ? '+' : '');
-                return `${sign}${n}<span class="finance-cents">.00</span><span class="finance-currency">₽</span>`;
+                const rub = formatThousands(n);
+                return `${sign}${rub}<span class="finance-cents">.00</span><span class="finance-currency"> ₽</span>`;
             };
 
             if (mode === 'debts') {
-                const pool = players.slice();
-                for (let i = pool.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    const tmp = pool[i];
-                    pool[i] = pool[j];
-                    pool[j] = tmp;
-                }
-                const picked = pool.slice(0, Math.min(7, pool.length)).map(p => {
-                    const debt = randInt(200, 9500);
-                    return { p, debt };
-                });
-                picked.sort((a, b) => b.debt - a.debt);
-
-                const totalDebt = picked.reduce((sum, it) => sum + (it.debt || 0), 0);
+                const picked = stats && Array.isArray(stats.debtsPicked) ? stats.debtsPicked : [];
+                const totalDebt = stats && typeof stats.totalDebt === 'number' ? stats.totalDebt : 0;
                 if (infoEl) {
-                    infoEl.textContent = `Должников ${picked.length} • Сумма долга ${totalDebt}.00₽`;
+                    infoEl.innerHTML = `Должников ${picked.length} • Сумма долга ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
                 }
 
                 for (const it of picked) {
@@ -7884,20 +7916,12 @@
                 return;
             }
 
-            const balances = players.map(p => {
-                const revenue = randInt(200, 12000);
-                const hasDebt = Math.random() < 0.45;
-                const debt = hasDebt ? randInt(0, 9000) : 0;
-                const balance = revenue - debt;
-                return { p, revenue, debt, balance };
-            });
-            balances.sort((a, b) => b.revenue - a.revenue);
-
-            const totalRevenue = balances.reduce((sum, it) => sum + (it.revenue || 0), 0);
-            const debtorsCount = balances.reduce((sum, it) => sum + (it.debt > 0 ? 1 : 0), 0);
-            const totalDebt = balances.reduce((sum, it) => sum + (it.debt || 0), 0);
+            const balances = stats && Array.isArray(stats.balances) ? stats.balances : [];
+            const totalRevenue = stats && typeof stats.totalRevenue === 'number' ? stats.totalRevenue : 0;
+            const debtorsCount = stats && typeof stats.debtorsCount === 'number' ? stats.debtorsCount : 0;
+            const totalDebt = stats && typeof stats.totalDebtBalances === 'number' ? stats.totalDebtBalances : 0;
             if (infoEl) {
-                infoEl.textContent = `Игроков ${balances.length} • Выручка ${totalRevenue}.00₽ • Должников ${debtorsCount} • Долгов ${totalDebt}.00₽`;
+                infoEl.innerHTML = `Игроков ${balances.length} • Выручка ${fmtMoneyHtml(totalRevenue, { forceSign: false })} • Должников ${debtorsCount} • Долгов ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
             }
 
             for (const it of balances) {
@@ -7930,6 +7954,69 @@
             }
 
             restoreScrollPositionForScreen(financeBalancesScreen);
+        }
+
+        let financeStatsCache = null;
+
+        function formatThousands(n) {
+            const s = String(Math.abs(Math.round(Number(n) || 0)));
+            return s.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+
+        function computeFinanceStats(players) {
+            const list = Array.isArray(players) ? players.filter(p => p && p.id != null) : [];
+            const idsKey = list.map(p => String(p.id)).sort().join(',');
+            if (financeStatsCache && financeStatsCache.idsKey === idsKey) {
+                return financeStatsCache;
+            }
+
+            const randInt = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
+
+            const pool = list.slice();
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = pool[i];
+                pool[i] = pool[j];
+                pool[j] = tmp;
+            }
+
+            const debtsPicked = pool.slice(0, Math.min(7, pool.length)).map(p => {
+                const debt = randInt(200, 9500);
+                return { p, debt };
+            });
+            debtsPicked.sort((a, b) => b.debt - a.debt);
+            const totalDebt = debtsPicked.reduce((sum, it) => sum + (it.debt || 0), 0);
+
+            const balances = list.map(p => {
+                const revenue = randInt(200, 12000);
+                const hasDebt = Math.random() < 0.45;
+                const debt = hasDebt ? randInt(0, 9000) : 0;
+                const balance = revenue - debt;
+                return { p, revenue, debt, balance };
+            });
+            balances.sort((a, b) => b.revenue - a.revenue);
+
+            const totalRevenue = balances.reduce((sum, it) => sum + (it.revenue || 0), 0);
+            const debtorsCount = balances.reduce((sum, it) => sum + (it.debt > 0 ? 1 : 0), 0);
+            const totalDebtBalances = balances.reduce((sum, it) => sum + (it.debt || 0), 0);
+
+            const fmtPreview = (n) => {
+                const rub = formatThousands(n);
+                return `${rub}<span class="finance-cents">.00</span><span class="finance-currency"> ₽</span>`;
+            };
+
+            financeStatsCache = {
+                idsKey,
+                debtsPicked,
+                totalDebt,
+                balances,
+                totalRevenue,
+                debtorsCount,
+                totalDebtBalances,
+                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг ${fmtPreview(totalDebt)}`,
+                balancesPreviewHtml: `Игроков ${balances.length} • Выручка ${fmtPreview(totalRevenue)} • Долг ${fmtPreview(totalDebtBalances)}`
+            };
+            return financeStatsCache;
         }
 
         // Обработчик out с использованием selectedBox
