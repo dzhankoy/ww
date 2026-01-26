@@ -969,13 +969,15 @@
         }
 
         .month-overlay-calendar .registration-day {
-            aspect-ratio: 1 / 1;
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
             position: relative;
+            flex-shrink: 0;
         }
 
         .month-overlay-calendar .registration-day[data-day-key] {
@@ -2743,7 +2745,7 @@
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
                             const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
-                            const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
+                            const badgeText = zodiac ? `${zodiac} • ${birthday}` : birthday;
                             return {
                                 type: 'player',
                                 player: p,
@@ -2771,7 +2773,7 @@
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
                             const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
-                            const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
+                            const badgeText = zodiac ? `${zodiac} • ${birthday}` : birthday;
                             return {
                                 type: 'player',
                                 player: p,
@@ -6059,11 +6061,11 @@
                         birthdayValue.textContent = player.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else if (daysUntil !== null) {
-                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else {
                             birthdayLabel.textContent = zodiacText ? zodiacText : 'День рождения';
                         }
@@ -6817,11 +6819,11 @@
                         birthdayValue.textContent = dbPlayer.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else if (daysUntil !== null) {
-                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? ` • ${zodiacText}` : ''}`;
+                            birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? `<br>${zodiacText}` : ''}`;
                         } else {
                             birthdayLabel.textContent = zodiacText ? zodiacText : 'День рождения';
                         }
