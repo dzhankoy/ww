@@ -978,13 +978,6 @@
             font-size: 22px;
             position: relative;
             flex-shrink: 0;
-            font-weight: 400;
-        }
-
-        .month-overlay-calendar .registration-day.today-cell,
-        .month-overlay-calendar .registration-day.selected-day,
-        .month-overlay-calendar .registration-day .dot {
-            font-weight: 700;
         }
 
         .month-overlay-calendar .registration-day[data-day-key] {
@@ -1075,10 +1068,6 @@
             background: var(--border-color);
         }
 
-        .month-overlay-item.today-item {
-            color: var(--red);
-        }
-
         .month-overlay-item-icon {
             width: 44px;
             height: 44px;
@@ -1161,6 +1150,10 @@
         .month-overlay-item-meta {
             font-size: 12px;
             color: var(--secondary-text);
+        }
+        
+        .month-overlay-item.today-item .month-overlay-item-icon {
+            box-shadow: inset 0 0 0 2px var(--red);
         }
 
         .month-overlay-empty {
@@ -1250,7 +1243,11 @@
         .registration-day.weekend,
         .registration-day.holiday {
             color: var(--red);
-            font-weight: 600;
+        }
+        
+        .month-overlay-calendar .registration-day.selected-day,
+        .month-overlay-calendar .registration-day.today-cell {
+            font-weight: 700;
         }
 
         .registration-day.blank {
@@ -1267,6 +1264,7 @@
             position: relative;
             box-sizing: border-box;
             font-size: 1em;
+            font-weight: 700;
             color: #fff;
         }
 
@@ -2659,7 +2657,6 @@
                             return {
                                 type: 'player',
                                 player: p,
-                                key: key,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
@@ -2744,12 +2741,15 @@
 
                         return null;
                     },
-                    getDayItems: ({ dt, key }) => {
+                    getDayItems: ({ dt, todayKey }) => {
                         if (!dt) return [];
                         const mm = String(dt.getMonth() + 1).padStart(2, '0');
                         const dd = String(dt.getDate()).padStart(2, '0');
                         const mdKey = `${mm}-${dd}`;
                         const players = byMonthDay.get(mdKey) || [];
+                        const now = new Date();
+                        const todayMM = String(now.getMonth() + 1).padStart(2, '0');
+                        const todayDD = String(now.getDate()).padStart(2, '0');
                         return players.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
@@ -2757,14 +2757,15 @@
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
                             const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
                             const badgeText = zodiac ? `${zodiac} • ${birthday}` : birthday;
+                            const isTodayBirthday = md && String(md.month).padStart(2, '0') === todayMM && String(md.day).padStart(2, '0') === todayDD;
                             return {
                                 type: 'player',
                                 player: p,
-                                key: key,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: badgeText
+                                badge: badgeText,
+                                isToday: isTodayBirthday
                             };
                         });
                     },
@@ -2779,6 +2780,9 @@
                             return da - db;
                         });
 
+                        const now = new Date();
+                        const todayMM = String(now.getMonth() + 1).padStart(2, '0');
+                        const todayDD = String(now.getDate()).padStart(2, '0');
                         return sorted.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
@@ -2786,13 +2790,15 @@
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
                             const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
                             const badgeText = zodiac ? `${zodiac} • ${birthday}` : birthday;
+                            const isTodayBirthday = md && String(md.month).padStart(2, '0') === todayMM && String(md.day).padStart(2, '0') === todayDD;
                             return {
                                 type: 'player',
                                 player: p,
                                 iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
                                 title: nickname,
                                 subtitle: fullName,
-                                badge: badgeText
+                                badge: badgeText,
+                                isToday: isTodayBirthday
                             };
                         });
                     }
@@ -2934,7 +2940,6 @@
                 return `<div class="month-overlay-empty">${emptyText || 'Нет событий'}</div>`;
             }
 
-            const todayKey = formatLocalDateKey(new Date());
             let rows = '';
             for (let i = 0; i < items.length; i++) {
                 const it = items[i];
@@ -2944,8 +2949,7 @@
                 const subtitle = it?.subtitle != null ? String(it.subtitle) : '';
                 const badge = it?.badge != null ? String(it.badge) : '';
                 const meta = it?.meta != null ? String(it.meta) : '';
-                const itemKey = it?.key != null ? String(it.key) : '';
-                const isToday = itemKey && itemKey === todayKey;
+                const isToday = it?.isToday === true;
                 
                 const rightHtml = (badge || meta) ? `
                         <div class="month-overlay-item-right">
@@ -4693,6 +4697,7 @@
                     `;
                     const chevron = button.querySelector('.chevron');
                     button.insertBefore(finishInfoContainer, chevron);
+                    chevron.style.display = 'none';
                     button.style.opacity = '0.5';
                 } else {
                     // Активный игрок - показываем ребаи
@@ -4770,6 +4775,25 @@
             saveScrollPositionForScreen(telegramTableScreen);
             telegramTableScreen.classList.add('hidden');
             showTablesScreen();
+        }
+
+        // Показать карточку игрока турнира из призовой таблицы
+        let cameFromTelegramTable = false;
+        function showTournamentPlayerCardFromTelegramTable(player) {
+            cameFromTelegramTable = true;
+            saveScrollPositionForScreen(telegramTableScreen);
+            telegramTableScreen.classList.add('hidden');
+            displayTournamentPlayerInfo(player);
+            showTelegramBackButton(backToTelegramTableFromAction);
+        }
+
+        // Возврат с карточки игрока на призовую таблицу
+        function backToTelegramTableFromAction() {
+            cameFromTelegramTable = false;
+            actionScreen.classList.add('hidden');
+            telegramTableScreen.classList.remove('hidden');
+            restoreScrollPositionForScreen(telegramTableScreen);
+            showTelegramBackButton(backToTablesFromTelegramTable);
         }
 
         // Рендер таблицы для Телеграм (компактный вид с фото)
@@ -4853,6 +4877,11 @@
                     button.insertBefore(finishInfoContainer, chevron);
                     chevron.style.display = 'none';
                 }
+                
+                // Добавляем обработчик клика для открытия карточки игрока
+                button.addEventListener('click', () => {
+                    showTournamentPlayerCardFromTelegramTable(player);
+                });
                 
                 telegramTableList.appendChild(button);
             });
@@ -5615,15 +5644,13 @@
                         daysLabel = `через ${daysUntil} ${getDayWordLocal(daysUntil)}`;
                     }
                     
-                    const md = parseBirthdayMonthDay(player.birthday);
-                    const zodiacSymbol = md ? getZodiacSign(md.day, md.month) : '';
-                    
+                    const zodiacEmoji = getZodiacSign(day, month + 1);
                     button.innerHTML = `
                         <div class="position-indicator photo-indicator">
                             <img src="${playerPhotoUrl}" alt="${nickname}" onerror="this.src='avatar.png'">
                         </div>
                         <div class="player-info">
-                            <div class="player-nickname">${dayStr}.${monthStr} ${zodiacSymbol || '—'} ${nickname}</div>
+                            <div class="player-nickname">${dayStr}.${monthStr} ${zodiacEmoji} ${nickname}</div>
                             <div class="player-name">${fullName}${daysLabel ? ' • ' + daysLabel : ''}</div>
                         </div>
                         <div class="chevron"></div>
@@ -6149,26 +6176,6 @@
                 }
                 
                 playerInfoBoxes.style.display = 'flex';
-            }
-            
-            // Кого игрок выбил (для всех игроков, не только вылетевших)
-            const allPlayersForKnocked = getAllTournamentPlayers();
-            const knockedPlayers = Array.isArray(allPlayersForKnocked)
-                ? allPlayersForKnocked.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
-                : [];
-            
-            if (knockedPlayers.length > 0 && selectedPlayerTableInfo) {
-                const knockedBadges = knockedPlayers
-                    .map(p => {
-                        const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
-                        return `<span class="table-badge">${escapeHtml(knockedNick)}</span>`;
-                    })
-                    .join('');
-                
-                selectedPlayerTableInfo.innerHTML += `
-                    <span class="table-label">Выбил игроков</span>
-                    <span class="out-knocked-list">${knockedBadges}</span>
-                `;
             }
             
             // Фото игрока
@@ -6788,13 +6795,41 @@
             const selectedTable = getSelectedTable();
             if (selectedPlayerTableInfo && selectedTable) {
                 if (!isOut) {
+                    // Кого выбил активный игрок
+                    const allPlayersForKnockedActive = getAllTournamentPlayers();
+                    const knockedByActivePlayer = Array.isArray(allPlayersForKnockedActive)
+                        ? allPlayersForKnockedActive.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
+                        : [];
+                    const knockedBadgesActive = knockedByActivePlayer
+                        .map(p => {
+                            const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
+                            return `<span class="table-badge">${escapeHtml(knockedNick)}<\/span>`;
+                        })
+                        .join('');
+                    
                     selectedPlayerTableInfo.classList.remove('out-info-compact');
-                    selectedPlayerTableInfo.innerHTML = `
+                    let tableInfoHtml = `
                         <span class="table-label">Стол<\/span>
                         <span class="table-badge">${selectedTable.id || '1'}<\/span>
                         <span class="table-label">Бокс<\/span>
                         <span class="table-badge">${box}<\/span>
                     `;
+                    if (knockedByActivePlayer.length > 0) {
+                        selectedPlayerTableInfo.classList.add('out-info-compact');
+                        tableInfoHtml = `
+                            <div class="out-info-line">
+                                <span class="table-label">Стол<\/span>
+                                <span class="table-badge">${selectedTable.id || '1'}<\/span>
+                                <span class="table-label">Бокс<\/span>
+                                <span class="table-badge">${box}<\/span>
+                            <\/div>
+                            <div class="out-info-line">
+                                <span class="table-label">Игрок выбил<\/span>
+                                <span class="out-knocked-list">${knockedBadgesActive}<\/span>
+                            <\/div>
+                        `;
+                    }
+                    selectedPlayerTableInfo.innerHTML = tableInfoHtml;
                 } else {
                     const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
                     const place = globalOutPlaces.get(player.id) || '?';
@@ -6928,26 +6963,6 @@
                 
                 // Всегда показываем блок с информацией
                 playerInfoBoxes.style.display = 'flex';
-            }
-            
-            // Кого игрок выбил (для всех игроков, не только вылетевших) - для турнирной карточки
-            const allPlayersForKnockedTournament = getAllTournamentPlayers();
-            const knockedPlayersTournament = Array.isArray(allPlayersForKnockedTournament)
-                ? allPlayersForKnockedTournament.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
-                : [];
-            
-            if (knockedPlayersTournament.length > 0 && selectedPlayerTableInfo) {
-                const knockedBadgesTournament = knockedPlayersTournament
-                    .map(p => {
-                        const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
-                        return `<span class="table-badge">${escapeHtml(knockedNick)}</span>`;
-                    })
-                    .join('');
-                
-                selectedPlayerTableInfo.innerHTML += `
-                    <span class="table-label">Выбил игроков</span>
-                    <span class="out-knocked-list">${knockedBadgesTournament}</span>
-                `;
             }
             
             // Фото игрока
