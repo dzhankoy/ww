@@ -1934,6 +1934,7 @@
                 <img src="/logo.png" alt="Club logo" class="club-logo" onerror="this.onerror=null;this.src='logo.png';">
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tablesTournamentTitle">King & Joker Tournament</div>
+                    <!-- APP_VERSION_FULL: 1.5.1 -->
                     <div class="tournament-date" id="tablesTournamentInfo"></div>
                 </div>
             </div>
@@ -2262,8 +2263,6 @@
         if (tg && typeof tg.onEvent === 'function') {
             tg.onEvent('themeChanged', applyTelegramTheme);
         }
-
-        const INDEX_HTML_LAST_EDITED = '2026-01-26 19:48';
 
         const CONFIG = {
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
@@ -4283,7 +4282,7 @@
                 tablesTournamentTitle.textContent = t.title || 'Турнир';
             }
             if (tablesTournamentInfo) {
-                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
+                tablesTournamentInfo.textContent = `${t.date || ''} • ${t.time || ''}${APP_VERSION_FULL ? ` • v${APP_VERSION_FULL}` : ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
             }
 
             // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
@@ -8310,8 +8309,14 @@
             refreshInterval = setInterval(refreshTournamentData, CONFIG.REFRESH_INTERVAL);
         }
 
-        // Запускаем приложение
-        init();
-    </script>
+// Запускаем приложение
+var APP_VERSION_MAJOR = 1;
+var APP_VERSION_MINOR = 5;
+var APP_EDIT_NUMBER = 1;
+var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_EDIT_NUMBER}`;
+var INDEX_HTML_LAST_EDITED = '26.01.2026 19:59:00';
+
+init();
+</script>
 </body>
 </html>
