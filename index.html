@@ -4452,7 +4452,7 @@
                 const registrationDisplay = getTournamentRegistrationDisplay(player) || '—';
                 const tableBoxInfo = registrationsMode
                     ? registrationDisplay
-                    : `Стол ${player.tableId}, бокс ${player.box || '?'}`;
+                    : (isOut && player.outByNick ? `${escapeHtml(player.outByNick)}` : `Стол ${player.tableId}, бокс ${player.box || '?'}`);
                 
                 button.innerHTML = `
                     <div class="position-indicator ${positionClass}">
@@ -6380,6 +6380,7 @@
 
                     const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                     const isOut = !!player.outTime;
+                    const outByNickSuffix = isOut && player.outByNick ? ` • ${escapeHtml(player.outByNick)}` : '';
                     
                     // Проверяем, есть ли активная операция для этого бокса
                     const isPending = pendingOperations.has(box);
@@ -6396,7 +6397,7 @@
                         <\/div>
                         <div class="player-info">
                             <div class="player-nickname">${nicknameDisplay}<\/div>
-                            <div class="player-name">${playerName}<\/div>
+                            <div class="player-name">${playerName}${outByNickSuffix}<\/div>
                         <\/div>
                         <div class="player-rebuys"><\/div>
                         <div class="chevron"><\/div>
@@ -6567,11 +6568,12 @@
                 } else {
                     const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
                     const place = globalOutPlaces.get(player.id) || '?';
+                    const outByNickLabel = player.outByNick ? ` (${escapeHtml(player.outByNick)})` : '';
                     selectedPlayerTableInfo.innerHTML = `
                         <span class="table-label">Закончил</span>
                         <span class="table-badge">${outTimeLabel}</span>
                         <span class="table-label">Место</span>
-                        <span class="table-badge">${place}</span>
+                        <span class="table-badge">${place}${outByNickLabel}</span>
                     `;
                 }
             }
