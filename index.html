@@ -2757,9 +2757,9 @@
                     getDayCell: ({ key, dayNumber, todayKey }) => {
                         const info = byDay.get(key);
                         if (info) {
-                            let dotClass = 'finished';
-                            if (info.status === 'active') dotClass = 'playing';
-                            else if (info.status === 'scheduled') dotClass = 'dealer';
+                            let dotClass = 'tournament-finished';
+                            if (info.status === 'active') dotClass = 'tournament-active';
+                            else if (info.status === 'scheduled') dotClass = 'tournament-scheduled';
                             return { html: `<div class="dot ${dotClass}">${info.playersCount}</div>` };
                         }
                         if (key === todayKey) {
