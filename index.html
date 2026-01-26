@@ -265,7 +265,7 @@
             display: block;
             width: var(--position-size);
             height: var(--position-size);
-            border-radius: 8px;
+            border-radius: 0;
             object-fit: cover;
             margin-right: var(--spacing-sm);
         }
@@ -995,7 +995,8 @@
         }
 
         .month-overlay-calendar .registration-day.selected-day .dot {
-            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
+            outline: 2px solid rgba(10, 132, 255, 0.55);
+            outline-offset: 0px;
         }
 
         .month-overlay-calendar .registration-day.selected-day:not(:has(.dot))::before {
@@ -1003,7 +1004,7 @@
             position: absolute;
             inset: 0;
             border-radius: 999px;
-            box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.55);
+            outline: 2px solid rgba(10, 132, 255, 0.55);
             pointer-events: none;
         }
 
@@ -1011,7 +1012,9 @@
 
         .month-overlay-list {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
             padding: 0 0 var(--spacing-lg) 0;
             position: relative;
             z-index: 0;
@@ -1849,7 +1852,7 @@
     <div id="allPlayersScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 999px; object-fit: cover;"></div>
+                <div class="header-icon"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="allPlayersTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="allPlayersInfo">Игроки турнира</div>
@@ -2115,7 +2118,7 @@
             TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
             TOURNAMENT_EVENTS_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament-events',
             PHOTOS_BASE_URL: 'https://5970995-zo35356.twc1.net/pictures',
-            PHOTOS_VERSION: 3,
+            PHOTOS_VERSION: 4,
             REFRESH_INTERVAL: 30000,
             REQUEST_TIMEOUT: 10000,
             MAX_REBUYS: 3
@@ -4545,7 +4548,7 @@
             button.classList.add('player-button');
             
             button.innerHTML = `
-                <div class="table-indicator"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 999px; object-fit: cover;"></div>
+                <div class="table-indicator"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="player-info">
                     <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации' : 'Все игроки турнира'}</div>
                     <div class="player-name">${registrationsMode ? `Игроков: ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}` : `В игре: ${activePlayers.length}, вылетело: ${outPlayers.length}`}</div>
@@ -5671,6 +5674,9 @@
                     
                     if (daysUntil === 0) {
                         daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня! 🎉</span>';
+                    } else if (daysUntil !== null && daysUntil < 0) {
+                        const daysAgo = Math.abs(daysUntil);
+                        daysLabel = `<span style="color: var(--secondary-text);">${daysAgo} ${getDayWordLocal(daysAgo)} назад</span>`;
                     } else if (daysUntil !== null && daysUntil <= 7) {
                         daysLabel = `<span style="color: var(--red);">через ${daysUntil} ${getDayWordLocal(daysUntil)}</span>`;
                     } else if (daysUntil !== null) {
@@ -5808,6 +5814,7 @@
         }
 
         // Расчёт дней до следующей даты (дня рождения или годовщины)
+        // Возвращает объект { days, isPast } где isPast=true если дата была менее полугода назад
         function getDaysUntilDate(dateStr, hasYear = true) {
             if (!dateStr) return null;
             
@@ -5831,19 +5838,37 @@
             
             if (isNaN(day) || isNaN(month)) return null;
             
-            // Следующая дата в этом году
-            let nextDate = new Date(today.getFullYear(), month, day);
-            nextDate.setHours(0, 0, 0, 0);
+            // Дата в этом году
+            let thisYearDate = new Date(today.getFullYear(), month, day);
+            thisYearDate.setHours(0, 0, 0, 0);
             
-            // Если дата уже прошла в этом году, берём следующий год
-            if (nextDate < today) {
-                nextDate = new Date(today.getFullYear() + 1, month, day);
+            const diffTime = thisYearDate - today;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Если дата сегодня
+            if (diffDays === 0) {
+                return 0;
             }
             
-            const diffTime = nextDate - today;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Если дата в будущем (в этом году)
+            if (diffDays > 0) {
+                return diffDays;
+            }
             
-            return diffDays;
+            // Дата уже прошла в этом году
+            const daysSinceBirthday = Math.abs(diffDays);
+            
+            // Если прошло менее 183 дней (полгода) - возвращаем отрицательное значение
+            if (daysSinceBirthday <= 183) {
+                return -daysSinceBirthday;
+            }
+            
+            // Иначе считаем до следующего года
+            const nextYearDate = new Date(today.getFullYear() + 1, month, day);
+            const nextDiffTime = nextYearDate - today;
+            const nextDiffDays = Math.ceil(nextDiffTime / (1000 * 60 * 60 * 24));
+            
+            return nextDiffDays;
         }
 
         // Получить данные игрока из базы по ID
@@ -6141,6 +6166,9 @@
                         
                         if (daysUntil === 0) {
                             birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                        } else if (daysUntil !== null && daysUntil < 0) {
+                            const daysAgo = Math.abs(daysUntil);
+                            birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
                             birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null) {
@@ -6929,6 +6957,9 @@
                         
                         if (daysUntil === 0) {
                             birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                        } else if (daysUntil !== null && daysUntil < 0) {
+                            const daysAgo = Math.abs(daysUntil);
+                            birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
                             birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null) {
