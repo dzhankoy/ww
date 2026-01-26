@@ -906,12 +906,12 @@
 
         .month-overlay-week-separator {
             grid-column: 1 / -1;
-            height: 12px;
+            height: 6px;
             position: relative;
         }
 
         .month-overlay-week-separator:last-child {
-            height: 6px;
+            height: 0;
         }
 
         .month-overlay-week-separator::before {
@@ -919,7 +919,7 @@
             position: absolute;
             left: 0;
             right: 0;
-            top: 50%;
+            bottom: 0;
             height: 1px;
             background-color: var(--border-color);
             opacity: 0.25;
@@ -927,7 +927,7 @@
         }
 
         .month-overlay-week-separator:last-child::before {
-            top: 0;
+            display: none;
         }
 
         .month-overlay-calendar .registration-day {
@@ -1108,16 +1108,8 @@
         }
 
         .month-overlay-item-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 4px 9px;
-            border-radius: 999px;
-            background: var(--border-color);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            color: var(--text-color);
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 15px;
+            color: var(--secondary-text);
         }
 
         .month-overlay-item-meta {
@@ -1126,11 +1118,13 @@
         }
 
         .month-overlay-empty {
-            padding: var(--spacing-xl) var(--spacing-lg);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: var(--text-color);
             font-size: 17px;
-            font-weight: 500;
-            text-align: center;
+            font-weight: 700;
         }
 
         .month-overlay-anim-clone {
@@ -1174,8 +1168,6 @@
             font-weight: 700;
             line-height: 1;
             flex: 0 0 auto;
-            position: relative;
-            top: -0.06em;
         }
 
         .registration-month.current-month .registration-month-title {
@@ -1811,7 +1803,7 @@
     <div id="allPlayersScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon">👤</div>
+                <div class="header-icon"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 999px; object-fit: cover;"></div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="allPlayersTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="allPlayersInfo">Игроки турнира</div>
@@ -1844,7 +1836,7 @@
     <div id="dbPlayersScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon">👤</div>
+                <div class="header-icon">⭐</div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="dbPlayersTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="dbPlayersInfo">База игроков</div>
@@ -2713,7 +2705,8 @@
                         return players.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
-                            const birthday = String(p?.birthday || '').trim() || `${dd}.${mm}`;
+                            const md = parseBirthdayMonthDay(p?.birthday);
+                            const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
                             return {
                                 type: 'player',
                                 player: p,
@@ -2738,7 +2731,8 @@
                         return sorted.map(p => {
                             const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
-                            const birthday = String(p?.birthday || '').trim() || `??.${mm}`;
+                            const md = parseBirthdayMonthDay(p?.birthday);
+                            const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
                             return {
                                 type: 'player',
                                 player: p,
