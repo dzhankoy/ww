@@ -1565,8 +1565,8 @@
             background: rgba(28, 28, 30, 0.80);
             border-radius: 18px 18px 0 0;
             overflow: hidden;
-            height: calc(100dvh - 96px);
-            max-height: calc(100dvh - 96px);
+            height: 90dvh;
+            max-height: 90dvh;
             transform: translateY(120%);
             will-change: transform;
             margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
@@ -1595,7 +1595,6 @@
         .finance-amount.positive { color: var(--green, #34c759); }
         .finance-amount.negative { color: var(--red); }
 
-        .finance-cents,
         .finance-currency {
             opacity: 0.35;
             font-weight: 700;
@@ -1623,8 +1622,20 @@
             padding: var(--spacing-md) var(--spacing-lg);
             font-size: 22px;
             font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
             flex: 0 0 auto;
+            position: relative;
+        }
+
+        .out-by-overlay-title::after {
+            content: '';
+            position: absolute;
+            left: var(--spacing-lg);
+            right: var(--spacing-md);
+            bottom: 0;
+            height: 1px;
+            background-color: var(--border-color);
+            opacity: 0.33;
+            pointer-events: none;
         }
 
         .out-by-overlay-list {
@@ -1638,15 +1649,27 @@
         .out-by-choice {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
-            padding: 0 var(--spacing-md) 0 var(--spacing-lg);
+            gap: var(--spacing-lg);
+            padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-lg);
             min-height: var(--player-height);
             border: none;
-            border-top: 1px solid var(--border-color);
             background: transparent;
             color: var(--text-color);
             text-align: left;
             cursor: pointer;
+            position: relative;
+        }
+
+        .out-by-choice + .out-by-choice::before {
+            content: '';
+            position: absolute;
+            left: var(--spacing-lg);
+            right: var(--spacing-md);
+            top: 0;
+            height: 1px;
+            background: var(--border-color);
+            opacity: 0.25;
+            pointer-events: none;
         }
 
         .out-by-choice:active {
@@ -1654,8 +1677,8 @@
         }
 
         .out-by-choice-photo {
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             overflow: hidden;
             background: var(--border-color);
@@ -1677,15 +1700,15 @@
         }
 
         .out-by-choice-nick {
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 17px;
+            font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
         .out-by-choice-name {
-            font-size: 13px;
+            font-size: 15px;
             color: var(--secondary-text);
             white-space: nowrap;
             overflow: hidden;
@@ -7758,15 +7781,22 @@
                     dragging = false;
                     try {
                         const target = ev && ev.target && ev.target.closest ? ev.target : null;
-                        canStartDrag = !!(target && (target.closest('.out-by-overlay-title') || target.closest('.out-by-overlay-handle')));
+                        canStartDrag = !!(target && (target.closest('.out-by-overlay-title') || target.closest('.out-by-overlay-handle') || (target.closest('.out-by-overlay-card') && !target.closest('.out-by-choice'))));
                     } catch (e) {
                         canStartDrag = false;
                     }
+
+                    const currentY = Math.max(0, getTranslateY(card));
                     try {
                         card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     } catch (e) {
                     }
-                    startTranslateY = Math.max(0, getTranslateY(card));
+                    startTranslateY = currentY;
+                    lastY = currentY;
+                    try {
+                        card.style.transform = `translateY(${currentY}px)`;
+                    } catch (e) {
+                    }
                     applyY(startTranslateY);
                 };
 
@@ -7901,7 +7931,7 @@
                 const picked = stats && Array.isArray(stats.debtsPicked) ? stats.debtsPicked : [];
                 const totalDebt = stats && typeof stats.totalDebt === 'number' ? stats.totalDebt : 0;
                 if (infoEl) {
-                    infoEl.innerHTML = `Должников ${picked.length} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
+                    infoEl.innerHTML = `Должников ${picked.length} • Долг <span style="color: var(--red); font-weight: 700;">${fmtMoneyHtml(totalDebt, { forceSign: false })}</span>`;
                 }
 
                 for (const it of picked) {
@@ -7931,9 +7961,8 @@
 
             const balances = stats && Array.isArray(stats.balances) ? stats.balances : [];
             const totalRevenue = stats && typeof stats.totalRevenue === 'number' ? stats.totalRevenue : 0;
-            const totalDebt = stats && typeof stats.totalDebtBalances === 'number' ? stats.totalDebtBalances : 0;
             if (infoEl) {
-                infoEl.innerHTML = `Игроков ${balances.length} • <span style="color: var(--green); font-weight: 700;">Выручка</span> ${fmtMoneyHtml(totalRevenue, { forceSign: false })} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtMoneyHtml(totalDebt, { forceSign: false })}`;
+                infoEl.innerHTML = `Игроков ${balances.length} • Выручка ${fmtMoneyHtml(totalRevenue, { forceSign: false })}`;
             }
 
             for (const it of balances) {
@@ -8023,8 +8052,8 @@
                 balances,
                 totalRevenue,
                 totalDebtBalances,
-                debtsPreviewHtml: `Должников ${debtsPicked.length} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtPreview(totalDebt)}`,
-                balancesPreviewHtml: `Игроков ${balances.length} • <span style="color: var(--green); font-weight: 700;">Выручка</span> ${fmtPreview(totalRevenue)} • <span style="color: var(--red); font-weight: 700;">Долг</span> ${fmtPreview(totalDebtBalances)}`
+                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span style="color: var(--red); font-weight: 700;">${fmtPreview(totalDebt)}</span>`,
+                balancesPreviewHtml: `Игроков ${balances.length} • Выручка ${fmtPreview(totalRevenue)}`
             };
             return financeStatsCache;
         }
@@ -8331,9 +8360,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 1;
 var APP_VERSION_MINOR = 5;
-var APP_VERSION_PATCH = 9;
+var APP_VERSION_PATCH = 12;
 var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 02:14';
+var INDEX_HTML_LAST_EDITED = '27.01.26 02:38';
 
 init();
 </script>
