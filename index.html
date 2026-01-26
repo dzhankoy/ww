@@ -193,16 +193,15 @@
         
         /* Apple-style info boxes */
         .info-boxes-row {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
             gap: var(--spacing-md);
             margin-top: var(--spacing-sm);
         }
         
         .info-box {
-            flex: 1 1 calc(33.333% - var(--spacing-md));
-            min-width: calc(33.333% - var(--spacing-md));
-            max-width: calc(33.333% - var(--spacing-md));
+            min-width: 0;
+            max-width: none;
             background-color: var(--card-bg);
             border-radius: var(--border-radius);
             padding: var(--spacing-md);
@@ -644,6 +643,22 @@
             font-size: calc(var(--position-size) * 0.82);
             font-weight: 400;
             line-height: 1;
+        }
+
+        .table-indicator-emoji {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            overflow: hidden;
+            line-height: 1;
+            font-weight: 400;
+        }
+
+        .table-indicator-emoji.calendar-emoji {
+            font-size: calc(var(--position-size) * 1.42);
         }
 
         .table-indicator::after {
@@ -1294,6 +1309,10 @@
             font-weight: 700;
         }
 
+        .month-overlay-calendar .registration-day.selected-day {
+            font-weight: 400;
+        }
+
         .registration-day.blank {
             opacity: 0;
         }
@@ -1530,11 +1549,30 @@
             background: var(--card-bg);
             border-radius: 18px 18px 0 0;
             overflow: hidden;
-            max-height: calc(100dvh - 56px);
+            height: calc(100dvh - 12px);
+            max-height: calc(100dvh - 12px);
             transform: translateY(120%);
             will-change: transform;
             margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
             padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        .finance-amount {
+            margin-left: auto;
+            font-size: 17px;
+            font-weight: 700;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .finance-amount.positive { color: var(--green, #34c759); }
+        .finance-amount.negative { color: var(--red); }
+
+        .finance-cents,
+        .finance-currency {
+            font-size: 0.85em;
+            opacity: 0.7;
+            font-weight: 600;
         }
 
         .out-by-overlay-title {
@@ -1887,6 +1925,8 @@
             <div class="players-list" id="dbPlayersPreviewList"></div>
             <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">База турниров</div>
             <div class="players-list" id="tournamentsPreviewList"></div>
+            <div class="tables-active-title tables-section-padding" style="margin-top: var(--spacing-lg);">Финансы</div>
+            <div class="players-list" id="financePreviewList"></div>
             <div class="tables-actions-title tables-section-padding">Действия</div>
             <div class="tables-actions tables-section-padding">
                 <button class="tables-action-button" id="tablesRebalanceButton">Объединить столы</button>
@@ -1894,6 +1934,36 @@
                 <button class="tables-action-button" id="tournamentTimerToggleButton">Остановить таймер</button>
                 <button class="tables-action-button" id="playSoundButton">🔊 Сигнал</button>
             </div>
+        </div>
+    </div>
+
+    <div id="financeDebtsScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <div class="header-icon">💸</div>
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="financeDebtsTitle">Долги</div>
+                    <div class="tournament-date" id="financeDebtsInfo">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="financeDebtsList"></div>
+        </div>
+    </div>
+
+    <div id="financeBalancesScreen" class="screen hidden">
+        <div class="header-content">
+            <div class="tournament-header-row">
+                <div class="header-icon">💰</div>
+                <div class="tournament-header-text">
+                    <div class="tournament-title" id="financeBalancesTitle">Балансы</div>
+                    <div class="tournament-date" id="financeBalancesInfo">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+        <div class="players-list-container">
+            <div class="players-list" id="financeBalancesList"></div>
         </div>
     </div>
 
@@ -2262,6 +2332,13 @@
         const tournamentsScreen = document.getElementById('tournamentsScreen');
         const tournamentsPreviewList = document.getElementById('tournamentsPreviewList');
         const tournamentsList = document.getElementById('tournamentsList');
+        const financePreviewList = document.getElementById('financePreviewList');
+        const financeDebtsScreen = document.getElementById('financeDebtsScreen');
+        const financeDebtsList = document.getElementById('financeDebtsList');
+        const financeDebtsInfo = document.getElementById('financeDebtsInfo');
+        const financeBalancesScreen = document.getElementById('financeBalancesScreen');
+        const financeBalancesList = document.getElementById('financeBalancesList');
+        const financeBalancesInfo = document.getElementById('financeBalancesInfo');
         const telegramTableScreen = document.getElementById('telegramTableScreen');
         const telegramTableList = document.getElementById('telegramTableList');
         const telegramTableTitle = document.getElementById('telegramTableTitle');
@@ -2361,7 +2438,7 @@
         function hideAllScreens() {
             document.body.classList.remove('dealer-main-mode');
             [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, 
-             dbPlayersScreen, birthdaysScreen, registrationCalendarScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen, playerSelectionScreen, 
+             dbPlayersScreen, birthdaysScreen, registrationCalendarScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen, financeDebtsScreen, financeBalancesScreen, playerSelectionScreen, 
              actionScreen, telegramTableScreen].forEach(s => {
                 if (s && !s.classList.contains('hidden')) {
                     saveScrollPositionForScreen(s);
@@ -2606,23 +2683,6 @@
 
             monthOverlayListEl = document.createElement('div');
             monthOverlayListEl.className = 'month-overlay-list';
-
-            const bounceReset = () => {
-                if (!monthOverlayListEl) return;
-                if (!monthOverlayListEl.classList.contains('bounce-only')) return;
-                if (monthOverlayBounceResetTimer) {
-                    clearTimeout(monthOverlayBounceResetTimer);
-                }
-                monthOverlayBounceResetTimer = setTimeout(() => {
-                    try {
-                        monthOverlayListEl.scrollTop = 0;
-                    } catch (e) {
-                    }
-                }, 60);
-            };
-
-            monthOverlayListEl.addEventListener('touchend', bounceReset, { passive: true });
-            monthOverlayListEl.addEventListener('mouseup', bounceReset);
 
             monthOverlayListEl.addEventListener('click', async (e) => {
                 try {
@@ -4279,6 +4339,7 @@
                 renderBirthdaysPreview();
                 renderBirthdaysCalendarPreview();
                 renderTournamentsPreview();
+                renderFinancePreview();
                 renderAdminCallsList();
                 return;
             }
@@ -4374,6 +4435,8 @@
             
             // Рендерим превью списка турниров
             renderTournamentsPreview();
+
+            renderFinancePreview();
             
             // Обновляем админ вызовы
             renderAdminCallsList();
@@ -5138,7 +5201,7 @@
             button.classList.add('player-button');
 
             button.innerHTML = `
-                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);"><span class="table-indicator-emoji calendar-emoji">📅</span></div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь регистраций</div>
                     <div class="player-name">По дням</div>
@@ -5596,7 +5659,7 @@
             button.classList.add('player-button');
 
             button.innerHTML = `
-                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);"><span class="table-indicator-emoji calendar-emoji">📅</span></div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь дней рождений</div>
                     <div class="player-name">По дням</div>
@@ -6499,7 +6562,7 @@
             const calendarButton = document.createElement('button');
             calendarButton.classList.add('player-button');
             calendarButton.innerHTML = `
-                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);"><span class="table-indicator-emoji calendar-emoji">📅</span></div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь турниров</div>
                     <div class="player-name">По дням</div>
@@ -7417,9 +7480,10 @@
             try {
                 const card = outByOverlayEl.querySelector('.out-by-overlay-card');
                 if (card) {
+                    const vh = window.innerHeight || 0;
                     safeAnimate(
                         card,
-                        [{ transform: 'translateY(0%)' }, { transform: 'translateY(120%)' }],
+                        [{ transform: 'translateY(0px)' }, { transform: `translateY(${vh}px)` }],
                         { duration: 360, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                     );
                 }
@@ -7540,13 +7604,166 @@
                     [{ opacity: 0 }, { opacity: 1 }],
                     { duration: 220, easing: 'ease-out', fill: 'forwards' }
                 );
+                const vh = window.innerHeight || 0;
                 safeAnimate(
                     card,
-                    [{ transform: 'translateY(120%)' }, { transform: 'translateY(0%)' }],
+                    [{ transform: `translateY(${vh}px)` }, { transform: 'translateY(0px)' }],
                     { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                 );
             } catch (e) {
             }
+
+            try {
+                let dragStartY = 0;
+                let dragLastY = 0;
+                let dragging = false;
+
+                const onStart = (ev) => {
+                    const t = ev && ev.touches && ev.touches[0] ? ev.touches[0] : null;
+                    if (!t) return;
+                    dragStartY = t.clientY;
+                    dragLastY = 0;
+                    dragging = false;
+                };
+
+                const onMove = (ev) => {
+                    const t = ev && ev.touches && ev.touches[0] ? ev.touches[0] : null;
+                    if (!t) return;
+                    const dy = Math.max(0, t.clientY - dragStartY);
+
+                    if (!dragging) {
+                        const canDrag = (list && list.scrollTop <= 0) && dy > 0;
+                        if (!canDrag) return;
+                        dragging = true;
+                    }
+
+                    dragLastY = dy;
+                    card.style.transform = `translateY(${dy}px)`;
+                    ev.preventDefault();
+                };
+
+                const onEnd = () => {
+                    if (!dragging) return;
+                    const dy = dragLastY || 0;
+                    const shouldClose = dy > 110;
+                    dragging = false;
+                    dragLastY = 0;
+
+                    if (shouldClose) {
+                        closeOutByOverlay();
+                        return;
+                    }
+
+                    safeAnimate(
+                        card,
+                        [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0px)' }],
+                        { duration: 260, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+                    );
+                };
+
+                title.addEventListener('touchstart', onStart, { passive: true });
+                title.addEventListener('touchmove', onMove, { passive: false });
+                title.addEventListener('touchend', onEnd, { passive: true });
+            } catch (e) {
+            }
+        }
+
+        function renderFinancePreview() {
+            if (!financePreviewList) return;
+            financePreviewList.innerHTML = '';
+
+            const debtsBtn = document.createElement('button');
+            debtsBtn.classList.add('player-button');
+            debtsBtn.innerHTML = `
+                <div class="table-indicator emoji" style="background-color: var(--red);">💸</div>
+                <div class="player-info">
+                    <div class="player-nickname">Долги</div>
+                    <div class="player-name">Игроки и суммы</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            debtsBtn.addEventListener('click', () => showFinanceScreen('debts'));
+            financePreviewList.appendChild(debtsBtn);
+
+            const balancesBtn = document.createElement('button');
+            balancesBtn.classList.add('player-button');
+            balancesBtn.innerHTML = `
+                <div class="table-indicator emoji" style="background-color: var(--green);">💰</div>
+                <div class="player-info">
+                    <div class="player-nickname">Балансы</div>
+                    <div class="player-name">Игроки и суммы</div>
+                </div>
+                <div class="chevron"></div>
+            `;
+            balancesBtn.addEventListener('click', () => showFinanceScreen('balances'));
+            financePreviewList.appendChild(balancesBtn);
+        }
+
+        function showFinanceScreen(mode) {
+            hideAllScreens();
+            const isDebts = mode === 'debts';
+            const screen = isDebts ? financeDebtsScreen : financeBalancesScreen;
+            const listEl = isDebts ? financeDebtsList : financeBalancesList;
+            const infoEl = isDebts ? financeDebtsInfo : financeBalancesInfo;
+            if (!screen || !listEl) return;
+
+            screen.classList.remove('hidden');
+            renderFinanceList({ mode, listEl, infoEl });
+            showTelegramBackButton(() => {
+                saveScrollPositionForScreen(screen);
+                screen.classList.add('hidden');
+                showTablesScreen();
+            });
+        }
+
+        function renderFinanceList({ mode, listEl, infoEl }) {
+            if (!listEl) return;
+            listEl.innerHTML = '';
+
+            const t = getTournament();
+            const players = (t && Array.isArray(t.players) ? t.players : getAllTournamentPlayers())
+                .filter(p => p && p.id != null)
+                .slice();
+
+            players.sort((a, b) => {
+                const an = (a.nickname || `${a.firstName || ''} ${a.lastName || ''}`.trim() || '').toLowerCase();
+                const bn = (b.nickname || `${b.firstName || ''} ${b.lastName || ''}`.trim() || '').toLowerCase();
+                return an.localeCompare(bn);
+            });
+
+            if (infoEl) {
+                infoEl.textContent = `Игроков: ${players.length}`;
+            }
+
+            const now = new Date();
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            for (const p of players) {
+                const nickname = p.nickname || 'Игрок';
+                const fullName = (`${p.firstName || ''} ${p.lastName || ''}`.trim() || '');
+
+                const base = Math.floor(100 + Math.random() * 9000);
+                const sign = mode === 'debts' ? -1 : (Math.random() > 0.5 ? 1 : -1);
+                const rub = base;
+                const cls = sign >= 0 ? 'positive' : 'negative';
+                const signStr = sign < 0 ? '-' : '';
+
+                const btn = document.createElement('button');
+                btn.classList.add('player-button');
+                btn.innerHTML = `
+                    <div class="position-indicator photo-indicator">
+                        <img src="${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}" alt="" onerror="this.src='avatar.png'">
+                    </div>
+                    <div class="player-info">
+                        <div class="player-nickname">${nickname}</div>
+                        <div class="player-name">${fullName}</div>
+                    </div>
+                    <div class="finance-amount ${cls}">${signStr}${rub}<span class="finance-currency"> ₽</span><span class="finance-cents">.00</span></div>
+                `;
+                listEl.appendChild(btn);
+            }
+
+            restoreScrollPositionForScreen(mode === 'debts' ? financeDebtsScreen : financeBalancesScreen);
         }
 
         // Обработчик out с использованием selectedBox
