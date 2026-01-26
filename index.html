@@ -298,6 +298,22 @@
             transform: translateY(-1px);
         }
 
+        .header-icon.indicator-ring {
+            position: relative;
+        }
+
+        .header-icon.indicator-ring::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 10px;
+            border: 1px solid var(--indicator-border, currentColor);
+            pointer-events: none;
+        }
+
         .tournament-header-row {
             display: flex;
             align-items: center;
@@ -622,6 +638,12 @@
             background-color: var(--green);  /* цветной фон под цифрой */
             color: #fff;
             border: none;                    /* рамка рисуется псевдоэлементом, как у position-indicator */
+        }
+
+        .table-indicator.emoji {
+            font-size: calc(var(--position-size) * 0.82);
+            font-weight: 400;
+            line-height: 1;
         }
 
         .table-indicator::after {
@@ -1499,15 +1521,20 @@
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            padding: var(--spacing-lg);
+            padding: 0;
         }
 
         .out-by-overlay-card {
             width: 100%;
             max-width: 520px;
             background: var(--card-bg);
-            border-radius: var(--border-radius);
+            border-radius: 18px 18px 0 0;
             overflow: hidden;
+            max-height: calc(100dvh - 56px);
+            transform: translateY(120%);
+            will-change: transform;
+            margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         .out-by-overlay-title {
@@ -1519,6 +1546,8 @@
         .out-by-overlay-list {
             display: flex;
             flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .out-by-choice {
@@ -1872,7 +1901,7 @@
     <div id="allPlayersScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
+                <div class="header-icon indicator-ring"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="allPlayersTournamentTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="allPlayersInfo">Игроки турнира</div>
@@ -4615,7 +4644,7 @@
             telegramButton.classList.add('player-button');
             
             telegramButton.innerHTML = `
-                <div class="table-indicator">🏆</div>
+                <div class="table-indicator emoji">🏆</div>
                 <div class="player-info">
                     <div class="player-nickname">Призовая таблица</div>
                     <div class="player-name">Для Телеграм-канала</div>
@@ -5109,7 +5138,7 @@
             button.classList.add('player-button');
 
             button.innerHTML = `
-                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь регистраций</div>
                     <div class="player-name">По дням</div>
@@ -5545,7 +5574,7 @@
             button.classList.add('player-button');
             
             button.innerHTML = `
-                <div class="table-indicator" style="background-color: var(--red);">🎂</div>
+                <div class="table-indicator emoji" style="background-color: var(--red);">🎂</div>
                 <div class="player-info">
                     <div class="player-nickname">Дни рождения</div>
                     <div class="player-name">${statsText}</div>
@@ -5567,7 +5596,7 @@
             button.classList.add('player-button');
 
             button.innerHTML = `
-                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь дней рождений</div>
                     <div class="player-name">По дням</div>
@@ -5721,7 +5750,7 @@
                     const getDayWordLocal = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
                     
                     if (daysUntil === 0) {
-                        daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня! 🎉</span>';
+                        daysLabel = '<span style="color: var(--green, #34c759); font-weight: 600;">Сегодня</span>';
                     } else if (daysUntil !== null && daysUntil < 0) {
                         const daysAgo = Math.abs(daysUntil);
                         daysLabel = `<span style="color: var(--secondary-text);">${daysAgo} ${getDayWordLocal(daysAgo)} назад</span>`;
@@ -6212,7 +6241,7 @@
                         birthdayValue.textContent = player.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null && daysUntil < 0) {
                             const daysAgo = Math.abs(daysUntil);
                             birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
@@ -6456,7 +6485,7 @@
             const scheduledTournaments = tournaments.filter(t => t.status === 'scheduled').length;
             
             button.innerHTML = `
-                <div class="table-indicator">🏆</div>
+                <div class="table-indicator emoji">🏆</div>
                 <div class="player-info">
                     <div class="player-nickname">Все турниры</div>
                     <div class="player-name">Всего: ${tournaments.length}, активных: ${activeTournaments}, запланировано: ${scheduledTournaments}</div>
@@ -6470,7 +6499,7 @@
             const calendarButton = document.createElement('button');
             calendarButton.classList.add('player-button');
             calendarButton.innerHTML = `
-                <div class="table-indicator" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
+                <div class="table-indicator emoji" style="background-color: var(--card-bg); color: var(--text-color);">📅</div>
                 <div class="player-info">
                     <div class="player-nickname">Календарь турниров</div>
                     <div class="player-name">По дням</div>
@@ -7003,7 +7032,7 @@
                         birthdayValue.textContent = dbPlayer.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
                         } else if (daysUntil !== null && daysUntil < 0) {
                             const daysAgo = Math.abs(daysUntil);
                             birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
@@ -7378,10 +7407,35 @@
         });
 
         function closeOutByOverlay() {
-            if (outByOverlayEl) {
-                outByOverlayEl.remove();
-                outByOverlayEl = null;
+            if (!outByOverlayEl) return;
+
+            try {
+                document.body.style.overflow = '';
+            } catch (e) {
             }
+
+            try {
+                const card = outByOverlayEl.querySelector('.out-by-overlay-card');
+                if (card) {
+                    safeAnimate(
+                        card,
+                        [{ transform: 'translateY(0%)' }, { transform: 'translateY(120%)' }],
+                        { duration: 360, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+                    );
+                }
+                safeAnimate(
+                    outByOverlayEl,
+                    [{ opacity: 1 }, { opacity: 0 }],
+                    { duration: 220, easing: 'ease-in', fill: 'forwards' }
+                );
+            } catch (e) {
+            }
+
+            const elToRemove = outByOverlayEl;
+            outByOverlayEl = null;
+            setTimeout(() => {
+                try { elToRemove.remove(); } catch (e) {}
+            }, 380);
         }
 
         function openOutByOverlay(outPlayer) {
@@ -7473,6 +7527,26 @@
 
             document.body.appendChild(overlay);
             outByOverlayEl = overlay;
+
+            try {
+                document.body.style.overflow = 'hidden';
+            } catch (e) {
+            }
+
+            try {
+                overlay.style.opacity = '0';
+                safeAnimate(
+                    overlay,
+                    [{ opacity: 0 }, { opacity: 1 }],
+                    { duration: 220, easing: 'ease-out', fill: 'forwards' }
+                );
+                safeAnimate(
+                    card,
+                    [{ transform: 'translateY(120%)' }, { transform: 'translateY(0%)' }],
+                    { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+                );
+            } catch (e) {
+            }
         }
 
         // Обработчик out с использованием selectedBox
