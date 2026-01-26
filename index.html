@@ -6,20 +6,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        function getZodiacSign(day, month) {
-            if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return '♈';
-            if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return '♉';
-            if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return '♊';
-            if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) return '♋';
-            if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) return '♌';
-            if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) return '♍';
-            if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) return '♎';
-            if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) return '♏';
-            if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) return '♐';
-            if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) return '♑';
-            if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return '♒';
-            if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return '♓';
-            return '';
+        function getZodiacSign(day, month, asText = false) {
+            let symbol = '';
+            let text = '';
+            
+            if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) {
+                symbol = '♈';
+                text = 'Овен';
+            } else if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) {
+                symbol = '♉';
+                text = 'Телец';
+            } else if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) {
+                symbol = '♊';
+                text = 'Близнецы';
+            } else if ((month === 6 && day >= 21) || (month === 7 && day <= 22)) {
+                symbol = '♋';
+                text = 'Рак';
+            } else if ((month === 7 && day >= 23) || (month === 8 && day <= 22)) {
+                symbol = '♌';
+                text = 'Лев';
+            } else if ((month === 8 && day >= 23) || (month === 9 && day <= 22)) {
+                symbol = '♍';
+                text = 'Дева';
+            } else if ((month === 9 && day >= 23) || (month === 10 && day <= 22)) {
+                symbol = '♎';
+                text = 'Весы';
+            } else if ((month === 10 && day >= 23) || (month === 11 && day <= 21)) {
+                symbol = '♏';
+                text = 'Скорпион';
+            } else if ((month === 11 && day >= 22) || (month === 12 && day <= 21)) {
+                symbol = '♐';
+                text = 'Стрелец';
+            } else if ((month === 12 && day >= 22) || (month === 1 && day <= 19)) {
+                symbol = '♑';
+                text = 'Козерог';
+            } else if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) {
+                symbol = '♒';
+                text = 'Водолей';
+            } else if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) {
+                symbol = '♓';
+                text = 'Рыбы';
+            }
+            
+            return asText ? text : symbol;
         }
     </script>
     <style>
@@ -106,6 +135,7 @@
 
         * {
             box-sizing: border-box;
+            font-variant-numeric: tabular-nums;
         }
         
         body {
@@ -298,7 +328,6 @@
             white-space: nowrap;
             overflow: visible;
             text-overflow: clip;
-            font-variant-numeric: tabular-nums;
         }
 
         .table-info {
@@ -574,7 +603,7 @@
             border-color: var(--bronze);
         }
 
-        /* Индикатор номера стола на экране списков столов (квадрат с лёгкими скруглениями) */
+        /* Индикатор номера стола на экране списков столов (квадрат крупнее, чем в строках списков) */
         .table-indicator {
             width: var(--position-size);
             height: var(--position-size);
@@ -748,7 +777,6 @@
             font-size: 14px;
             color: var(--secondary-text);
             margin-bottom: 0;
-            font-variant-numeric: tabular-nums;
         }
 
         .tables-progress-bar {
@@ -1006,7 +1034,7 @@
             display: flex;
             align-items: center;
             gap: var(--spacing-lg);
-            padding: 0 var(--spacing-md) 0 var(--spacing-lg);
+            padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-lg);
             min-height: var(--player-height);
             font-size: 17px;
             transition: background-color 0.2s;
@@ -2714,7 +2742,7 @@
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
-                            const zodiac = md ? getZodiacSign(md.day, md.month) : '';
+                            const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
                             const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
                             return {
                                 type: 'player',
@@ -2742,7 +2770,7 @@
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
-                            const zodiac = md ? getZodiacSign(md.day, md.month) : '';
+                            const zodiac = md ? getZodiacSign(md.day, md.month, true) : '';
                             const badgeText = zodiac ? `${zodiac} ${birthday}` : birthday;
                             return {
                                 type: 'player',
@@ -6026,16 +6054,18 @@
                 if (birthdayValue && birthdayLabel) {
                     if (player.birthday) {
                         const daysUntil = getDaysUntilDate(player.birthday, false);
+                        const md = parseBirthdayMonthDay(player.birthday);
+                        const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
                         birthdayValue.textContent = player.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = '<span class="info-box-success">Сегодня! 🎉</span>';
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>`;
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else if (daysUntil !== null) {
-                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}`;
+                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else {
-                            birthdayLabel.textContent = 'День рождения';
+                            birthdayLabel.textContent = zodiacText ? zodiacText : 'День рождения';
                         }
                     } else {
                         birthdayValue.textContent = '—';
@@ -6782,16 +6812,18 @@
                 if (birthdayValue && birthdayLabel) {
                     if (dbPlayer?.birthday) {
                         const daysUntil = getDaysUntilDate(dbPlayer.birthday, false);
+                        const md = parseBirthdayMonthDay(dbPlayer.birthday);
+                        const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
                         birthdayValue.textContent = dbPlayer.birthday;
                         
                         if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = '<span class="info-box-success">Сегодня! 🎉</span>';
+                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня! 🎉</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>`;
+                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else if (daysUntil !== null) {
-                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}`;
+                            birthdayLabel.textContent = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacText ? ` • ${zodiacText}` : ''}`;
                         } else {
-                            birthdayLabel.textContent = 'День рождения';
+                            birthdayLabel.textContent = zodiacText ? zodiacText : 'День рождения';
                         }
                     } else {
                         birthdayValue.textContent = '—';
