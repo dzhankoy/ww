@@ -295,7 +295,21 @@
         .table-info.out-info-compact {
             font-size: 14px;
             line-height: 1.1;
-            white-space: nowrap;
+        }
+
+        .out-info-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+        }
+
+        .out-knocked-list {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
         }
 
         .table-info.out-info-compact .table-label {
@@ -4482,7 +4496,7 @@
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
-                        <div class="player-name">${registrationsMode ? `${tableBoxInfo} • ${playerName}` : `${playerName} • ${tableBoxInfo}`}</div>
+                        <div class="player-name">${playerName}</div>
                     </div>
                     <div class="player-rebuys"></div>
                     <div class="chevron"></div>
@@ -6396,10 +6410,7 @@
                     }
 
                     // Есть игрок в боксе
-                    const isCurrentViewerPlayer = !!(viewerChatId && String(player.id) === String(viewerChatId));
-                    const nicknameDisplay = isCurrentViewerPlayer
-                        ? `${player.nickname || 'Игрок'} (${viewerChatId})`
-                        : (player.nickname || 'Игрок');
+                    const nicknameDisplay = (player.nickname || 'Игрок');
 
                     const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
                     const isOut = !!player.outTime;
@@ -6593,14 +6604,32 @@
                     const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
                     const place = globalOutPlaces.get(player.id) || '?';
                     const outByNickLabel = player.outByNick ? `${escapeHtml(player.outByNick)}` : '—';
+
+                    const allPlayersForKnocked = getAllTournamentPlayers();
+                    const knockedPlayers = Array.isArray(allPlayersForKnocked)
+                        ? allPlayersForKnocked.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
+                        : [];
+                    const knockedBadges = knockedPlayers
+                        .map(p => {
+                            const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
+                            return `<span class="table-badge">${escapeHtml(knockedNick)}<\/span>`;
+                        })
+                        .join('');
+
                     selectedPlayerTableInfo.classList.add('out-info-compact');
                     selectedPlayerTableInfo.innerHTML = `
-                        <span class="table-label">Закончил</span>
-                        <span class="table-badge">${outTimeLabel}</span>
-                        <span class="table-label">Место</span>
-                        <span class="table-badge">${place}</span>
-                        <span class="table-label">Кто выбил</span>
-                        <span class="table-badge">${outByNickLabel}</span>
+                        <div class="out-info-line">
+                            <span class="table-label">Закончил</span>
+                            <span class="table-badge">${outTimeLabel}</span>
+                            <span class="table-label">Место</span>
+                            <span class="table-badge">${place}</span>
+                            <span class="table-label">Кто выбил</span>
+                            <span class="table-badge">${outByNickLabel}</span>
+                        <\/div>
+                        <div class="out-info-line">
+                            <span class="table-label">Игрок выбил</span>
+                            <span class="out-knocked-list">${knockedBadges}<\/span>
+                        <\/div>
                     `;
                 }
             }
