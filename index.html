@@ -7667,7 +7667,7 @@
                 const vh = window.innerHeight || 0;
                 let anim = null;
                 if (card) {
-                    const startY = Math.max(0, getTranslateY(card));
+                    const startY = getTranslateY(card);
                     anim = safeAnimate(
                         card,
                         [{ transform: `translate3d(0, ${startY}px, 0)` }, { transform: `translate3d(0, ${vh}px, 0)` }],
@@ -7700,6 +7700,8 @@
             const selectedTable = getSelectedTable();
             const tablePlayers = selectedTable && Array.isArray(selectedTable.players) ? selectedTable.players : [];
             const choices = tablePlayers.filter(p => p && p.id != null && !p.outTime && String(p.id) !== String(outPlayer.id));
+
+            let outByOverlaySuppressClickUntil = 0;
 
             const overlay = document.createElement('div');
             overlay.className = 'out-by-overlay';
@@ -7799,6 +7801,13 @@
                 btn.appendChild(right);
 
                 btn.addEventListener('click', async () => {
+                    try {
+                        if ((performance && typeof performance.now === 'function' ? performance.now() : Date.now()) < outByOverlaySuppressClickUntil) {
+                            return;
+                        }
+                    } catch (e) {
+                    }
+
                     closeOutByOverlay();
 
                     const boxToUpdate = selectedBox;
@@ -7919,7 +7928,7 @@
                         canStartDrag = false;
                     }
 
-                    const currentY = Math.max(0, getTranslateY(card));
+                    const currentY = getTranslateY(card);
                     try {
                         card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     } catch (e) {
@@ -7946,12 +7955,28 @@
 
                     if (!dragging) {
                         const DRAG_START_THRESHOLD = 8;
-                        const canDrag = canStartDrag && (list && list.scrollTop <= 0) && dy > DRAG_START_THRESHOLD;
+                        const canDrag = canStartDrag && (list && list.scrollTop <= 0) && Math.abs(dy) > DRAG_START_THRESHOLD;
                         if (!canDrag) return;
                         dragging = true;
+
+                        try {
+                            outByOverlaySuppressClickUntil = (performance && typeof performance.now === 'function' ? performance.now() : Date.now()) + 600;
+                        } catch (e) {
+                            outByOverlaySuppressClickUntil = Date.now() + 600;
+                        }
                     }
 
-                    const y = Math.max(0, startTranslateY + dy);
+                    const rubberBand = (dist) => {
+                        const d = 180;
+                        const c = 0.55;
+                        const x = Math.max(0, Number(dist) || 0);
+                        return (d * c * x) / (d + c * x);
+                    };
+
+                    let y = startTranslateY + dy;
+                    if (y < 0) {
+                        y = -rubberBand(-y);
+                    }
                     applyY(y);
 
                     // velocity sampling
@@ -7966,18 +7991,33 @@
 
                 const onEnd = () => {
                     if (!dragging) return;
-                    const y = Math.max(0, lastY);
+                    const y = Number(lastY) || 0;
                     dragging = false;
+
+                    try {
+                        outByOverlaySuppressClickUntil = (performance && typeof performance.now === 'function' ? performance.now() : Date.now()) + 600;
+                    } catch (e) {
+                        outByOverlaySuppressClickUntil = Date.now() + 600;
+                    }
+
                     const shouldClose = y > 120 || lastVelocity > 0.85;
                     if (shouldClose) {
                         closeOutByOverlay();
                         return;
                     }
-                    safeAnimate(
-                        card,
-                        [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, -8px, 0)' }, { transform: 'translate3d(0, 0px, 0)' }],
-                        { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' }
-                    );
+                    if (y < 0) {
+                        safeAnimate(
+                            card,
+                            [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, 6px, 0)' }, { transform: 'translate3d(0, 0px, 0)' }],
+                            { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' }
+                        );
+                    } else {
+                        safeAnimate(
+                            card,
+                            [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, -8px, 0)' }, { transform: 'translate3d(0, 0px, 0)' }],
+                            { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' }
+                        );
+                    }
                 };
 
                 let lastMoveTs = 0;
@@ -8007,13 +8047,6 @@
                 .slice();
 
             const stats = computeFinanceStats(players);
-
-            const fmtPlainMoneyHtml = (amount, { colorClass = '' } = {}) => {
-                const n = Math.abs(Math.round(Number(amount) || 0));
-                const rub = formatThousands(n);
-                const cls = colorClass ? ` class="${colorClass}"` : '';
-                return `<span${cls}>${rub}</span><span class="finance-currency"> ₽</span>`;
-            };
 
             const debtsBtn = document.createElement('button');
             debtsBtn.classList.add('player-button');
@@ -8084,6 +8117,13 @@
             const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
             const stats = computeFinanceStats(players);
+
+            const fmtPlainMoneyHtml = (amount, { colorClass = '' } = {}) => {
+                const n = Math.abs(Math.round(Number(amount) || 0));
+                const rub = formatThousands(n);
+                const cls = colorClass ? ` class="${colorClass}"` : '';
+                return `<span${cls}>${rub}</span><span class="finance-currency"> ₽</span>`;
+            };
 
             const fmtMoneyHtml = (amount, { forceSign = true } = {}) => {
                 const n = Math.abs(Math.round(Number(amount) || 0));
@@ -8525,9 +8565,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 1;
 var APP_VERSION_MINOR = 5;
-var APP_VERSION_PATCH = 13;
+var APP_VERSION_PATCH = 16;
 var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 03:51';
+var INDEX_HTML_LAST_EDITED = '27.01.26 04:12';
 
 init();
 </script>
