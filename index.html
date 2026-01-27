@@ -559,6 +559,23 @@
             border: 1px solid var(--indicator-border, currentColor);
         }
 
+        .position-indicator.loading {
+            border-radius: 999px;
+            flex: 0 0 var(--position-size);
+            width: var(--position-size);
+            height: var(--position-size);
+            min-width: var(--position-size);
+            min-height: var(--position-size);
+            max-width: var(--position-size);
+            max-height: var(--position-size);
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .position-indicator.loading::after {
+            border-radius: 999px;
+        }
+
         .position-indicator.loading .loading-spinner {
             width: 16px;
             height: 16px;
@@ -1624,7 +1641,7 @@
         .finance-amount.negative { color: var(--red); }
 
         .finance-currency {
-            opacity: 1;
+            opacity: 0.25;
             font-weight: 400;
             color: inherit;
         }
@@ -1651,14 +1668,14 @@
         }
 
         .out-by-overlay-title {
-            padding: var(--spacing-md) var(--spacing-lg);
+            padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) var(--spacing-lg);
             font-size: 22px;
             font-weight: 700;
             flex: 0 0 auto;
             position: relative;
             display: flex;
             align-items: center;
-            gap: var(--spacing-md);
+            gap: var(--spacing-lg);
         }
 
         .out-by-overlay-title-photo {
@@ -1759,18 +1776,27 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 1.65em;
-            height: 1.65em;
+            width: 44px;
+            height: 44px;
             border-radius: 999px;
             background-color: var(--border-color);
-            color: var(--secondary-text);
-            font-size: 15px;
-            font-weight: 800;
+            color: var(--text-color);
+            font-size: 18px;
+            flex: 0 0 auto;
             line-height: 1;
         }
 
         .out-by-choice-crown {
-            font-size: 26px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            background-color: var(--border-color);
+            color: var(--text-color);
+            font-size: 18px;
+            flex: 0 0 auto;
             line-height: 1;
         }
 
@@ -8602,9 +8628,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 342;
+var APP_VERSION_PATCH = 344;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 16:59';
+var INDEX_HTML_LAST_EDITED = '27.01.26 17:38';
 
 init();
 </script>
