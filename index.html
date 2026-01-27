@@ -5523,7 +5523,7 @@
             const currentCount = countsByMonth.get(currentKey) || 0;
             const prevMonthName = monthNames[prevMonthDate.getMonth()];
             const currentMonthName = monthNames[currentMonth].toLowerCase();
-            const statsText = `Регистрация: ${prevMonthName} ${prevCount}, ${currentMonthName} ${currentCount}`;
+            const statsText = `${prevMonthName} ${prevCount}, ${currentMonthName} ${currentCount}`;
 
             const button = document.createElement('button');
             button.classList.add('player-button');
