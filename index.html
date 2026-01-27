@@ -5517,13 +5517,17 @@
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
             const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
+            const prePrevMonthDate = new Date(currentYear, currentMonth - 2, 1);
             const prevKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            const prePrevKey = `${prePrevMonthDate.getFullYear()}-${String(prePrevMonthDate.getMonth() + 1).padStart(2, '0')}`;
             const currentKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
             const prevCount = countsByMonth.get(prevKey) || 0;
+            const prePrevCount = countsByMonth.get(prePrevKey) || 0;
             const currentCount = countsByMonth.get(currentKey) || 0;
-            const prevMonthName = monthNames[prevMonthDate.getMonth()];
+            const prePrevMonthName = monthNames[prePrevMonthDate.getMonth()];
+            const prevMonthName = monthNames[prevMonthDate.getMonth()].toLowerCase();
             const currentMonthName = monthNames[currentMonth].toLowerCase();
-            const statsText = `${prevMonthName} ${prevCount}, ${currentMonthName} ${currentCount}`;
+            const statsText = `${prePrevMonthName} ${prePrevCount}, ${prevMonthName} ${prevCount}, ${currentMonthName} ${currentCount}`;
 
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -5952,14 +5956,16 @@
             
             // Подсчитываем статистику
             let todayCount = 0;
+            let tomorrowCount = 0;
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
                 if (daysUntil === 0) todayCount++;
-                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+                if (daysUntil === 1) tomorrowCount++;
+                if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
             
-            const statsText = `Всего ${playersWithBirthday.length}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
+            const statsText = `Всего ${playersWithBirthday.length}, ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
             
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -5986,13 +5992,15 @@
             const dbPlayers = getTournament().players || [];
             const playersWithBirthday = dbPlayers.filter(p => p.birthday);
             let todayCount = 0;
+            let tomorrowCount = 0;
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
                 if (daysUntil === 0) todayCount++;
-                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+                if (daysUntil === 1) tomorrowCount++;
+                if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
-            const statsText = `Ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
+            const statsText = `Ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
 
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -6185,15 +6193,17 @@
             
             // Подсчитываем статистику для заголовка
             let todayCount = 0;
+            let tomorrowCount = 0;
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
                 if (daysUntil === 0) todayCount++;
-                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+                if (daysUntil === 1) tomorrowCount++;
+                if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
             
             if (birthdaysInfo) {
-                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
+                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
             }
         }
 
