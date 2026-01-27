@@ -569,7 +569,7 @@
             max-width: var(--position-size);
             max-height: var(--position-size);
             padding: 0;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .position-indicator.loading::after {
@@ -1704,6 +1704,7 @@
         .out-by-overlay-title-main {
             font-size: 17px;
             font-weight: 700;
+            color: var(--red);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1779,8 +1780,8 @@
             width: 44px;
             height: 44px;
             border-radius: 999px;
-            background-color: var(--border-color);
-            color: var(--text-color);
+            background-color: var(--green);
+            color: #fff;
             font-size: 18px;
             flex: 0 0 auto;
             line-height: 1;
@@ -1793,8 +1794,8 @@
             width: 44px;
             height: 44px;
             border-radius: 999px;
-            background-color: var(--border-color);
-            color: var(--text-color);
+            background-color: var(--yellow);
+            color: #000;
             font-size: 18px;
             flex: 0 0 auto;
             line-height: 1;
@@ -2378,6 +2379,54 @@
                 }
             });
         }
+
+        const SWIPE_BACK_EDGE = 28;
+        const SWIPE_BACK_TRIGGER = 80;
+        let swipeBackStartX = 0;
+        let swipeBackStartY = 0;
+        let swipeBackTracking = false;
+
+        const canTriggerSwipeBack = () => typeof telegramBackHandler === 'function';
+
+        document.addEventListener('touchstart', (ev) => {
+            if (!canTriggerSwipeBack()) return;
+            const t = ev && ev.touches && ev.touches[0] ? ev.touches[0] : null;
+            if (!t) return;
+            if (t.clientX > SWIPE_BACK_EDGE) return;
+            swipeBackStartX = t.clientX;
+            swipeBackStartY = t.clientY;
+            swipeBackTracking = true;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (ev) => {
+            if (!swipeBackTracking || !canTriggerSwipeBack()) return;
+            const t = ev && ev.touches && ev.touches[0] ? ev.touches[0] : null;
+            if (!t) return;
+            const dx = t.clientX - swipeBackStartX;
+            const dy = t.clientY - swipeBackStartY;
+            if (dx < 0) {
+                swipeBackTracking = false;
+                return;
+            }
+            if (Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                ev.preventDefault();
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', (ev) => {
+            if (!swipeBackTracking || !canTriggerSwipeBack()) {
+                swipeBackTracking = false;
+                return;
+            }
+            const t = ev && ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0] : null;
+            swipeBackTracking = false;
+            if (!t) return;
+            const dx = t.clientX - swipeBackStartX;
+            const dy = t.clientY - swipeBackStartY;
+            if (dx > SWIPE_BACK_TRIGGER && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                telegramBackHandler();
+            }
+        }, { passive: true });
 
         function applyTelegramTheme() {
             if (!tg) return;
