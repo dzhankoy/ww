@@ -1562,12 +1562,12 @@
         .out-by-overlay-card {
             width: 100%;
             max-width: 520px;
-            background: rgba(28, 28, 30, 0.80);
+            background: rgba(28, 28, 30, 0.95);
             border-radius: 18px 18px 0 0;
             overflow: hidden;
             height: 90dvh;
             max-height: 90dvh;
-            transform: translateY(120%);
+            transform: translate3d(0, 120%, 0);
             will-change: transform;
             margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
             padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -1624,13 +1624,56 @@
             font-weight: 700;
             flex: 0 0 auto;
             position: relative;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .out-by-overlay-title-photo {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: var(--border-color);
+            flex: 0 0 auto;
+        }
+
+        .out-by-overlay-title-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .out-by-overlay-title-text {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .out-by-overlay-title-main {
+            font-size: 17px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .out-by-overlay-title-sub {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--secondary-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .out-by-overlay-title::after {
             content: '';
             position: absolute;
             left: var(--spacing-lg);
-            right: var(--spacing-md);
+            right: var(--spacing-lg);
             bottom: 0;
             height: 1px;
             background-color: var(--border-color);
@@ -1664,12 +1707,39 @@
             content: '';
             position: absolute;
             left: var(--spacing-lg);
-            right: var(--spacing-md);
+            right: var(--spacing-lg);
             top: 0;
             height: 1px;
             background: var(--border-color);
             opacity: 0.25;
             pointer-events: none;
+        }
+
+        .out-by-choice-right {
+            margin-left: auto;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .out-by-choice-box-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.65em;
+            height: 1.65em;
+            border-radius: 999px;
+            background-color: var(--border-color);
+            color: var(--secondary-text);
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .out-by-choice-crown {
+            font-size: 26px;
+            line-height: 1;
         }
 
         .out-by-choice:active {
@@ -7597,8 +7667,8 @@
                     const startY = Math.max(0, getTranslateY(card));
                     anim = safeAnimate(
                         card,
-                        [{ transform: `translateY(${startY}px)` }, { transform: `translateY(${vh}px)` }],
-                        { duration: 360, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+                        [{ transform: `translate3d(0, ${startY}px, 0)` }, { transform: `translate3d(0, ${vh}px, 0)` }],
+                        { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                     );
                 }
 
@@ -7642,7 +7712,32 @@
 
             const title = document.createElement('div');
             title.className = 'out-by-overlay-title';
-            title.textContent = `Кто выбил ${outPlayer?.nickname || outPlayer?.firstName || 'игрока'}?`;
+
+            const titlePhoto = document.createElement('div');
+            titlePhoto.className = 'out-by-overlay-title-photo';
+            const titleImg = document.createElement('img');
+            const titleNow = new Date();
+            const titleCacheBuster = `${CONFIG.PHOTOS_VERSION}-${titleNow.getFullYear()}-${String(titleNow.getMonth() + 1).padStart(2, '0')}-${String(titleNow.getDate()).padStart(2, '0')}`;
+            titleImg.src = `${CONFIG.PHOTOS_BASE_URL}/${outPlayer.id}.jpg?v=${titleCacheBuster}`;
+            titleImg.onerror = () => { titleImg.src = 'avatar.png'; };
+            titlePhoto.appendChild(titleImg);
+
+            const titleText = document.createElement('div');
+            titleText.className = 'out-by-overlay-title-text';
+
+            const titleMain = document.createElement('div');
+            titleMain.className = 'out-by-overlay-title-main';
+            titleMain.textContent = `Кто выбил ${outPlayer?.nickname || outPlayer?.firstName || 'игрока'}?`;
+
+            const titleSub = document.createElement('div');
+            titleSub.className = 'out-by-overlay-title-sub';
+            titleSub.textContent = 'Выберите игрока';
+
+            titleText.appendChild(titleMain);
+            titleText.appendChild(titleSub);
+
+            title.appendChild(titlePhoto);
+            title.appendChild(titleText);
 
             const list = document.createElement('div');
             list.className = 'out-by-overlay-list';
@@ -7673,17 +7768,32 @@
                 text.className = 'out-by-choice-text';
                 const nickEl = document.createElement('div');
                 nickEl.className = 'out-by-choice-nick';
-                nickEl.textContent = isAdmin ? `Админ (${p.nickname || 'Admin'})` : (p.nickname || 'Игрок');
+                nickEl.textContent = isAdmin ? (p.nickname || 'Admin') : (p.nickname || 'Игрок');
 
                 const nameEl = document.createElement('div');
                 nameEl.className = 'out-by-choice-name';
-                nameEl.textContent = isAdmin ? 'Технически' : (`${p.firstName || ''} ${p.lastName || ''}`.trim() || '');
+                nameEl.textContent = isAdmin ? 'Администратор клуба' : (`${p.firstName || ''} ${p.lastName || ''}`.trim() || '');
 
                 text.appendChild(nickEl);
                 if (nameEl.textContent) text.appendChild(nameEl);
 
                 btn.appendChild(photoWrap);
                 btn.appendChild(text);
+
+                const right = document.createElement('div');
+                right.className = 'out-by-choice-right';
+                if (isAdmin) {
+                    const crown = document.createElement('div');
+                    crown.className = 'out-by-choice-crown';
+                    crown.textContent = '👑';
+                    right.appendChild(crown);
+                } else {
+                    const badge = document.createElement('div');
+                    badge.className = 'out-by-choice-box-badge';
+                    badge.textContent = p.box != null ? String(p.box) : '?';
+                    right.appendChild(badge);
+                }
+                btn.appendChild(right);
 
                 btn.addEventListener('click', async () => {
                     closeOutByOverlay();
@@ -7729,10 +7839,30 @@
             }
 
             try {
+                // Подбираем высоту так, чтобы помещались все игроки + 1 свободная строка (не выше 90% экрана)
+                const vh = window.innerHeight || 0;
+                let rowH = 56;
+                try {
+                    const v = getComputedStyle(document.documentElement).getPropertyValue('--player-height');
+                    const n = parseFloat(String(v || '').trim());
+                    if (Number.isFinite(n) && n > 0) rowH = n;
+                } catch (e) {
+                }
+                const rowsCount = 1 + choices.length; // админ + игроки
+                const extraRows = 1;
+                const headerEstimate = 16 + 44 + 6 + 56;
+                const desired = Math.min(vh * 0.9, headerEstimate + (rowsCount + extraRows) * rowH);
+                if (Number.isFinite(desired) && desired > 200) {
+                    card.style.height = `${Math.round(desired)}px`;
+                }
+            } catch (e) {
+            }
+
+            try {
                 const vh = window.innerHeight || 0;
                 safeAnimate(
                     card,
-                    [{ transform: `translateY(${vh}px)` }, { transform: 'translateY(0px)' }],
+                    [{ transform: `translate3d(0, ${vh}px, 0)` }, { transform: 'translate3d(0, 0px, 0)' }],
                     { duration: 420, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                 );
             } catch (e) {
@@ -7770,7 +7900,7 @@
                     if (rafId) return;
                     rafId = requestAnimationFrame(() => {
                         rafId = 0;
-                        card.style.transform = `translateY(${lastY}px)`;
+                        card.style.transform = `translate3d(0, ${lastY}px, 0)`;
                     });
                 };
 
@@ -7805,6 +7935,12 @@
                     if (!t) return;
                     const dy = t.clientY - dragStartY;
 
+                    const nowTs = (ev && typeof ev.timeStamp === 'number') ? ev.timeStamp : performance.now();
+                    if (!lastMoveTs) {
+                        lastMoveTs = nowTs;
+                        lastMoveY = t.clientY;
+                    }
+
                     if (!dragging) {
                         const canDrag = canStartDrag && (list && list.scrollTop <= 0) && dy > 0;
                         if (!canDrag) return;
@@ -7813,6 +7949,14 @@
 
                     const y = Math.max(0, startTranslateY + dy);
                     applyY(y);
+
+                    // velocity sampling
+                    const dt = Math.max(1, nowTs - lastMoveTs);
+                    const dyAbs = t.clientY - lastMoveY;
+                    lastVelocity = dyAbs / dt; // px/ms
+                    lastMoveTs = nowTs;
+                    lastMoveY = t.clientY;
+
                     ev.preventDefault();
                 };
 
@@ -7820,19 +7964,29 @@
                     if (!dragging) return;
                     const y = Math.max(0, lastY);
                     dragging = false;
-                    const shouldClose = y > 110;
+                    const shouldClose = y > 120 || lastVelocity > 0.85;
                     if (shouldClose) {
                         closeOutByOverlay();
                         return;
                     }
                     safeAnimate(
                         card,
-                        [{ transform: `translateY(${y}px)` }, { transform: 'translateY(0px)' }],
+                        [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, 0px, 0)' }],
                         { duration: 260, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
                     );
                 };
 
-                card.addEventListener('touchstart', onStart, { passive: true });
+                let lastMoveTs = 0;
+                let lastMoveY = 0;
+                let lastVelocity = 0;
+
+                card.addEventListener('touchstart', (ev) => {
+                    lastMoveTs = (ev && typeof ev.timeStamp === 'number') ? ev.timeStamp : performance.now();
+                    const t = ev && ev.touches && ev.touches[0] ? ev.touches[0] : null;
+                    lastMoveY = t ? t.clientY : 0;
+                    lastVelocity = 0;
+                    onStart(ev);
+                }, { passive: true });
                 card.addEventListener('touchmove', onMove, { passive: false });
                 card.addEventListener('touchend', onEnd, { passive: true });
             } catch (e) {
