@@ -1587,7 +1587,7 @@
         .finance-amount {
             margin-left: auto;
             font-size: 17px;
-            font-weight: 700;
+            font-weight: 400;
             white-space: nowrap;
             text-align: right;
         }
@@ -1597,8 +1597,11 @@
 
         .finance-currency {
             opacity: 0.35;
-            font-weight: 700;
+            font-weight: 400;
         }
+
+        .finance-num-positive { color: var(--green, #34c759); }
+        .finance-num-negative { color: var(--red); }
 
         .finance-amount-wrap {
             margin-left: auto;
@@ -1613,7 +1616,7 @@
         .finance-amount-secondary {
             font-size: 13px;
             opacity: 0.9;
-            font-weight: 600;
+            font-weight: 400;
             white-space: nowrap;
             color: var(--red);
         }
@@ -7911,7 +7914,7 @@
                     dragging = false;
                     try {
                         const target = ev && ev.target && ev.target.closest ? ev.target : null;
-                        canStartDrag = !!(target && (target.closest('.out-by-overlay-title') || target.closest('.out-by-overlay-handle') || (target.closest('.out-by-overlay-card') && !target.closest('.out-by-choice'))));
+                        canStartDrag = !!(target && target.closest('.out-by-overlay-card'));
                     } catch (e) {
                         canStartDrag = false;
                     }
@@ -7924,7 +7927,7 @@
                     startTranslateY = currentY;
                     lastY = currentY;
                     try {
-                        card.style.transform = `translateY(${currentY}px)`;
+                        card.style.transform = `translate3d(0, ${currentY}px, 0)`;
                     } catch (e) {
                     }
                     applyY(startTranslateY);
@@ -7942,7 +7945,8 @@
                     }
 
                     if (!dragging) {
-                        const canDrag = canStartDrag && (list && list.scrollTop <= 0) && dy > 0;
+                        const DRAG_START_THRESHOLD = 8;
+                        const canDrag = canStartDrag && (list && list.scrollTop <= 0) && dy > DRAG_START_THRESHOLD;
                         if (!canDrag) return;
                         dragging = true;
                     }
@@ -7971,8 +7975,8 @@
                     }
                     safeAnimate(
                         card,
-                        [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, 0px, 0)' }],
-                        { duration: 260, easing: 'cubic-bezier(0.22, 0.61, 0.36, 1)', fill: 'forwards' }
+                        [{ transform: `translate3d(0, ${y}px, 0)` }, { transform: 'translate3d(0, -8px, 0)' }, { transform: 'translate3d(0, 0px, 0)' }],
+                        { duration: 420, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' }
                     );
                 };
 
@@ -8003,6 +8007,13 @@
                 .slice();
 
             const stats = computeFinanceStats(players);
+
+            const fmtPlainMoneyHtml = (amount, { colorClass = '' } = {}) => {
+                const n = Math.abs(Math.round(Number(amount) || 0));
+                const rub = formatThousands(n);
+                const cls = colorClass ? ` class="${colorClass}"` : '';
+                return `<span${cls}>${rub}</span><span class="finance-currency"> ₽</span>`;
+            };
 
             const debtsBtn = document.createElement('button');
             debtsBtn.classList.add('player-button');
@@ -8085,7 +8096,7 @@
                 const picked = stats && Array.isArray(stats.debtsPicked) ? stats.debtsPicked : [];
                 const totalDebt = stats && typeof stats.totalDebt === 'number' ? stats.totalDebt : 0;
                 if (infoEl) {
-                    infoEl.innerHTML = `Должников ${picked.length} • Долг <span style="color: var(--red); font-weight: 700;">${fmtMoneyHtml(totalDebt, { forceSign: false })}</span>`;
+                    infoEl.innerHTML = `Должников ${picked.length} • Долг ${fmtPlainMoneyHtml(totalDebt, { colorClass: 'finance-num-negative' })}`;
                 }
 
                 for (const it of picked) {
@@ -8116,7 +8127,7 @@
             const balances = stats && Array.isArray(stats.balances) ? stats.balances : [];
             const totalRevenue = stats && typeof stats.totalRevenue === 'number' ? stats.totalRevenue : 0;
             if (infoEl) {
-                infoEl.innerHTML = `Игроков ${balances.length} • Выручка ${fmtMoneyHtml(totalRevenue, { forceSign: false })}`;
+                infoEl.innerHTML = `Игроков ${balances.length} • Выручка ${fmtPlainMoneyHtml(totalRevenue, { colorClass: 'finance-num-positive' })}`;
             }
 
             for (const it of balances) {
@@ -8206,8 +8217,8 @@
                 balances,
                 totalRevenue,
                 totalDebtBalances,
-                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span style="color: var(--red); font-weight: 700;">${fmtPreview(totalDebt)}</span>`,
-                balancesPreviewHtml: `Игроков ${balances.length} • Выручка ${fmtPreview(totalRevenue)}`
+                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span class="finance-num-negative">${formatThousands(totalDebt)}</span><span class="finance-currency"> ₽</span>`,
+                balancesPreviewHtml: `Игроков ${balances.length} • Выручка <span class="finance-num-positive">${formatThousands(totalRevenue)}</span><span class="finance-currency"> ₽</span>`
             };
             return financeStatsCache;
         }
@@ -8514,9 +8525,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 1;
 var APP_VERSION_MINOR = 5;
-var APP_VERSION_PATCH = 12;
+var APP_VERSION_PATCH = 13;
 var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 02:38';
+var INDEX_HTML_LAST_EDITED = '27.01.26 03:51';
 
 init();
 </script>
