@@ -4395,7 +4395,7 @@
             }
             if (tablesTournamentInfo) {
                 const dateShort = formatShortYearDate(t.date || '');
-                tablesTournamentInfo.textContent = `${dateShort || ''} • ${t.time || ''}${APP_VERSION_FULL ? ` • v${APP_VERSION_FULL}` : ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
+                tablesTournamentInfo.textContent = `${dateShort || ''} • ${t.time || ''}${APP_VERSION_TOTAL ? ` • v${APP_VERSION_TOTAL}` : ''}${INDEX_HTML_LAST_EDITED ? ` • ${INDEX_HTML_LAST_EDITED}` : ''}`.trim();
             }
 
             // Агрегаты по турниру: количество столов, игроков, активных, завершивших, ребаи и входы
@@ -8563,11 +8563,11 @@
         }
 
 // Запускаем приложение
-var APP_VERSION_MAJOR = 1;
-var APP_VERSION_MINOR = 5;
-var APP_VERSION_PATCH = 16;
-var APP_VERSION_FULL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 04:12';
+var APP_VERSION_MAJOR = 0;
+var APP_VERSION_MINOR = 3;
+var APP_VERSION_PATCH = 341;
+var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
+var INDEX_HTML_LAST_EDITED = '27.01.26 15:58';
 
 init();
 </script>
