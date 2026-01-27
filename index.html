@@ -69,6 +69,7 @@
             --bronze: #cd7f32;
             --dark-blue: #0a84ff;
             --dark-red: #c62828;
+            --sheet-handle: rgba(255, 255, 255, 0.35);
             
             --spacing-xxs: 2px;
             --spacing-xs: 4px;
@@ -556,6 +557,20 @@
             bottom: -2px;
             border-radius: 18px;
             border: 1px solid var(--indicator-border, currentColor);
+        }
+
+        .position-indicator.loading .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            animation: spinner-rotate 0.75s linear infinite;
+        }
+
+        @keyframes spinner-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .position-indicator.photo-indicator {
@@ -1562,9 +1577,11 @@
         .out-by-overlay-card {
             width: 100%;
             max-width: 520px;
-            background: rgba(28, 28, 30, 0.95);
+            background: var(--card-bg);
             border-radius: 18px 18px 0 0;
-            overflow: hidden;
+            position: relative;
+            overflow: visible;
+            color: var(--text-color);
             height: 90dvh;
             max-height: 90dvh;
             transform: translate3d(0, 120%, 0);
@@ -1575,11 +1592,22 @@
             flex-direction: column;
         }
 
+        .out-by-overlay-card::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -180px;
+            height: 180px;
+            background: var(--card-bg);
+            pointer-events: none;
+        }
+
         .out-by-overlay-handle {
             width: 44px;
             height: 5px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.35);
+            background: var(--sheet-handle, rgba(255, 255, 255, 0.35));
             margin: 10px auto 6px;
             flex: 0 0 auto;
         }
@@ -1596,8 +1624,9 @@
         .finance-amount.negative { color: var(--red); }
 
         .finance-currency {
-            opacity: 0.35;
+            opacity: 1;
             font-weight: 400;
+            color: inherit;
         }
 
         .finance-num-positive { color: var(--green, #34c759); }
@@ -2330,11 +2359,14 @@
             const themeParams = tg.themeParams || {};
             const colorScheme = tg.colorScheme || 'dark';
 
+            const root = document.documentElement;
+
             let bgColor = '#000000';
             let cardBg = '#1c1c1e';
             let textColor = '#ffffff';
             let secondaryText = '#8e8e93';
             let borderColor = '#38383a';
+            let sheetHandle = 'rgba(255, 255, 255, 0.35)';
 
             if (colorScheme === 'light') {
                 bgColor = themeParams.bg_color || '#ffffff';
@@ -2342,6 +2374,7 @@
                 textColor = themeParams.text_color || '#000000';
                 secondaryText = themeParams.hint_color || '#8e8e93';
                 borderColor = '#d1d1d6';
+                sheetHandle = 'rgba(0, 0, 0, 0.2)';
             } else {
                 bgColor = themeParams.bg_color || bgColor;
                 cardBg = themeParams.secondary_bg_color || cardBg;
@@ -2349,13 +2382,12 @@
                 secondaryText = themeParams.hint_color || secondaryText;
                 borderColor = themeParams.section_separator_color || borderColor;
             }
-
-            const root = document.documentElement;
             root.style.setProperty('--bg-color', bgColor);
             root.style.setProperty('--card-bg', cardBg);
             root.style.setProperty('--text-color', textColor);
             root.style.setProperty('--secondary-text', secondaryText);
             root.style.setProperty('--border-color', borderColor);
+            root.style.setProperty('--sheet-handle', sheetHandle);
             
             // Переменные для badge и indicator в зависимости от темы
             if (colorScheme === 'light') {
@@ -7004,11 +7036,16 @@
                     playersList.appendChild(button);
 
                     const rebuysElement = button.querySelector('.player-rebuys');
+                    const positionIndicator = button.querySelector('.position-indicator');
                     
                     if (isPending) {
+                        if (positionIndicator) {
+                            positionIndicator.classList.add('loading');
+                            positionIndicator.innerHTML = '<div class="loading-spinner"></div>';
+                        }
                         if (rebuysElement) {
-                            rebuysElement.style.display = 'flex';
-                            rebuysElement.innerHTML = '<div class="rebuy-dot" style="animation: pulse 1s infinite;">⏳</div>';
+                            rebuysElement.style.display = 'none';
+                            rebuysElement.innerHTML = '';
                         }
                     } else if (isOut) {
                         // Для завершенных игроков показываем место
@@ -8122,7 +8159,7 @@
                 const n = Math.abs(Math.round(Number(amount) || 0));
                 const rub = formatThousands(n);
                 const cls = colorClass ? ` class="${colorClass}"` : '';
-                return `<span${cls}>${rub}</span><span class="finance-currency"> ₽</span>`;
+                return `<span${cls}>${rub}<span class="finance-currency"> ₽</span></span>`;
             };
 
             const fmtMoneyHtml = (amount, { forceSign = true } = {}) => {
@@ -8257,8 +8294,8 @@
                 balances,
                 totalRevenue,
                 totalDebtBalances,
-                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span class="finance-num-negative">${formatThousands(totalDebt)}</span><span class="finance-currency"> ₽</span>`,
-                balancesPreviewHtml: `Игроков ${balances.length} • Выручка <span class="finance-num-positive">${formatThousands(totalRevenue)}</span><span class="finance-currency"> ₽</span>`
+                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span class="finance-num-negative">${formatThousands(totalDebt)}<span class="finance-currency"> ₽</span></span>`,
+                balancesPreviewHtml: `Игроков ${balances.length} • Выручка <span class="finance-num-positive">${formatThousands(totalRevenue)}<span class="finance-currency"> ₽</span></span>`
             };
             return financeStatsCache;
         }
@@ -8565,9 +8602,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 341;
+var APP_VERSION_PATCH = 342;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '27.01.26 15:58';
+var INDEX_HTML_LAST_EDITED = '27.01.26 16:59';
 
 init();
 </script>
