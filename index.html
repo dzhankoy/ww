@@ -6233,15 +6233,20 @@
             
             // Подсчитываем статистику для заголовка
             let todayCount = 0;
+            let tomorrowCount = 0;
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
-                if (daysUntil === 0) todayCount++;
-                if (daysUntil !== null && daysUntil <= 7) weekCount++;
+                if (daysUntil === 0) {
+                    todayCount++;
+                } else if (daysUntil === 1) {
+                    tomorrowCount++;
+                }
+                if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
             
             if (birthdaysInfo) {
-                birthdaysInfo.textContent = `Всего ${totalPlayers}, семь дней ${weekCount}, сегодня ${todayCount}`;
+                birthdaysInfo.textContent = `Всего ${totalPlayers}, семь дней ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
             }
         }
 
@@ -8812,9 +8817,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 349;
+var APP_VERSION_PATCH = 350;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '28.01.26 06:11';
+var INDEX_HTML_LAST_EDITED = '28.01.26 06:21';
 
 init();
 </script>
