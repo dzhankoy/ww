@@ -5965,7 +5965,7 @@
                 if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
             
-            const statsText = `Всего ${playersWithBirthday.length}, ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
+            const statsText = `Всего ${playersWithBirthday.length}, семь дней ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
             
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -6003,7 +6003,7 @@
                 }
                 if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
-            const statsText = `Ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
+            const statsText = `Семь дней ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
 
             const button = document.createElement('button');
             button.classList.add('player-button');
@@ -6204,7 +6204,7 @@
             });
             
             if (birthdaysInfo) {
-                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
+                birthdaysInfo.textContent = `Всего ${totalPlayers}, семь дней ${weekCount}, сегодня ${todayCount}`;
             }
         }
 
