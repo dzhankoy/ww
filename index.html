@@ -2008,15 +2008,6 @@
             display: none;
         }
 
-        .swipe-back-dim {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.35);
-            opacity: 0;
-            pointer-events: none;
-            z-index: 9995;
-        }
-
         @media (max-width: 768px) {
             body {
                 /* на мобильных тоже используем цвет из текущей темы */
@@ -2441,260 +2432,11 @@
 
         const SWIPE_BACK_EDGE = 28;
         const SWIPE_BACK_TRIGGER = 80;
-        const SWIPE_BACK_VELOCITY = 0.55;
-        const SWIPE_BACK_REVEAL_OFFSET = -24;
-        const SWIPE_BACK_REVEAL_SCALE = 0.96;
-        const SWIPE_BACK_DIM_OPACITY = 0.28;
         let swipeBackStartX = 0;
         let swipeBackStartY = 0;
         let swipeBackTracking = false;
-        let swipeBackDragging = false;
-        let swipeBackAxisLocked = false;
-        let swipeBackCancelled = false;
-        let swipeBackStartTs = 0;
-        let swipeBackLastX = 0;
-        let swipeBackLastTs = 0;
-        let swipeBackVelocity = 0;
-        let swipeBackRaf = 0;
-        let swipeBackContext = null;
-        let swipeBackDimEl = null;
 
         const canTriggerSwipeBack = () => typeof telegramBackHandler === 'function';
-
-        function ensureSwipeBackDimLayer() {
-            if (swipeBackDimEl) return swipeBackDimEl;
-            swipeBackDimEl = document.createElement('div');
-            swipeBackDimEl.className = 'swipe-back-dim';
-            document.body.appendChild(swipeBackDimEl);
-            return swipeBackDimEl;
-        }
-
-        function getVisibleScreen() {
-            const screens = [loadingScreen, errorScreen, tablesScreen, allPlayersScreen, dbPlayersScreen, birthdaysScreen,
-                registrationCalendarScreen, birthdaysCalendarScreen, tournamentsCalendarScreen, tournamentsScreen,
-                financeDebtsScreen, financeBalancesScreen, playerSelectionScreen, actionScreen, telegramTableScreen];
-            return screens.find(s => s && !s.classList.contains('hidden')) || null;
-        }
-
-        function getPreviousScreenForSwipe(currentScreen) {
-            if (!currentScreen) return null;
-            const id = currentScreen.id;
-            if (id === 'allPlayersScreen') return tablesScreen;
-            if (id === 'dbPlayersScreen') return tablesScreen;
-            if (id === 'birthdaysScreen') return tablesScreen;
-            if (id === 'registrationCalendarScreen') return tablesScreen;
-            if (id === 'birthdaysCalendarScreen') return tablesScreen;
-            if (id === 'tournamentsCalendarScreen') return tablesScreen;
-            if (id === 'tournamentsScreen') return tablesScreen;
-            if (id === 'financeDebtsScreen') return tablesScreen;
-            if (id === 'financeBalancesScreen') return tablesScreen;
-            if (id === 'telegramTableScreen') return tablesScreen;
-            if (id === 'playerSelectionScreen') return viewerIsAdmin ? tablesScreen : null;
-            if (id === 'actionScreen') {
-                if (cameFromTelegramTable) return telegramTableScreen;
-                if (cameFromAllPlayers) return allPlayersScreen;
-                if (cameFromAdminCalls) return playerSelectionScreen;
-                if (cameFromBirthdays) return birthdaysScreen;
-                if (cameFromDbPlayers) return dbPlayersScreen;
-                return playerSelectionScreen;
-            }
-            return null;
-        }
-
-        function buildSwipeBackContext() {
-            if (!canTriggerSwipeBack()) return null;
-            if (outByOverlayEl) {
-                const card = outByOverlayEl.querySelector('.out-by-overlay-card');
-                if (!card) return null;
-                return {
-                    type: 'outby',
-                    currentEl: card,
-                    previousEl: getVisibleScreen(),
-                    dimEl: ensureSwipeBackDimLayer(),
-                    restore: { current: {}, previous: {}, bodyOverflow: document.body.style.overflow }
-                };
-            }
-            if (monthOverlayOpenState && monthOverlayEl && monthOverlayEl.classList.contains('visible') && !monthOverlayOpenState.suspended) {
-                return {
-                    type: 'month',
-                    currentEl: monthOverlayCardEl,
-                    previousEl: monthOverlayOpenState.underlyingScreenEl,
-                    dimEl: monthOverlayBackdropEl,
-                    restore: { current: {}, previous: {}, bodyOverflow: document.body.style.overflow }
-                };
-            }
-
-            const currentScreen = getVisibleScreen();
-            const previousScreen = getPreviousScreenForSwipe(currentScreen);
-            if (!currentScreen || !previousScreen) return null;
-            return {
-                type: 'screen',
-                currentEl: currentScreen,
-                previousEl: previousScreen,
-                dimEl: ensureSwipeBackDimLayer(),
-                restore: { current: {}, previous: {}, bodyOverflow: document.body.style.overflow }
-            };
-        }
-
-        function cacheSwipeStyles(el, store) {
-            if (!el || !store) return;
-            store.transform = el.style.transform;
-            store.transition = el.style.transition;
-            store.position = el.style.position;
-            store.top = el.style.top;
-            store.left = el.style.left;
-            store.right = el.style.right;
-            store.bottom = el.style.bottom;
-            store.width = el.style.width;
-            store.zIndex = el.style.zIndex;
-            store.willChange = el.style.willChange;
-        }
-
-        function restoreSwipeStyles(el, store) {
-            if (!el || !store) return;
-            el.style.transform = store.transform || '';
-            el.style.transition = store.transition || '';
-            el.style.position = store.position || '';
-            el.style.top = store.top || '';
-            el.style.left = store.left || '';
-            el.style.right = store.right || '';
-            el.style.bottom = store.bottom || '';
-            el.style.width = store.width || '';
-            el.style.zIndex = store.zIndex || '';
-            el.style.willChange = store.willChange || '';
-        }
-
-        function prepareSwipeBackContext(ctx) {
-            if (!ctx || !ctx.currentEl) return;
-            cacheSwipeStyles(ctx.currentEl, ctx.restore.current);
-            if (ctx.previousEl) {
-                cacheSwipeStyles(ctx.previousEl, ctx.restore.previous);
-            }
-
-            if (ctx.type === 'screen') {
-                if (ctx.previousEl) {
-                    ctx.previousEl.classList.remove('hidden');
-                    restoreScrollPositionForScreen(ctx.previousEl);
-                    ctx.previousEl.style.position = 'fixed';
-                    ctx.previousEl.style.top = '0';
-                    ctx.previousEl.style.left = '0';
-                    ctx.previousEl.style.right = '0';
-                    ctx.previousEl.style.bottom = '0';
-                    ctx.previousEl.style.width = '100%';
-                    ctx.previousEl.style.zIndex = '9996';
-                    ctx.previousEl.style.willChange = 'transform';
-                }
-                ctx.currentEl.style.position = 'fixed';
-                ctx.currentEl.style.top = '0';
-                ctx.currentEl.style.left = '0';
-                ctx.currentEl.style.right = '0';
-                ctx.currentEl.style.bottom = '0';
-                ctx.currentEl.style.width = '100%';
-                ctx.currentEl.style.zIndex = '9997';
-                ctx.currentEl.style.willChange = 'transform';
-                document.body.style.overflow = 'hidden';
-            } else if (ctx.currentEl) {
-                ctx.currentEl.style.willChange = 'transform';
-            }
-
-            if (ctx.dimEl) {
-                ctx.dimEl.style.opacity = String(SWIPE_BACK_DIM_OPACITY);
-                if (ctx.type === 'screen' || ctx.type === 'outby') {
-                    ctx.dimEl.style.zIndex = ctx.type === 'outby' ? '9998' : '9995';
-                }
-            }
-        }
-
-        function applySwipeBackProgress(ctx, progress, dx) {
-            if (!ctx || !ctx.currentEl) return;
-            const width = Math.max(1, window.innerWidth || 1);
-            const clamped = Math.max(0, Math.min(1, progress));
-            const translateX = Math.max(0, Math.min(dx, width));
-            ctx.currentEl.style.transform = `translate3d(${translateX}px, 0, 0)`;
-
-            if (ctx.previousEl) {
-                const offset = SWIPE_BACK_REVEAL_OFFSET * (1 - clamped);
-                const scale = SWIPE_BACK_REVEAL_SCALE + (1 - SWIPE_BACK_REVEAL_SCALE) * clamped;
-                ctx.previousEl.style.transform = `translate3d(${offset}px, 0, 0) scale(${scale})`;
-                ctx.previousEl.style.transformOrigin = 'left center';
-            }
-
-            if (ctx.dimEl) {
-                const dimOpacity = SWIPE_BACK_DIM_OPACITY * (1 - clamped);
-                ctx.dimEl.style.opacity = String(Math.max(0, dimOpacity));
-            }
-        }
-
-        function finishSwipeBack(ctx, shouldCommit) {
-            if (!ctx) return;
-            const width = Math.max(1, window.innerWidth || 1);
-            const toX = shouldCommit ? width : 0;
-            const duration = shouldCommit ? 220 : 260;
-            const easing = shouldCommit ? 'cubic-bezier(0.22, 0.61, 0.36, 1)' : 'cubic-bezier(0.2, 0.8, 0.2, 1)';
-            const startX = swipeBackLastX || 0;
-            const startProgress = Math.max(0, Math.min(1, startX / width));
-            const endProgress = shouldCommit ? 1 : 0;
-            const anim = safeAnimate(
-                ctx.currentEl,
-                [{ transform: `translate3d(${startX}px, 0, 0)` }, { transform: `translate3d(${toX}px, 0, 0)` }],
-                { duration, easing, fill: 'forwards' }
-            );
-
-            if (ctx.previousEl) {
-                safeAnimate(
-                    ctx.previousEl,
-                    [
-                        { transform: `translate3d(${SWIPE_BACK_REVEAL_OFFSET * (1 - startProgress)}px, 0, 0) scale(${SWIPE_BACK_REVEAL_SCALE + (1 - SWIPE_BACK_REVEAL_SCALE) * startProgress})` },
-                        { transform: `translate3d(${SWIPE_BACK_REVEAL_OFFSET * (1 - endProgress)}px, 0, 0) scale(${SWIPE_BACK_REVEAL_SCALE + (1 - SWIPE_BACK_REVEAL_SCALE) * endProgress})` }
-                    ],
-                    { duration, easing, fill: 'forwards' }
-                );
-            }
-
-            if (ctx.dimEl) {
-                safeAnimate(
-                    ctx.dimEl,
-                    [{ opacity: ctx.dimEl.style.opacity || SWIPE_BACK_DIM_OPACITY }, { opacity: shouldCommit ? 0 : SWIPE_BACK_DIM_OPACITY }],
-                    { duration, easing, fill: 'forwards' }
-                );
-            }
-
-            const done = anim && anim.finished ? anim.finished : new Promise(resolve => setTimeout(resolve, duration));
-            done.then(() => {
-                if (!shouldCommit) {
-                    if (ctx.dimEl) ctx.dimEl.style.opacity = '0';
-                    restoreSwipeStyles(ctx.currentEl, ctx.restore.current);
-                    if (ctx.previousEl) {
-                        restoreSwipeStyles(ctx.previousEl, ctx.restore.previous);
-                        if (ctx.type === 'screen') {
-                            ctx.previousEl.classList.add('hidden');
-                        }
-                    }
-                    document.body.style.overflow = ctx.restore.bodyOverflow || '';
-                    return;
-                }
-
-                if (ctx.dimEl) ctx.dimEl.style.opacity = '0';
-                restoreSwipeStyles(ctx.currentEl, ctx.restore.current);
-                if (ctx.previousEl) restoreSwipeStyles(ctx.previousEl, ctx.restore.previous);
-                document.body.style.overflow = ctx.restore.bodyOverflow || '';
-
-                try {
-                    if (ctx.type === 'month') {
-                        closeMonthOverlayInternal({ instant: true });
-                        return;
-                    }
-                    if (ctx.type === 'outby') {
-                        closeOutByOverlay({ instant: true });
-                        return;
-                    }
-                    if (typeof telegramBackHandler === 'function') {
-                        telegramBackHandler();
-                    }
-                } catch (e) {
-                }
-            });
-        }
 
         document.addEventListener('touchstart', (ev) => {
             if (!canTriggerSwipeBack()) return;
@@ -2703,20 +2445,7 @@
             if (t.clientX > SWIPE_BACK_EDGE) return;
             swipeBackStartX = t.clientX;
             swipeBackStartY = t.clientY;
-            swipeBackStartTs = (ev && typeof ev.timeStamp === 'number') ? ev.timeStamp : performance.now();
-            swipeBackLastX = swipeBackStartX;
-            swipeBackLastTs = swipeBackStartTs;
-            swipeBackVelocity = 0;
             swipeBackTracking = true;
-            swipeBackDragging = false;
-            swipeBackAxisLocked = false;
-            swipeBackCancelled = false;
-            swipeBackContext = buildSwipeBackContext();
-            if (!swipeBackContext) {
-                swipeBackTracking = false;
-                return;
-            }
-            prepareSwipeBackContext(swipeBackContext);
         }, { passive: true });
 
         document.addEventListener('touchmove', (ev) => {
@@ -2726,72 +2455,27 @@
             const dx = t.clientX - swipeBackStartX;
             const dy = t.clientY - swipeBackStartY;
             if (dx < 0) {
-                swipeBackCancelled = true;
-            }
-            if (!swipeBackAxisLocked) {
-                if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                    swipeBackAxisLocked = true;
-                    if (Math.abs(dy) > Math.abs(dx) * 1.2) {
-                        swipeBackCancelled = true;
-                    }
-                }
-            }
-            if (swipeBackCancelled) {
                 swipeBackTracking = false;
-                finishSwipeBack(swipeBackContext, false);
-                swipeBackContext = null;
                 return;
             }
-
-            if (!swipeBackDragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.1) {
-                swipeBackDragging = true;
+            if (Math.abs(dx) > 20 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                ev.preventDefault();
             }
-            if (!swipeBackDragging) return;
-
-            const nowTs = (ev && typeof ev.timeStamp === 'number') ? ev.timeStamp : performance.now();
-            const dt = Math.max(1, nowTs - swipeBackLastTs);
-            swipeBackVelocity = (t.clientX - swipeBackLastX) / dt;
-            swipeBackLastX = t.clientX;
-            swipeBackLastTs = nowTs;
-
-            const width = Math.max(1, window.innerWidth || 1);
-            const progress = Math.max(0, Math.min(1, dx / width));
-            const apply = () => {
-                swipeBackRaf = 0;
-                applySwipeBackProgress(swipeBackContext, progress, dx);
-            };
-            if (!swipeBackRaf) {
-                swipeBackRaf = requestAnimationFrame(apply);
-            }
-            ev.preventDefault();
         }, { passive: false });
 
         document.addEventListener('touchend', (ev) => {
             if (!swipeBackTracking || !canTriggerSwipeBack()) {
                 swipeBackTracking = false;
-                swipeBackContext = null;
                 return;
             }
             const t = ev && ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0] : null;
             swipeBackTracking = false;
-            if (!t || !swipeBackContext) {
-                swipeBackContext = null;
-                return;
-            }
+            if (!t) return;
             const dx = t.clientX - swipeBackStartX;
             const dy = t.clientY - swipeBackStartY;
-            const width = Math.max(1, window.innerWidth || 1);
-            const progress = Math.max(0, Math.min(1, dx / width));
-            const duration = Math.max(1, ((ev && typeof ev.timeStamp === 'number') ? ev.timeStamp : performance.now()) - swipeBackStartTs);
-            const velocity = swipeBackVelocity || (dx / duration);
-            const shouldCommit = dx > SWIPE_BACK_TRIGGER || velocity > SWIPE_BACK_VELOCITY;
-            if (!swipeBackDragging || Math.abs(dx) < Math.abs(dy) * 1.1) {
-                finishSwipeBack(swipeBackContext, false);
-            } else {
-                applySwipeBackProgress(swipeBackContext, progress, dx);
-                finishSwipeBack(swipeBackContext, shouldCommit);
+            if (dx > SWIPE_BACK_TRIGGER && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                telegramBackHandler();
             }
-            swipeBackContext = null;
         }, { passive: true });
 
         function applyTelegramTheme() {
@@ -4098,7 +3782,7 @@
             showTelegramBackButton(closeMonthOverlayInternal);
         }
 
-        async function closeMonthOverlayInternal({ instant = false } = {}) {
+        async function closeMonthOverlayInternal() {
             if (!monthOverlayOpenState) return;
             if (!monthOverlayEl || !monthOverlayCardEl) return;
 
@@ -4110,73 +3794,6 @@
 
             if (!monthEl || !placeholderEl) {
                 monthOverlayEl.classList.remove('visible');
-                monthOverlayOpenState = null;
-                document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
-                if (monthOverlayPrevBackHandler) showTelegramBackButton(monthOverlayPrevBackHandler);
-                else hideTelegramBackButton();
-                monthOverlayPrevBackHandler = null;
-                monthOverlayPrevBodyOverflow = null;
-                return;
-            }
-
-            if (instant) {
-                try {
-                    monthOverlayCardEl.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
-                    monthOverlayBackdropEl.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
-                    monthEl.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
-                } catch (e) {
-                }
-
-                monthOverlayEl.classList.remove('visible');
-                monthOverlayCardEl.style.transform = 'none';
-                monthOverlayCardEl.style.opacity = '0';
-                try {
-                    monthOverlayBackdropEl.style.opacity = '0';
-                } catch (e) {
-                }
-
-                try {
-                    monthEl.classList.remove('month-overlay-anim-clone');
-                } catch (e) {
-                }
-
-                try {
-                    if (placeholderEl.parentNode) {
-                        placeholderEl.parentNode.removeChild(placeholderEl);
-                    }
-                } catch (e) {
-                }
-
-                try {
-                    if (sourceParent) {
-                        if (sourceNextSibling && sourceNextSibling.parentNode === sourceParent) {
-                            sourceParent.insertBefore(monthEl, sourceNextSibling);
-                        } else {
-                            sourceParent.appendChild(monthEl);
-                        }
-                    }
-                } catch (e) {
-                }
-
-                try {
-                    const rs = state.restoreStyle || {};
-                    monthEl.style.position = rs.position || '';
-                    monthEl.style.left = rs.left || '';
-                    monthEl.style.top = rs.top || '';
-                    monthEl.style.width = rs.width || '';
-                    monthEl.style.height = rs.height || '';
-                    monthEl.style.transform = rs.transform || '';
-                    monthEl.style.opacity = rs.opacity || '';
-                    monthEl.style.display = rs.display || '';
-                    monthEl.style.visibility = rs.visibility || '';
-                    monthEl.style.background = rs.background || '';
-                    monthEl.style.backgroundColor = rs.backgroundColor || '';
-                    monthEl.style.zIndex = rs.zIndex || '';
-                    monthEl.style.borderRadius = rs.borderRadius || '';
-                    monthEl.style.pointerEvents = rs.pointerEvents || '';
-                } catch (e) {
-                }
-
                 monthOverlayOpenState = null;
                 document.body.style.overflow = monthOverlayPrevBodyOverflow || '';
                 if (monthOverlayPrevBackHandler) showTelegramBackButton(monthOverlayPrevBackHandler);
@@ -5899,13 +5516,13 @@
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
-            const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
             const prePrevMonthDate = new Date(currentYear, currentMonth - 2, 1);
-            const prevKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            const prevMonthDate = new Date(currentYear, currentMonth - 1, 1);
             const prePrevKey = `${prePrevMonthDate.getFullYear()}-${String(prePrevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+            const prevKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
             const currentKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-            const prevCount = countsByMonth.get(prevKey) || 0;
             const prePrevCount = countsByMonth.get(prePrevKey) || 0;
+            const prevCount = countsByMonth.get(prevKey) || 0;
             const currentCount = countsByMonth.get(currentKey) || 0;
             const prePrevMonthName = monthNames[prePrevMonthDate.getMonth()];
             const prevMonthName = monthNames[prevMonthDate.getMonth()].toLowerCase();
@@ -6379,8 +5996,11 @@
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
-                if (daysUntil === 0) todayCount++;
-                if (daysUntil === 1) tomorrowCount++;
+                if (daysUntil === 0) {
+                    todayCount++;
+                } else if (daysUntil === 1) {
+                    tomorrowCount++;
+                }
                 if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
             });
             const statsText = `Ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
@@ -6576,17 +6196,15 @@
             
             // Подсчитываем статистику для заголовка
             let todayCount = 0;
-            let tomorrowCount = 0;
             let weekCount = 0;
             playersWithBirthday.forEach(player => {
                 const daysUntil = getDaysUntilDate(player.birthday, false);
                 if (daysUntil === 0) todayCount++;
-                if (daysUntil === 1) tomorrowCount++;
-                if (daysUntil !== null && daysUntil >= 1 && daysUntil <= 7) weekCount++;
+                if (daysUntil !== null && daysUntil <= 7) weekCount++;
             });
             
             if (birthdaysInfo) {
-                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, завтра ${tomorrowCount}, сегодня ${todayCount}`;
+                birthdaysInfo.textContent = `Всего ${totalPlayers}, ближайшая неделя ${weekCount}, сегодня ${todayCount}`;
             }
         }
 
@@ -8207,7 +7825,7 @@
             }
         });
 
-        function closeOutByOverlay({ instant = false } = {}) {
+        function closeOutByOverlay() {
             if (!outByOverlayEl) return;
 
             const elToRemove = outByOverlayEl;
@@ -8230,15 +7848,6 @@
                         card.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
                     }
                 } catch (e) {
-                }
-
-                if (instant) {
-                    try {
-                        document.body.style.overflow = '';
-                    } catch (e) {
-                    }
-                    try { elToRemove.remove(); } catch (e) {}
-                    return;
                 }
 
                 const getTranslateY = (el) => {
@@ -9168,7 +8777,7 @@ var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
 var APP_VERSION_PATCH = 347;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '28.01.26 04:58';
+var INDEX_HTML_LAST_EDITED = '28.01.26 05:08';
 
 init();
 </script>
