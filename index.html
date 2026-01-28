@@ -1545,6 +1545,12 @@
             display: flex;
             gap: var(--spacing-xs);
         }
+
+        .player-rebuys.registration-date {
+            font-size: 12px;
+            color: var(--secondary-text);
+            gap: 0;
+        }
         
         .rebuy-dot {
             width: 8px;
@@ -5123,9 +5129,10 @@
             
             const allPlayers = getAllTournamentPlayers();
             const registrationsMode = !tournamentHasAssignedBoxes();
+            const t = getTournament();
+            const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
             const dealersOnTables = new Set();
             if (!registrationsMode) {
-                const t = getTournament();
                 const tables = Array.isArray(t?.tables) ? t.tables : [];
                 for (const table of tables) {
                     const players = Array.isArray(table?.players) ? table.players : [];
@@ -5137,8 +5144,18 @@
                 }
             }
             allPlayersList.innerHTML = '';
+
+            const registrationSortedPlayers = isScheduled
+                ? [...allPlayers].sort((a, b) => {
+                    const aDate = parseTournamentRegDateTime(a?.registrationDate || a?.registration_date || a?.reg_date || a?.regDate || '');
+                    const bDate = parseTournamentRegDateTime(b?.registrationDate || b?.registration_date || b?.reg_date || b?.regDate || '');
+                    const aTime = aDate ? aDate.getTime() : Number.MAX_SAFE_INTEGER;
+                    const bTime = bDate ? bDate.getTime() : Number.MAX_SAFE_INTEGER;
+                    return aTime - bTime;
+                })
+                : allPlayers;
             
-            allPlayers.forEach(player => {
+            registrationSortedPlayers.forEach(player => {
                 const button = document.createElement('button');
                 button.classList.add('player-button');
                 
@@ -5161,15 +5178,31 @@
                             ? 'dealer'
                             : 'playing';
                 
-                const registrationDisplay = getTournamentRegistrationDisplay(player) || '—';
+                const registrationDisplay = formatTournamentRegDateTimeShort(player?.registrationDate || player?.registration_date || player?.reg_date || player?.regDate || '') || '—';
                 const tableBoxInfo = registrationsMode
                     ? registrationDisplay
                     : `Стол ${player.tableId}, бокс ${player.box || '?'}`;
+
+                let indicatorHtml = '';
+                if (isScheduled) {
+                    const now = new Date();
+                    const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    const photoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
+                    indicatorHtml = `
+                        <div class="position-indicator ${positionClass} photo-indicator">
+                            <img src="${photoUrl}" alt="" onerror="this.src='avatar.png'">
+                        </div>
+                    `;
+                } else {
+                    indicatorHtml = `
+                        <div class="position-indicator ${positionClass}">
+                            ${registrationsMode ? (player.dealer ? 'D' : 'R') : (player.box || '?')}
+                        </div>
+                    `;
+                }
                 
                 button.innerHTML = `
-                    <div class="position-indicator ${positionClass}">
-                        ${registrationsMode ? (player.dealer ? 'D' : 'R') : (player.box || '?')}
-                    </div>
+                    ${indicatorHtml}
                     <div class="player-info">
                         <div class="player-nickname">${nicknameDisplay}</div>
                         <div class="player-name">${playerName}</div>
@@ -5180,7 +5213,13 @@
                 
                 const rebuysElement = button.querySelector('.player-rebuys');
                 
-                if (registrationsMode) {
+                if (isScheduled) {
+                    if (rebuysElement) {
+                        rebuysElement.style.display = 'flex';
+                        rebuysElement.classList.add('registration-date');
+                        rebuysElement.textContent = registrationDisplay;
+                    }
+                } else if (registrationsMode) {
                     if (rebuysElement) {
                         rebuysElement.style.display = 'none';
                     }
@@ -6331,6 +6370,17 @@
             const min = String(d.getMinutes()).padStart(2, '0');
             const ss = String(d.getSeconds()).padStart(2, '0');
             return `${dd}.${mm}.${yyyy} ${hh}:${min}:${ss}`;
+        }
+
+        function formatTournamentRegDateTimeShort(value) {
+            const d = parseTournamentRegDateTime(value);
+            if (!d) return '';
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const yyyy = String(d.getFullYear());
+            const hh = String(d.getHours()).padStart(2, '0');
+            const min = String(d.getMinutes()).padStart(2, '0');
+            return `${dd}.${mm}.${yyyy} ${hh}:${min}`;
         }
 
         function getTournamentRegistrationDisplay(player) {
