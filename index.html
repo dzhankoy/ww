@@ -8309,7 +8309,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--red);">💸</div>
                 <div class="player-info">
                     <div class="player-nickname">Долги</div>
-                    <div class="player-name">${stats && stats.debtsPreviewHtml ? stats.debtsPreviewHtml : 'Должники • Долг'}</div>
+                    <div class="player-name">${stats && stats.debtsPreviewHtml ? stats.debtsPreviewHtml : 'Должники, Долг'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -8322,7 +8322,7 @@
                 <div class="table-indicator emoji" style="background-color: var(--green);">💰</div>
                 <div class="player-info">
                     <div class="player-nickname">Балансы</div>
-                    <div class="player-name">${stats && stats.balancesPreviewHtml ? stats.balancesPreviewHtml : 'Игроки • Выручка • Долг'}</div>
+                    <div class="player-name">${stats && stats.balancesPreviewHtml ? stats.balancesPreviewHtml : 'Игроки, Выручка, Долг'}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -8391,7 +8391,7 @@
                 const picked = stats && Array.isArray(stats.debtsPicked) ? stats.debtsPicked : [];
                 const totalDebt = stats && typeof stats.totalDebt === 'number' ? stats.totalDebt : 0;
                 if (infoEl) {
-                    infoEl.innerHTML = `Должников ${picked.length} • Долг ${fmtPlainMoneyHtml(totalDebt, { colorClass: 'finance-num-negative' })}`;
+                    infoEl.innerHTML = `Должников ${picked.length}, Долг ${fmtPlainMoneyHtml(totalDebt, { colorClass: 'finance-num-negative' })}`;
                 }
 
                 for (const it of picked) {
@@ -8512,8 +8512,8 @@
                 balances,
                 totalRevenue,
                 totalDebtBalances,
-                debtsPreviewHtml: `Должников ${debtsPicked.length} • Долг <span class="finance-num-negative">${formatThousands(totalDebt)}<span class="finance-currency"> ₽</span></span>`,
-                balancesPreviewHtml: `Игроков ${balances.length} • Выручка <span class="finance-num-positive">${formatThousands(totalRevenue)}<span class="finance-currency"> ₽</span></span>`
+                debtsPreviewHtml: `Должников ${debtsPicked.length}, Долг <span class="finance-num-negative">${formatThousands(totalDebt)}<span class="finance-currency"> ₽</span></span>`,
+                balancesPreviewHtml: `Игроков ${balances.length}, Выручка <span class="finance-num-positive">${formatThousands(totalRevenue)}<span class="finance-currency"> ₽</span></span>`
             };
             return financeStatsCache;
         }
@@ -8820,9 +8820,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 353;
+var APP_VERSION_PATCH = 354;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '28.01.26 06:41';
+var INDEX_HTML_LAST_EDITED = '28.01.26 14:11';
 
 init();
 </script>
