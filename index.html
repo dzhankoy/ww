@@ -2504,11 +2504,18 @@
             }
         }, { passive: true });
 
+        let manualColorScheme = null;
+        try {
+            manualColorScheme = localStorage.getItem('manualColorScheme') || null;
+        } catch (e) {
+            manualColorScheme = null;
+        }
+
         function applyTelegramTheme() {
             if (!tg) return;
 
             const themeParams = tg.themeParams || {};
-            const colorScheme = tg.colorScheme || 'dark';
+            const colorScheme = manualColorScheme || tg.colorScheme || 'dark';
 
             const root = document.documentElement;
 
@@ -2557,6 +2564,15 @@
         applyTelegramTheme();
         if (tg && typeof tg.onEvent === 'function') {
             tg.onEvent('themeChanged', applyTelegramTheme);
+        }
+
+        function toggleManualTheme() {
+            manualColorScheme = manualColorScheme === 'light' ? 'dark' : 'light';
+            try {
+                localStorage.setItem('manualColorScheme', manualColorScheme);
+            } catch (e) {
+            }
+            applyTelegramTheme();
         }
 
         const CONFIG = {
@@ -2631,6 +2647,11 @@
         const tablesTournamentStats = document.getElementById('tablesTournamentStats');
         const tableIndicator = document.getElementById('tableIndicator');
         const tableNumber = document.getElementById('tableNumber');
+
+        if (tablesTournamentInfo) {
+            tablesTournamentInfo.style.cursor = 'pointer';
+            tablesTournamentInfo.addEventListener('click', toggleManualTheme);
+        }
         const dealerName = document.getElementById('dealerName');
         const playersList = document.getElementById('playersList');
         const tablesList = document.getElementById('tablesList');
@@ -8812,9 +8833,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 348;
+var APP_VERSION_PATCH = 349;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '28.01.26 05:20';
+var INDEX_HTML_LAST_EDITED = '28.01.26 05:41';
 
 init();
 </script>
