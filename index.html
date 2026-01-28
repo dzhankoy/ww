@@ -5012,6 +5012,7 @@
             const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
             const maxPlayers = Number(t.max_players);
             const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
+            const showRegistrationView = isScheduled || registrationsMode;
             const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
             const maxDealersCount = registrationsMode ? Math.max(1, Math.ceil(allPlayers.length / 9)) : 0;
             const dealersText = registrationsMode ? `, дилеров ${dealersCount} из ${maxDealersCount}` : '';
@@ -5026,7 +5027,7 @@
 
             const totalPlayersCount = allPlayers.length;
             let ratio = 0;
-            if (isScheduled) {
+            if (showRegistrationView) {
                 ratio = (maxPlayers > 0 && totalPlayersCount > 0) ? (totalPlayersCount / maxPlayers) : 0;
             } else {
                 ratio = totalPlayersCount > 0 ? (activePlayers.length / totalPlayersCount) : 0;
@@ -5037,8 +5038,8 @@
             button.innerHTML = `
                 <div class="table-indicator"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="player-info">
-                    <div class="player-nickname">${registrationsMode && isScheduled ? 'Регистрации' : 'Все игроки турнира'}</div>
-                    <div class="player-name">${registrationsMode ? (isScheduled ? `Зарегистрировано ${allPlayers.length}${maxPlayersText}` : `Игроков ${allPlayers.length}${dealersText}`) : `В игре ${activePlayers.length}, вылетело ${outPlayers.length}`}</div>
+                    <div class="player-nickname">${showRegistrationView ? 'Регистрации' : 'Все игроки турнира'}</div>
+                    <div class="player-name">${showRegistrationView ? (isScheduled ? `Зарегистрировано ${allPlayers.length}${maxPlayersText}` : `Игроков ${allPlayers.length}${dealersText}`) : `В игре ${activePlayers.length}, вылетело ${outPlayers.length}`}</div>
                 </div>
                 <div class="chevron"></div>
             `;
@@ -5089,6 +5090,7 @@
             const isScheduled = String(t.status || '').toLowerCase() === 'scheduled';
             const maxPlayers = Number(t.max_players);
             const maxPlayersText = Number.isFinite(maxPlayers) && maxPlayers > 0 ? ` из ${maxPlayers}` : '';
+            const showRegistrationView = isScheduled || registrationsMode;
             const activePlayers = registrationsMode ? [] : allPlayers.filter(p => !p.outTime);
             const outPlayers = registrationsMode ? [] : allPlayers.filter(p => !!p.outTime);
             const dealersCount = registrationsMode ? allPlayers.filter(p => p && p.dealer === true).length : 0;
@@ -5096,8 +5098,8 @@
             const dealersText = registrationsMode ? `, дилеров ${dealersCount} из ${maxDealersCount}` : '';
             
             if (allPlayersInfo) {
-                allPlayersInfo.textContent = registrationsMode
-                    ? `Зарегистрировано ${allPlayers.length}${isScheduled ? maxPlayersText : ''}${dealersText}`
+                allPlayersInfo.textContent = showRegistrationView
+                    ? (isScheduled ? `Зарегистрировано ${allPlayers.length}${maxPlayersText}` : `Зарегистрировано ${allPlayers.length}${maxPlayersText}${dealersText}`)
                     : `Всего ${allPlayers.length}, в игре ${activePlayers.length}, вылетело ${outPlayers.length}`;
             }
             
