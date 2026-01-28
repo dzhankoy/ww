@@ -2254,7 +2254,7 @@
     <div id="telegramTableScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon">🏆</div>
+                <div class="header-icon"><img src="cup.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="telegramTableTitle">King & Joker Tournament</div>
                     <div class="tournament-date" id="telegramTableInfo">Таблица для Телеграм</div>
@@ -2302,7 +2302,7 @@
     <div id="tournamentsScreen" class="screen hidden">
         <div class="header-content">
             <div class="tournament-header-row">
-                <div class="header-icon">🏆</div>
+                <div class="header-icon"><img src="cup.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="tournament-header-text">
                     <div class="tournament-title" id="tournamentsTitle">Все турниры</div>
                     <div class="tournament-date" id="tournamentsInfo">Загрузка...</div>
@@ -6936,7 +6936,7 @@
             const scheduledTournaments = tournaments.filter(t => t.status === 'scheduled').length;
             
             button.innerHTML = `
-                <div class="table-indicator emoji">🏆</div>
+                <div class="table-indicator"><img src="cup.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
                 <div class="player-info">
                     <div class="player-nickname">Все турниры</div>
                     <div class="player-name">Всего ${tournaments.length}, активных ${activeTournaments}, запланировано ${scheduledTournaments}</div>
@@ -8812,9 +8812,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 348;
+var APP_VERSION_PATCH = 349;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '28.01.26 05:20';
+var INDEX_HTML_LAST_EDITED = '28.01.26 06:11';
 
 init();
 </script>
