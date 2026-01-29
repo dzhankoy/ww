@@ -3086,11 +3086,7 @@
                     const calendarType = monthOverlayOpenState.calendarType;
                     if (item.type === 'player' && item.player) {
                         suspendMonthOverlayInternal();
-                        if (calendarType === 'birthdays') {
-                            showDbPlayerCardInternal(item.player, backToMonthOverlayFromAction);
-                        } else {
-                            showDbPlayerCardInternal(item.player, backToMonthOverlayFromAction);
-                        }
+                        showPlayerCard(item.player, backToMonthOverlayFromAction, { source: 'month' });
                         return;
                     }
 
@@ -4519,7 +4515,7 @@
                 const dbViewerPlayer = getDbPlayerById(viewerChatId);
                 if (dbViewerPlayer) {
                     setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
-                    showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
+                    showPlayerCard(dbViewerPlayer, null, { isOwnProfile: true, source: 'self' });
                     return;
                 }
                 return;
@@ -4531,7 +4527,7 @@
                 hideTelegramBackButton();
                 setButtonsVisibility({ rebuy: 'none', out: 'none', admin: 'none', playerAdmin: 'none' });
                 // Показываем профиль без возможности вернуться назад (это его личный экран)
-                showDbPlayerCardInternal(dbViewerPlayer, null, { isOwnProfile: true });
+                showPlayerCard(dbViewerPlayer, null, { isOwnProfile: true, source: 'self' });
                 return;
             }
 
@@ -4943,10 +4939,7 @@
                     // 2) Фоллбек: открываем профиль из базы клуба
                     const dbPlayer = getDbPlayerById(player.id);
                     if (dbPlayer) {
-                        const backHandler = viewerIsAdmin
-                            ? () => { cameFromAdminCalls = false; showTablesScreen(); }
-                            : () => showPlayerSelection();
-                        showDbPlayerCardInternal(dbPlayer, backHandler);
+                        showPlayerCard(dbPlayer, () => { cameFromAdminCalls = false; showTablesScreen(); }, { source: 'db' });
                         return;
                     }
 
@@ -5311,7 +5304,7 @@
                     if (!player.tableId || !player.box) {
                         const dbPlayer = getDbPlayerById(player.id);
                         if (dbPlayer) {
-                            showDbPlayerCardInternal(dbPlayer, backToAllPlayersFromAction);
+                            showPlayerCard(dbPlayer, backToAllPlayersFromAction, { source: 'db' });
                             return;
                         }
                         showError('Нет данных для открытия игрока');
@@ -5373,34 +5366,8 @@
             showTablesScreen();
         }
 
-        // Показать карточку игрока турнира из призовой таблицы
-        let cameFromTelegramTable = false;
-        
-        function showTournamentPlayerCardFromTelegramTable(player) {
-            if (!player || player.box == null || player.tableId == null) return;
-            
-            cameFromTelegramTable = true;
-            saveScrollPositionForScreen(telegramTableScreen);
-            telegramTableScreen.classList.add('hidden');
-            
-            // Устанавливаем стол игрока как текущий
-            currentTableId = player.tableId;
-            const tables = fullTournamentData?.tournament?.tables || [];
-            const playerTable = tables.find(t => String(t.id) === String(player.tableId));
-            if (playerTable) {
-                currentBoxes = buildBoxes(playerTable);
-            }
-            
-            // Открываем карточку через стандартную функцию
-            selectBox(player.box);
-            
-            // Заменяем кнопку назад
-            showTelegramBackButton(backToTelegramTableFromAction);
-        }
-
         // Возврат с карточки игрока на призовую таблицу
         function backToTelegramTableFromAction() {
-            cameFromTelegramTable = false;
             actionScreen.classList.add('hidden');
             telegramTableScreen.classList.remove('hidden');
             restoreScrollPositionForScreen(telegramTableScreen);
@@ -5491,7 +5458,24 @@
                 
                 // Добавляем обработчик клика для открытия карточки игрока
                 button.addEventListener('click', () => {
-                    showTournamentPlayerCardFromTelegramTable(player);
+                    if (!player || player.box == null || player.tableId == null) return;
+
+                    saveScrollPositionForScreen(telegramTableScreen);
+                    telegramTableScreen.classList.add('hidden');
+
+                    // Устанавливаем стол игрока как текущий
+                    currentTableId = player.tableId;
+                    const tables = fullTournamentData?.tournament?.tables || [];
+                    const playerTable = tables.find(t => String(t.id) === String(player.tableId));
+                    if (playerTable) {
+                        currentBoxes = buildBoxes(playerTable);
+                    }
+
+                    // Открываем карточку через стандартную функцию
+                    selectBox(player.box);
+
+                    // Заменяем кнопку назад
+                    showTelegramBackButton(backToTelegramTableFromAction);
                 });
                 
                 telegramTableList.appendChild(button);
@@ -6315,7 +6299,7 @@
                     `;
                     
                     button.addEventListener('click', () => {
-                        showDbPlayerCardFromBirthdays(player);
+                        showPlayerCard(player, backToBirthdaysFromAction, { source: 'birthdays' });
                     });
                     
                     monthContainer.appendChild(button);
@@ -6647,7 +6631,7 @@
                 
                 // Клик по игроку из базы - открываем карточку игрока
                 button.addEventListener('click', () => {
-                    showDbPlayerCard(player);
+                    showPlayerCard(player, backToDbPlayersFromAction, { source: 'db' });
                 });
                 
                 dbPlayersList.appendChild(button);
@@ -6707,26 +6691,25 @@
         let cameFromBirthdays = false;
         let currentDbPlayer = null; // Текущий игрок из БД для кнопки "Написать"
 
-        // Показать карточку игрока из списка дней рождения
-        function showDbPlayerCardFromBirthdays(player) {
-            cameFromBirthdays = true;
-            cameFromDbPlayers = false;
-            showDbPlayerCardInternal(player, backToBirthdaysFromAction);
-        }
-
-        // Показать карточку игрока из базы данных
-        function showDbPlayerCard(player) {
-            cameFromBirthdays = false;
-            showDbPlayerCardInternal(player, backToDbPlayersFromAction);
-        }
-
-        // Внутренняя функция показа карточки игрока
+        // Унифицированный показ карточки игрока
         // options.isOwnProfile - если true, скрываем кнопку "Назад" и "Написать"
-        function showDbPlayerCardInternal(player, backHandler, options = {}) {
+        // options.source - 'db' | 'birthdays' | 'month' | 'self'
+        function showPlayerCard(player, backHandler, options = {}) {
             const isOwnProfile = options.isOwnProfile === true;
+            const source = options.source || 'db';
             currentDbPlayer = player;
-            cameFromDbPlayers = true;
             selectedBox = null;
+
+            if (source === 'birthdays') {
+                cameFromBirthdays = true;
+                cameFromDbPlayers = false;
+            } else if (source === 'db') {
+                cameFromDbPlayers = true;
+                cameFromBirthdays = false;
+            } else {
+                cameFromBirthdays = false;
+                cameFromDbPlayers = false;
+            }
 
             // Если у игрока активен вызов админа - снимаем его (при просмотре профиля админом)
             if (viewerIsAdmin) {
@@ -6769,13 +6752,23 @@
                 selectedPlayerRating.style.display = 'none';
             }
             
-            // Информация о статусе в турнире
+            // Информация о столе/боксе (если игрок сейчас в турнире)
             if (selectedPlayerTableInfo) {
-                const isRegistered = player.isRegistered === true;
-                selectedPlayerTableInfo.innerHTML = `
-                    <span class="table-label">В турнире</span>
-                    <span class="table-badge">${isRegistered ? 'Да' : 'Нет'}</span>
-                `;
+                const tournamentPlayer = getAllTournamentPlayers()
+                    .find(p => p && String(p.id) === String(player.id) && p.tableId != null && p.box != null);
+
+                if (tournamentPlayer) {
+                    selectedPlayerTableInfo.style.display = '';
+                    selectedPlayerTableInfo.innerHTML = `
+                        <span class="table-label">Стол</span>
+                        <span class="table-badge">${tournamentPlayer.tableId}</span>
+                        <span class="table-label">Бокс</span>
+                        <span class="table-badge">${tournamentPlayer.box}</span>
+                    `;
+                } else {
+                    selectedPlayerTableInfo.innerHTML = '';
+                    selectedPlayerTableInfo.style.display = 'none';
+                }
             }
             
             // Скрываем старый блок дат
@@ -6974,7 +6967,7 @@
                                 }
 
                                 await refreshTournamentData();
-                                showDbPlayerCardInternal(player, backHandler, options);
+                                showPlayerCard(player, backHandler, options);
                                 if (!allPlayersScreen.classList.contains('hidden')) {
                                     renderAllPlayersList();
                                 }
@@ -8929,9 +8922,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 359;
+var APP_VERSION_PATCH = 360;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 02:08';
+var INDEX_HTML_LAST_EDITED = '30.01.26 02:34';
 
 init();
 </script>
