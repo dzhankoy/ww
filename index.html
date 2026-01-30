@@ -769,6 +769,7 @@
             bottom: -2px;
             border-radius: 10px;             /* чуть больше, чем у самого квадрата для зазора */
             border: 1px solid var(--table-indicator-border);
+            z-index: 1;
         }
 
         #tablesList .table-indicator::after {
@@ -5066,9 +5067,13 @@
             }
             const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
             button.style.setProperty('--all-players-progress', `${safeRatio * 100}%`);
+
+            const allPlayersBadge = totalPlayersCount > 0
+                ? `<span class="table-indicator-badge">${totalPlayersCount > 9 ? '9+' : totalPlayersCount}</span>`
+                : '';
             
             button.innerHTML = `
-                <div class="table-indicator"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
+                <div class="table-indicator"><img src="avatar.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;">${allPlayersBadge}</div>
                 <div class="player-info">
                     <div class="player-nickname">${showRegistrationView ? 'Регистрации' : 'Все игроки турнира'}</div>
                     <div class="player-name">${showRegistrationView ? (isScheduled ? `Зарегистрировано ${allPlayers.length}${maxPlayersText}` : `Игроков ${allPlayers.length}${dealersText}`) : `В игре ${activePlayers.length}, вылетело ${outPlayers.length}`}</div>
@@ -8769,9 +8774,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 366;
+var APP_VERSION_PATCH = 367;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 05:25';
+var INDEX_HTML_LAST_EDITED = '30.01.26 05:37';
 
 init();
 </script>
