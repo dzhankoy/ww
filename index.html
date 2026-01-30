@@ -3126,7 +3126,7 @@
                 const first = String(p?.firstName || '').trim();
                 const last = String(p?.lastName || '').trim();
                 const full = `${first} ${last}`.trim();
-                return full || String(p?.name || p?.fullName || '').trim();
+                return full || String(p?.nickname || '').trim();
             };
 
             if (calendarType === 'registrations') {
@@ -3174,7 +3174,7 @@
                     getDayItems: ({ key, todayKey }) => {
                         const players = registrationPlayersByDay.get(key) || [];
                         return players.map(p => {
-                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const nickname = String(p?.nickname || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
                             const regDateParsed = parseRegistrationDateFromPlayer(p);
@@ -3203,7 +3203,7 @@
                         });
 
                         return sorted.map(p => {
-                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const nickname = String(p?.nickname || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const regDate = formatRegDate(p?.reg_date) || String(p?.reg_date || '').trim();
                             const regDateParsed = parseRegistrationDateFromPlayer(p);
@@ -3280,7 +3280,7 @@
                         const todayMM = String(now.getMonth() + 1).padStart(2, '0');
                         const todayDD = String(now.getDate()).padStart(2, '0');
                         return players.map(p => {
-                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const nickname = String(p?.nickname || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `${dd}.${mm}`;
@@ -3313,7 +3313,7 @@
                         const todayMM = String(now.getMonth() + 1).padStart(2, '0');
                         const todayDD = String(now.getDate()).padStart(2, '0');
                         return sorted.map(p => {
-                            const nickname = String(p?.nickname || p?.name || p?.fullName || '').trim() || 'Игрок';
+                            const nickname = String(p?.nickname || '').trim() || 'Игрок';
                             const fullName = getPlayerDisplayName(p) || '—';
                             const md = parseBirthdayMonthDay(p?.birthday);
                             const birthday = md ? `${String(md.day).padStart(2, '0')}.${String(md.month).padStart(2, '0')}` : `??.${mm}`;
@@ -5187,8 +5187,8 @@
 
             const registrationSortedPlayers = isScheduled
                 ? [...allPlayers].sort((a, b) => {
-                    const aDate = parseTournamentRegDateTime(a?.registrationDate || a?.registration_date || a?.reg_date || a?.regDate || '');
-                    const bDate = parseTournamentRegDateTime(b?.registrationDate || b?.registration_date || b?.reg_date || b?.regDate || '');
+                    const aDate = parseTournamentRegDateTime(a?.registrationDate || a?.reg_date || '');
+                    const bDate = parseTournamentRegDateTime(b?.registrationDate || b?.reg_date || '');
                     const aTime = aDate ? aDate.getTime() : Number.MAX_SAFE_INTEGER;
                     const bTime = bDate ? bDate.getTime() : Number.MAX_SAFE_INTEGER;
                     return aTime - bTime;
@@ -5218,7 +5218,7 @@
                             ? 'dealer'
                             : 'playing';
                 
-                const registrationDisplay = formatTournamentRegDateTimeShort(player?.registrationDate || player?.registration_date || player?.reg_date || player?.regDate || '') || '—';
+                const registrationDisplay = formatTournamentRegDateTimeShort(player?.registrationDate || player?.reg_date || '') || '—';
                 const tableBoxInfo = registrationsMode
                     ? registrationDisplay
                     : `Стол ${player.tableId}, бокс ${player.box || '?'}`;
@@ -5661,7 +5661,7 @@
         }
 
         function parseRegistrationDateFromPlayer(player) {
-            const raw = player?.reg_date ?? player?.regDate ?? player?.registrationDate ?? null;
+            const raw = player?.reg_date ?? player?.registrationDate ?? null;
             if (!raw) return null;
 
             if (raw instanceof Date && !isNaN(raw.getTime())) {
@@ -8783,9 +8783,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 361;
+var APP_VERSION_PATCH = 362;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 03:05';
+var INDEX_HTML_LAST_EDITED = '30.01.26 03:54';
 
 init();
 </script>
