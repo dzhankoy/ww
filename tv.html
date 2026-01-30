@@ -18,6 +18,7 @@
             --header-accent-end: rgba(21, 28, 40, 0.92);
             --header-accent-border: rgba(255, 214, 10, 0.25);
             --accent: #ffd60a;
+            --blinds-time-accent: var(--accent);
             --green: #32d74b;
             --red: #ff453a;
             --blue: #0a84ff;
@@ -147,7 +148,7 @@
 
         .header-comment {
             margin-top: 6px;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
         }
 
@@ -249,8 +250,13 @@
 
         .stat-sub {
             margin-top: 6px;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--muted);
+        }
+
+        #statBlinds,
+        #tournamentClock {
+            color: var(--blinds-time-accent);
         }
 
         .tables-grid {
@@ -324,6 +330,53 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .player-knockouts {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+            min-height: 26px;
+        }
+
+        .player-knockouts:empty {
+            display: none;
+        }
+
+        .ko-avatar {
+            position: relative;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 1px solid var(--avatar-border);
+            background: #0b0f14;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.22);
+        }
+
+        .ko-avatar + .ko-avatar {
+            margin-left: -10px;
+        }
+
+        .ko-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(1);
+            opacity: 0.55;
+        }
+
+        .ko-avatar::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 150%;
+            height: 2px;
+            background: rgba(255, 69, 58, 0.95);
+            transform: translate(-50%, -50%) rotate(-18deg);
+            box-shadow: 0 0 8px rgba(255, 69, 58, 0.35);
         }
 
         .player-chip.out .player-avatar img {
@@ -553,6 +606,7 @@
                 root.style.setProperty('--text', themeParams.text_color || '#0c1118');
                 root.style.setProperty('--muted', themeParams.hint_color || '#6c7684');
                 root.style.setProperty('--accent', '#f0b90b');
+                root.style.setProperty('--blinds-time-accent', '#ff453a');
                 root.style.setProperty('--header-accent-start', 'rgba(240, 185, 11, 0.12)');
                 root.style.setProperty('--header-accent-end', 'rgba(255, 255, 255, 0.92)');
                 root.style.setProperty('--header-accent-border', 'rgba(0, 0, 0, 0.08)');
@@ -567,6 +621,7 @@
                 root.style.setProperty('--text', themeParams.text_color || '#f5f7fb');
                 root.style.setProperty('--muted', themeParams.hint_color || '#9aa4b2');
                 root.style.setProperty('--accent', '#ffd60a');
+                root.style.setProperty('--blinds-time-accent', '#ffd60a');
                 root.style.setProperty('--header-accent-start', 'rgba(255, 214, 10, 0.12)');
                 root.style.setProperty('--header-accent-end', 'rgba(21, 28, 40, 0.92)');
                 root.style.setProperty('--header-accent-border', 'rgba(255, 214, 10, 0.25)');
@@ -732,6 +787,19 @@
                 return;
             }
 
+            const knockedOutById = new Map();
+            tables.forEach(table => {
+                const players = Array.isArray(table?.players) ? table.players : [];
+                players.forEach(p => {
+                    if (!p || !p.outTime || p.id == null) return;
+                    const rawKillerId = p.outByChatId ?? p.out_by_chat_id ?? p.outById ?? p.out_by_id ?? p.outByPlayerId ?? p.out_by_player_id;
+                    if (rawKillerId == null || rawKillerId === '') return;
+                    const killerKey = String(rawKillerId);
+                    if (!knockedOutById.has(killerKey)) knockedOutById.set(killerKey, new Set());
+                    knockedOutById.get(killerKey).add(p.id);
+                });
+            });
+
             tablesGridEl.innerHTML = tables.map(table => {
                 const players = Array.isArray(table.players) ? table.players : [];
                 const activeCount = players.filter(p => p && !p.outTime).length;
@@ -743,6 +811,12 @@
                     const isDealer = p?.dealer === true;
                     const isAdmin = p?.isAdmin === true || p?.is_admin === true || (adminsList || []).some(id => String(id) === String(p?.id));
 
+                    const knockedSet = (p?.id != null) ? knockedOutById.get(String(p.id)) : null;
+                    const knockedIds = knockedSet ? Array.from(knockedSet) : [];
+                    const knockedHtml = knockedIds.slice(0, 8).map(pid => {
+                        return `<div class="ko-avatar"><img src="${getPlayerPhotoUrl(pid)}" alt="" data-player-id="${pid}"></div>`;
+                    }).join('');
+
                     return `
                         <div class="player-chip${isOut ? ' out' : ''}">
                             <div class="player-avatar">
@@ -751,6 +825,7 @@
                                 ${isDealer ? '<span class="role-badge dealer">D</span>' : ''}
                             </div>
                             <div class="player-name">${nickname}</div>
+                            <div class="player-knockouts">${knockedHtml}</div>
                         </div>
                     `;
                 }).join('');
@@ -919,9 +994,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 35;
+        var TV_APP_VERSION_PATCH = 36;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 17:54';
+        var TV_HTML_LAST_EDITED = '30.01.26 18:32';
 
         init();
     </script>
