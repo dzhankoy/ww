@@ -98,6 +98,11 @@
             font-size: 14px;
             color: var(--muted);
             margin-top: 6px;
+            display: none;
+        }
+
+        .stat-card.is-hidden {
+            display: none;
         }
 
         .app-version {
@@ -192,7 +197,6 @@
             width: 64px;
             height: 64px;
             border-radius: 50%;
-            overflow: hidden;
             border: 2px solid rgba(255, 255, 255, 0.12);
             background: #0b0f14;
         }
@@ -201,6 +205,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 50%;
         }
 
         .player-name {
@@ -232,7 +237,7 @@
             font-weight: 700;
             color: #fff;
             border: 2px solid var(--card);
-            z-index: 2;
+            z-index: 5;
         }
 
         .role-badge.dealer {
@@ -317,7 +322,7 @@
                 <div class="stat-value" id="statAvgStack">—</div>
                 <div class="stat-sub" id="statAvgStackSub">средний стек</div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card is-hidden">
                 <div class="stat-label">Контроль</div>
                 <div class="stat-value" id="statAdmins">—</div>
                 <div class="stat-sub" id="statAdminsSub">админов —, вызовов —</div>
@@ -640,9 +645,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 2;
+        var TV_APP_VERSION_PATCH = 3;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 06:15';
+        var TV_HTML_LAST_EDITED = '30.01.26 06:32';
 
         init();
     </script>
