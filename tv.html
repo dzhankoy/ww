@@ -148,7 +148,7 @@
 
         .header-comment {
             margin-top: 6px;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--muted);
         }
 
@@ -367,16 +367,28 @@
             opacity: 0.55;
         }
 
+        .ko-avatar::before,
         .ko-avatar::after {
             content: '';
             position: absolute;
-            left: 50%;
+            left: -4px;
             top: 50%;
-            width: 150%;
+            width: 34px;
             height: 2px;
-            background: rgba(255, 69, 58, 0.95);
-            transform: translate(-50%, -50%) rotate(-18deg);
+            background: repeating-linear-gradient(90deg, rgba(255, 69, 58, 0.95) 0 6px, rgba(255, 69, 58, 0.7) 6px 10px);
+            border-radius: 999px;
+            transform-origin: center;
+            z-index: 4;
             box-shadow: 0 0 8px rgba(255, 69, 58, 0.35);
+            filter: blur(0.15px);
+        }
+
+        .ko-avatar::before {
+            transform: translateY(-50%) rotate(36deg) skewX(-8deg);
+        }
+
+        .ko-avatar::after {
+            transform: translateY(-50%) rotate(-34deg) skewX(6deg);
         }
 
         .player-chip.out .player-avatar img {
@@ -636,6 +648,16 @@
             return String(value).padStart(2, '0');
         }
 
+        function pluralRu(value, form1, form2, form5) {
+            const n = Math.abs(Number(value)) || 0;
+            const n10 = n % 10;
+            const n100 = n % 100;
+            if (n100 >= 11 && n100 <= 14) return form5;
+            if (n10 === 1) return form1;
+            if (n10 >= 2 && n10 <= 4) return form2;
+            return form5;
+        }
+
         function formatClockHtml(parts) {
             return parts.map((part, index) => {
                 const chunk = pad2(part);
@@ -834,7 +856,7 @@
                     <div class="table-card">
                         <div class="table-header">
                             <div class="table-number">Стол ${table.id || '—'}</div>
-                            <div class="table-count">${activeCount} игроков</div>
+                            <div class="table-count">${activeCount} ${pluralRu(activeCount, 'игрок', 'игрока', 'игроков')}</div>
                         </div>
                         <div class="players-row">${playersHtml}</div>
                     </div>
@@ -866,7 +888,7 @@
                 breakCommentEl.textContent = 'до перерыва 01:30:00';
             }
 
-            statPlayersEl.textContent = stats.activePlayers;
+            statPlayersEl.textContent = `${stats.activePlayers} ${pluralRu(stats.activePlayers, 'игрок', 'игрока', 'игроков')}`;
             statPlayersSubEl.textContent = `активных ${stats.activePlayers}, вылетело ${stats.outPlayers}`;
             if (statPlayersCardEl) {
                 const ratio = stats.totalPlayers > 0 ? (stats.activePlayers / stats.totalPlayers) : 0;
@@ -874,7 +896,7 @@
                 statPlayersCardEl.style.setProperty('--stat-progress', `${safeRatio * 100}%`);
             }
 
-            statTablesEl.textContent = activeTables;
+            statTablesEl.textContent = `${activeTables} ${pluralRu(activeTables, 'стол', 'стола', 'столов')}`;
             statTablesSubEl.textContent = `активных ${activeTables}`;
 
             const blindsText = getBlindsText(t);
@@ -888,13 +910,13 @@
                 ? `следующий уровень ${t.next_level}`
                 : 'следующий уровень 3';
 
-            statRebuysEl.textContent = stats.totalRebuys;
+            statRebuysEl.textContent = `${stats.totalRebuys} ${pluralRu(stats.totalRebuys, 'ребай', 'ребая', 'ребаев')}`;
             statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
 
             const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
                 ? String(t.stack)
                 : '7000';
-            statAvgStackEl.textContent = stats.avgStack ?? '—';
+            statAvgStackEl.textContent = stats.avgStack == null ? '—' : `${stats.avgStack} средний стек:`;
             statAvgStackSubEl.textContent = `начальный стек ${initialStack}`;
 
             statAdminsEl.textContent = adminsCount;
@@ -994,9 +1016,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 36;
+        var TV_APP_VERSION_PATCH = 37;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 18:32';
+        var TV_HTML_LAST_EDITED = '30.01.26 18:49';
 
         init();
     </script>
