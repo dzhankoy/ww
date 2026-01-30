@@ -719,6 +719,26 @@
             border: none;                    /* рамка рисуется псевдоэлементом, как у position-indicator */
         }
 
+        .table-indicator-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+            background-color: var(--red);
+            color: #fff;
+            border: 2px solid var(--bg-color);
+            pointer-events: none;
+        }
+
         .table-indicator.emoji {
             font-size: calc(var(--position-size) * 0.82);
             font-weight: 400;
@@ -4733,9 +4753,12 @@
 
                 const dealerExists = players.some(p => p.dealer);
                 const indicatorWarningClass = !dealerExists ? ' warning' : '';
+                const activePlayersBadge = activePlayers.length > 0
+                    ? `<span class="table-indicator-badge">${activePlayers.length}</span>`
+                    : '';
 
                 button.innerHTML = `
-                    <div class="table-indicator${indicatorWarningClass}">${table.id}</div>
+                    <div class="table-indicator${indicatorWarningClass}">${table.id}${activePlayersBadge}</div>
                     <div class="player-info">
                         <div class="player-nickname"><!--Стол ${table.id}, дилер -->${dealerNickname}</div>
                         <div class="player-name">Игроков ${activePlayers.length}, вылетело ${outPlayersCount}, ребаев ${tableRebuys}</div>
@@ -8747,9 +8770,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 364;
+var APP_VERSION_PATCH = 365;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 04:19';
+var INDEX_HTML_LAST_EDITED = '30.01.26 05:14';
 
 init();
 </script>
