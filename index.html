@@ -738,6 +738,13 @@
             z-index: 3;
         }
 
+        .table-indicator-badge.is-pill {
+            width: auto;
+            min-width: 22px;
+            padding: 0 6px;
+            border-radius: 999px;
+        }
+
         .table-indicator.emoji {
             font-size: calc(var(--position-size) * 0.82);
             font-weight: 400;
@@ -4753,8 +4760,9 @@
 
                 const dealerExists = players.some(p => p.dealer);
                 const indicatorWarningClass = !dealerExists ? ' warning' : '';
+                const activePlayersBadgeClass = activePlayers.length >= 10 ? 'table-indicator-badge is-pill' : 'table-indicator-badge';
                 const activePlayersBadge = activePlayers.length > 0
-                    ? `<span class="table-indicator-badge">${activePlayers.length > 9 ? '9+' : activePlayers.length}</span>`
+                    ? `<span class="${activePlayersBadgeClass}">${activePlayers.length}</span>`
                     : '';
 
                 button.innerHTML = `
@@ -5068,8 +5076,9 @@
             const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
             button.style.setProperty('--all-players-progress', `${safeRatio * 100}%`);
 
+            const allPlayersBadgeClass = totalPlayersCount >= 10 ? 'table-indicator-badge is-pill' : 'table-indicator-badge';
             const allPlayersBadge = totalPlayersCount > 0
-                ? `<span class="table-indicator-badge">${totalPlayersCount > 9 ? '9+' : totalPlayersCount}</span>`
+                ? `<span class="${allPlayersBadgeClass}">${totalPlayersCount}</span>`
                 : '';
             
             button.innerHTML = `
@@ -8774,9 +8783,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 367;
+var APP_VERSION_PATCH = 368;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 05:37';
+var INDEX_HTML_LAST_EDITED = '30.01.26 05:45';
 
 init();
 </script>
