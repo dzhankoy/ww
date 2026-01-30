@@ -859,6 +859,32 @@
         #allPlayersPreviewList .player-button.all-players-row > * {
             position: relative;
         }
+
+        #allPlayersPreviewList .player-button.telegram-table-row {
+            --telegram-progress: 0%;
+            overflow: hidden;
+        }
+
+        #allPlayersPreviewList .player-button.telegram-table-row::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 69, 58, 0.2) 0%,
+                rgba(255, 69, 58, 0.2) var(--telegram-progress),
+                rgba(0, 0, 0, 0) var(--telegram-progress),
+                rgba(0, 0, 0, 0) 100%
+            );
+            pointer-events: none;
+        }
+
+        #allPlayersPreviewList .player-button.telegram-table-row > * {
+            position: relative;
+        }
         
         .tables-aggregates {
             margin-bottom: 0;
@@ -5099,6 +5125,10 @@
             // Кнопка "Таблица для Телеграм"
             const telegramButton = document.createElement('button');
             telegramButton.classList.add('player-button');
+            telegramButton.classList.add('telegram-table-row');
+            const outRatio = totalPlayersCount > 0 ? (outPlayers.length / totalPlayersCount) : 0;
+            const safeOutRatio = Number.isFinite(outRatio) ? Math.max(0, Math.min(1, outRatio)) : 0;
+            telegramButton.style.setProperty('--telegram-progress', `${safeOutRatio * 100}%`);
             
             telegramButton.innerHTML = `
                 <div class="table-indicator"><img src="cup.png" alt="" style="width: 100%; height: 100%; border-radius: 8px; object-fit: cover;"></div>
@@ -8783,9 +8813,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 369;
+var APP_VERSION_PATCH = 370;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 05:50';
+var INDEX_HTML_LAST_EDITED = '30.01.26 15:28';
 
 init();
 </script>
