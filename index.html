@@ -2722,6 +2722,30 @@
         let cameFromAllPlayers = false; // Флаг: пришли с экрана всех игроков
         let cameFromAdminCalls = false; // Флаг: пришли из секции вызовов на главном экране
         let previousAdminCalls = []; // Предыдущий список вызовов админа
+        let failedPhotos = new Set();
+
+        function getPhotoCacheBuster(now) {
+            const dt = now instanceof Date ? now : new Date();
+            return `${CONFIG.PHOTOS_VERSION}-${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        }
+
+        function getPlayerPhotoUrl(playerId, cacheBuster) {
+            if (playerId == null || playerId === '') return 'avatar.png';
+            const key = String(playerId);
+            if (failedPhotos.has(key)) return 'avatar.png';
+            const buster = cacheBuster || getPhotoCacheBuster(new Date());
+            return `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${buster}`;
+        }
+
+        function handlePlayerPhotoErrorInline(img, playerId) {
+            if (!img) return;
+            const key = playerId != null && playerId !== ''
+                ? String(playerId)
+                : (img.dataset && img.dataset.playerId ? String(img.dataset.playerId) : null);
+            if (key) failedPhotos.add(key);
+            img.src = 'avatar.png';
+            img.onerror = null;
+        }
 
         const tgInitData = window.Telegram.WebApp.initDataUnsafe || {};
         const viewerUserId = tgInitData.user?.id || null;
@@ -3136,8 +3160,8 @@
         function getMonthOverlayConfig(calendarType, now) {
             const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 
-            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const getPlayerPhotoUrl = (playerId) => `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${cacheBuster}`;
+            const cacheBuster = getPhotoCacheBuster(now);
+            const getPlayerPhotoUrlLocal = (playerId) => getPlayerPhotoUrl(playerId, cacheBuster);
 
             const getPlayerDisplayName = (p) => {
                 const first = String(p?.firstName || '').trim();
@@ -3199,7 +3223,7 @@
                             return {
                                 type: 'player',
                                 player: p,
-                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                iconHtml: `<img src="${getPlayerPhotoUrlLocal(p.id)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">`,
                                 title: nickname,
                                 subtitle: fullName,
                                 badge: regDate,
@@ -3228,7 +3252,7 @@
                             return {
                                 type: 'player',
                                 player: p,
-                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                iconHtml: `<img src="${getPlayerPhotoUrlLocal(p.id)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">`,
                                 title: nickname,
                                 subtitle: fullName,
                                 badge: regDate,
@@ -3274,9 +3298,9 @@
                         const arr = byMonthDay.get(mdKey) || [];
                         const p = arr.length ? arr[0] : null;
                         if (p && p.id != null) {
-                            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
+                            const playerPhotoUrl = getPlayerPhotoUrl(p.id, cacheBuster);
                             return {
-                                html: `<div class="dot birthday-photo"><img src="${playerPhotoUrl}" alt="" onerror="this.onerror=null;this.src='avatar.png';"></div>`
+                                html: `<div class="dot birthday-photo"><img src="${playerPhotoUrl}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')"></div>`
                             };
                         }
 
@@ -3307,7 +3331,7 @@
                             return {
                                 type: 'player',
                                 player: p,
-                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                iconHtml: `<img src="${getPlayerPhotoUrlLocal(p.id)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">`,
                                 title: nickname,
                                 subtitle: fullName,
                                 badge: badgeText,
@@ -3340,7 +3364,7 @@
                             return {
                                 type: 'player',
                                 player: p,
-                                iconHtml: `<img src="${getPlayerPhotoUrl(p.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">`,
+                                iconHtml: `<img src="${getPlayerPhotoUrlLocal(p.id)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">`,
                                 title: nickname,
                                 subtitle: fullName,
                                 badge: badgeText,
@@ -5260,11 +5284,11 @@
                 let indicatorHtml = '';
                 if (isScheduled) {
                     const now = new Date();
-                    const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    const photoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
+                    const cacheBuster = getPhotoCacheBuster(now);
+                    const photoUrl = getPlayerPhotoUrl(player.id, cacheBuster);
                     indicatorHtml = `
                         <div class="position-indicator ${positionClass} photo-indicator">
-                            <img src="${photoUrl}" alt="" onerror="this.src='avatar.png'">
+                            <img src="${photoUrl}" alt="" data-player-id="${player.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${player.id || ''}')">
                         </div>
                     `;
                 } else {
@@ -5445,7 +5469,7 @@
                 
                 const isOut = !!player.outTime;
                 const nickname = player.nickname || 'Игрок';
-                const photoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg`;
+                const photoUrl = getPlayerPhotoUrl(player.id);
                 
                 // Получаем рейтинг из базы игроков
                 const dbPlayer = getDbPlayerById(player.id);
@@ -5458,7 +5482,7 @@
                 // Фото вместо номера бокса
                 button.innerHTML = `
                     <div class="position-indicator ${positionClass} photo-indicator">
-                        <img src="${photoUrl}" alt="" onerror="this.src='avatar.png'">
+                        <img src="${photoUrl}" alt="" data-player-id="${player.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${player.id || ''}')">
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nickname}</div>
@@ -5936,9 +5960,9 @@
                     const mdKey = `${mm}-${dd}`;
                     const p = byMonthDay.get(mdKey);
                     if (p && p.id != null) {
-                        const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
+                        const playerPhotoUrl = getPlayerPhotoUrl(p.id, cacheBuster);
                         return {
-                            html: `<div class=\"dot birthday-photo\"><img src=\"${playerPhotoUrl}\" alt=\"\" onerror=\"this.onerror=null;this.src='avatar.png';\"></div>`
+                            html: `<div class=\"dot birthday-photo\"><img src=\"${playerPhotoUrl}\" alt=\"\" data-player-id=\"${p.id || ''}\" onerror=\"handlePlayerPhotoErrorInline(this, '${p.id || ''}')\"></div>`
                         };
                     }
 
@@ -6294,8 +6318,8 @@
                     button.classList.add('player-button');
                     
                     const now = new Date();
-                    const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
+                    const cacheBuster = getPhotoCacheBuster(now);
+                    const playerPhotoUrl = getPlayerPhotoUrl(player.id, cacheBuster);
                     
                     const nickname = player.nickname || 'Неизвестно';
                     const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || '';
@@ -6323,7 +6347,7 @@
                     const zodiacElement = getZodiacElement(day, month + 1);
                     button.innerHTML = `
                         <div class="position-indicator photo-indicator">
-                            <img src="${playerPhotoUrl}" alt="${nickname}" onerror="this.src='avatar.png'">
+                            <img src="${playerPhotoUrl}" alt="${nickname}" data-player-id="${player.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${player.id || ''}')">
                         </div>
                         <div class="player-info">
                             <div class="player-nickname">${dayStr}.${monthStr} <span class="zodiac-badge zodiac-${zodiacElement}">${zodiacEmoji}</span> ${nickname}</div>
@@ -6939,21 +6963,16 @@
 
         function renderPlayerPhotoById(playerId) {
             const now = new Date();
-            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${cacheBuster}`;
+            const cacheBuster = getPhotoCacheBuster(now);
+            const playerPhotoUrl = getPlayerPhotoUrl(playerId, cacheBuster);
             if (playerPhotoImage) {
-                let fallbackApplied = false;
                 playerPhotoImage.style.display = 'none';
                 playerPhotoImage.onload = () => {
                     playerPhotoImage.style.display = 'block';
                 };
                 playerPhotoImage.onerror = () => {
-                    if (fallbackApplied) {
-                        playerPhotoImage.style.display = 'block';
-                        return;
-                    }
-                    fallbackApplied = true;
-                    playerPhotoImage.src = 'avatar.png';
+                    handlePlayerPhotoErrorInline(playerPhotoImage, playerId);
+                    playerPhotoImage.style.display = 'block';
                 };
                 playerPhotoImage.src = playerPhotoUrl;
             }
@@ -7969,9 +7988,9 @@
             titlePhoto.className = 'out-by-overlay-title-photo';
             const titleImg = document.createElement('img');
             const titleNow = new Date();
-            const titleCacheBuster = `${CONFIG.PHOTOS_VERSION}-${titleNow.getFullYear()}-${String(titleNow.getMonth() + 1).padStart(2, '0')}-${String(titleNow.getDate()).padStart(2, '0')}`;
-            titleImg.src = `${CONFIG.PHOTOS_BASE_URL}/${outPlayer.id}.jpg?v=${titleCacheBuster}`;
-            titleImg.onerror = () => { titleImg.src = 'avatar.png'; };
+            const titleCacheBuster = getPhotoCacheBuster(titleNow);
+            titleImg.src = getPlayerPhotoUrl(outPlayer.id, titleCacheBuster);
+            titleImg.onerror = () => { handlePlayerPhotoErrorInline(titleImg, outPlayer.id); };
             titlePhoto.appendChild(titleImg);
 
             const titleText = document.createElement('div');
@@ -8016,9 +8035,9 @@
                 photoWrap.className = 'out-by-choice-photo';
                 const img = document.createElement('img');
                 const now = new Date();
-                const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                img.src = `${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}`;
-                img.onerror = () => { img.src = 'avatar.png'; };
+                const cacheBuster = getPhotoCacheBuster(now);
+                img.src = getPlayerPhotoUrl(p.id, cacheBuster);
+                img.onerror = () => { handlePlayerPhotoErrorInline(img, p.id); };
                 photoWrap.appendChild(img);
 
                 const text = document.createElement('div');
@@ -8366,7 +8385,7 @@
             const randInt = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
 
             const now = new Date();
-            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const cacheBuster = getPhotoCacheBuster(now);
 
             const stats = computeFinanceStats(players);
 
@@ -8399,7 +8418,7 @@
                     btn.classList.add('player-button');
                     btn.innerHTML = `
                         <div class="position-indicator photo-indicator">
-                            <img src="${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}" alt="" onerror="this.src='avatar.png'">
+                            <img src="${getPlayerPhotoUrl(p.id, cacheBuster)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">
                         </div>
                         <div class="player-info">
                             <div class="player-nickname">${nickname}</div>
@@ -8437,7 +8456,7 @@
                 btn.classList.add('player-button');
                 btn.innerHTML = `
                     <div class="position-indicator photo-indicator">
-                        <img src="${CONFIG.PHOTOS_BASE_URL}/${p.id}.jpg?v=${cacheBuster}" alt="" onerror="this.src='avatar.png'">
+                        <img src="${getPlayerPhotoUrl(p.id, cacheBuster)}" alt="" data-player-id="${p.id || ''}" onerror="handlePlayerPhotoErrorInline(this, '${p.id || ''}')">
                     </div>
                     <div class="player-info">
                         <div class="player-nickname">${nickname}</div>
@@ -8817,9 +8836,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 373;
+var APP_VERSION_PATCH = 374;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 17:54';
+var INDEX_HTML_LAST_EDITED = '30.01.26 18:18';
 
 init();
 </script>
