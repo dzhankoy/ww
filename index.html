@@ -2975,42 +2975,6 @@
             }
         }
 
-        function buildMonthOverlayListPreviewHTML(calendarType) {
-            const title = calendarType === 'birthdays'
-                ? 'День рождения'
-                : (calendarType === 'tournaments' ? 'Турнир' : 'Регистрация');
-
-            const subtitle = calendarType === 'birthdays'
-                ? 'Игрок • 19:00'
-                : (calendarType === 'tournaments' ? 'Статус • 19:00' : 'Новые игроки • 19:00');
-
-            const icon = calendarType === 'birthdays'
-                ? '🎂'
-                : (calendarType === 'tournaments' ? '🏆' : '✅');
-
-            const metaByIdx = ['Сегодня', 'Завтра', 'Пт', 'Сб', 'Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Далее'];
-            const badgeByIdx = ['+3', '+1', '0', '+2', '+5', '+1', '0', '+1', '+2', '0'];
-
-            let rows = '';
-            for (let i = 0; i < 10; i++) {
-                rows += `
-                    <div class="month-overlay-item">
-                        <div class="month-overlay-item-icon">${icon}</div>
-                        <div class="month-overlay-item-body">
-                            <div class="month-overlay-item-title">${title} • Пример ${i + 1}</div>
-                            <div class="month-overlay-item-subtitle">${subtitle}</div>
-                        </div>
-                        <div class="month-overlay-item-right">
-                            <div class="month-overlay-item-badge">${badgeByIdx[i] || '0'}</div>
-                            <div class="month-overlay-item-meta">${metaByIdx[i] || ''}</div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            return `<div class="month-overlay-list-group">${rows}</div>`;
-        }
-
         function ensureMonthOverlay() {
             if (monthOverlayEl) return;
 
@@ -8783,9 +8747,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 362;
+var APP_VERSION_PATCH = 363;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 03:54';
+var INDEX_HTML_LAST_EDITED = '30.01.26 04:03';
 
 init();
 </script>
