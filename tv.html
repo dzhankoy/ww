@@ -116,7 +116,7 @@
         }
 
         .header-clock {
-            font-size: 74px;
+            font-size: 86px;
             font-weight: 800;
             color: var(--accent);
             line-height: 1;
@@ -209,6 +209,30 @@
             box-shadow: var(--shadow);
         }
 
+        .stat-card.has-progress {
+            position: relative;
+            overflow: hidden;
+            --stat-progress: 0%;
+        }
+
+        .stat-card.has-progress::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(40, 167, 69, 0.18) 0%,
+                rgba(40, 167, 69, 0.18) var(--stat-progress),
+                rgba(0, 0, 0, 0) var(--stat-progress),
+                rgba(0, 0, 0, 0) 100%
+            );
+            pointer-events: none;
+        }
+
+        .stat-card > * {
+            position: relative;
+        }
+
 
         .stat-label {
             font-size: 13px;
@@ -219,8 +243,8 @@
 
         .stat-value {
             margin-top: 10px;
-            font-size: 28px;
-            font-weight: 700;
+            font-size: 32px;
+            font-weight: 800;
         }
 
         .stat-sub {
@@ -233,23 +257,6 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 18px;
-        }
-
-        .stat-progress {
-            margin-top: 10px;
-            width: 100%;
-            height: 6px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-            overflow: hidden;
-        }
-
-        .stat-progress-fill {
-            height: 100%;
-            width: 0;
-            background: linear-gradient(90deg, rgba(50, 215, 75, 0.75), rgba(50, 215, 75, 1));
-            border-radius: 999px;
-            transition: width 0.3s ease;
         }
 
         .table-card {
@@ -270,13 +277,13 @@
         }
 
         .table-number {
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 32px;
+            font-weight: 800;
         }
 
         .table-count {
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 32px;
+            font-weight: 800;
         }
 
         .players-row {
@@ -395,7 +402,7 @@
                 font-size: 28px;
             }
             .header-clock {
-                font-size: 51px;
+                font-size: 59px;
             }
             .table-card {
                 min-height: 180px;
@@ -457,13 +464,10 @@
         </header>
 
         <section class="stats-grid">
-            <div class="stat-card">
+            <div class="stat-card has-progress" id="statPlayersCard">
                 <div class="stat-label">Игроки</div>
                 <div class="stat-value" id="statPlayers">—</div>
                 <div class="stat-sub" id="statPlayersSub">активных —, вылетело —</div>
-                <div class="stat-progress">
-                    <div class="stat-progress-fill" id="statPlayersProgress"></div>
-                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Столы</div>
@@ -505,7 +509,8 @@
         const state = {
             fullData: null,
             startDate: null,
-            nextBlindAt: null
+            nextBlindAt: null,
+            failedPhotos: new Set()
         };
 
         const tournamentNameEl = document.getElementById('tournamentName');
@@ -517,7 +522,7 @@
         const breakCommentEl = document.getElementById('breakComment');
         const statPlayersEl = document.getElementById('statPlayers');
         const statPlayersSubEl = document.getElementById('statPlayersSub');
-        const statPlayersProgressEl = document.getElementById('statPlayersProgress');
+        const statPlayersCardEl = document.getElementById('statPlayersCard');
         const statTablesEl = document.getElementById('statTables');
         const statTablesSubEl = document.getElementById('statTablesSub');
         const statBlindsEl = document.getElementById('statBlinds');
@@ -594,13 +599,12 @@
             return parts.map(pad2).join(':');
         }
 
-        function formatDDHHMMSSParts(ms) {
+        function formatHHMMSSParts(ms) {
             const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-            const days = Math.floor(totalSeconds / 86400);
-            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const hours = Math.floor(totalSeconds / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
-            return [days, hours, minutes, seconds];
+            return [hours, minutes, seconds];
         }
 
         function formatTimeHMParts(date) {
@@ -609,7 +613,19 @@
 
         function getPlayerPhotoUrl(id) {
             if (!id) return 'avatar.png';
+            if (state.failedPhotos.has(id)) return 'avatar.png';
             return `${CONFIG.PHOTOS_BASE_URL}/${id}.jpg?v=${CONFIG.PHOTOS_VERSION}`;
+        }
+
+        function handlePlayerPhotoError(event) {
+            const img = event?.target;
+            if (!img) return;
+            const id = Number(img.dataset.playerId);
+            if (Number.isFinite(id)) {
+                state.failedPhotos.add(id);
+            }
+            img.src = 'avatar.png';
+            img.onerror = null;
         }
 
         function parseDateFromTournament(t) {
@@ -705,8 +721,14 @@
 
         function renderTables(tables, adminsList) {
             if (!tablesGridEl) return;
+            tablesGridEl.innerHTML = `
+                <div class="table-card">
+                    <div class="empty-state">Нет данных о столах</div>
+                </div>
+            `;
+            let imgs = tablesGridEl.querySelectorAll('img[data-player-id]');
+            imgs.forEach(img => img.addEventListener('error', handlePlayerPhotoError, { once: true }));
             if (!tables.length) {
-                tablesGridEl.innerHTML = '<div class="empty-state">Нет активных столов</div>';
                 return;
             }
 
@@ -724,7 +746,7 @@
                     return `
                         <div class="player-chip${isOut ? ' out' : ''}">
                             <div class="player-avatar">
-                                <img src="${getPlayerPhotoUrl(p?.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">
+                                <img src="${getPlayerPhotoUrl(p?.id)}" alt="" data-player-id="${p?.id || ''}">
                                 ${isAdmin ? '<span class="role-badge admin">A</span>' : ''}
                                 ${isDealer ? '<span class="role-badge dealer">D</span>' : ''}
                             </div>
@@ -743,6 +765,9 @@
                     </div>
                 `;
             }).join('');
+
+            imgs = tablesGridEl.querySelectorAll('img[data-player-id]');
+            imgs.forEach(img => img.addEventListener('error', handlePlayerPhotoError, { once: true }));
         }
 
         function updateStats() {
@@ -768,10 +793,10 @@
 
             statPlayersEl.textContent = stats.activePlayers;
             statPlayersSubEl.textContent = `активных ${stats.activePlayers}, вылетело ${stats.outPlayers}`;
-            if (statPlayersProgressEl) {
+            if (statPlayersCardEl) {
                 const ratio = stats.totalPlayers > 0 ? (stats.activePlayers / stats.totalPlayers) : 0;
                 const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
-                statPlayersProgressEl.style.width = `${safeRatio * 100}%`;
+                statPlayersCardEl.style.setProperty('--stat-progress', `${safeRatio * 100}%`);
             }
 
             statTablesEl.textContent = activeTables;
@@ -815,9 +840,9 @@
             if (state.startDate) {
                 const diffMs = now - state.startDate;
                 if (diffMs >= 0) {
-                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatDDHHMMSSParts(diffMs));
+                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatHHMMSSParts(diffMs));
                 } else {
-                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatDDHHMMSSParts(-diffMs));
+                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatHHMMSSParts(-diffMs));
                 }
             } else {
                 tournamentClockEl.textContent = '—';
@@ -826,7 +851,7 @@
             if (state.nextBlindAt) {
                 const diffMs = state.nextBlindAt - now;
                 statNextBlindSubEl.textContent = diffMs >= 0
-                    ? `следующий уровень через ${formatClockText(formatDDHHMMSSParts(diffMs))}`
+                    ? `следующий уровень через ${formatClockText(formatHHMMSSParts(diffMs))}`
                     : statNextBlindSubEl.textContent;
             }
         }
@@ -894,9 +919,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 24;
+        var TV_APP_VERSION_PATCH = 35;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 16:37';
+        var TV_HTML_LAST_EDITED = '30.01.26 17:54';
 
         init();
     </script>
