@@ -14,6 +14,9 @@
             --card: #151c28;
             --card-border: #222c3d;
             --avatar-border: rgba(255, 255, 255, 0.06);
+            --header-accent-start: rgba(255, 214, 10, 0.12);
+            --header-accent-end: rgba(21, 28, 40, 0.92);
+            --header-accent-border: rgba(255, 214, 10, 0.25);
             --accent: #ffd60a;
             --green: #32d74b;
             --red: #ff453a;
@@ -67,8 +70,8 @@
         .header-bottom {
             padding: 16px 20px;
             border-radius: 20px;
-            background: linear-gradient(140deg, rgba(255, 214, 10, 0.12), rgba(21, 28, 40, 0.92));
-            border: 1px solid rgba(255, 214, 10, 0.25);
+            background: linear-gradient(140deg, var(--header-accent-start), var(--header-accent-end));
+            border: 1px solid var(--header-accent-border);
             box-shadow: var(--shadow);
         }
 
@@ -113,7 +116,7 @@
         }
 
         .header-clock {
-            font-size: 64px;
+            font-size: 74px;
             font-weight: 800;
             color: var(--accent);
             line-height: 1;
@@ -392,7 +395,7 @@
                 font-size: 28px;
             }
             .header-clock {
-                font-size: 44px;
+                font-size: 51px;
             }
             .table-card {
                 min-height: 180px;
@@ -544,7 +547,10 @@
                 root.style.setProperty('--avatar-border', 'rgba(0, 0, 0, 0.08)');
                 root.style.setProperty('--text', themeParams.text_color || '#0c1118');
                 root.style.setProperty('--muted', themeParams.hint_color || '#6c7684');
-                root.style.setProperty('--accent', themeParams.button_color || '#c79a00');
+                root.style.setProperty('--accent', '#f0b90b');
+                root.style.setProperty('--header-accent-start', 'rgba(240, 185, 11, 0.12)');
+                root.style.setProperty('--header-accent-end', 'rgba(255, 255, 255, 0.92)');
+                root.style.setProperty('--header-accent-border', 'rgba(0, 0, 0, 0.08)');
             } else {
                 root.style.setProperty('--bg-1', themeParams.bg_color || '#05070b');
                 root.style.setProperty('--bg-2', themeParams.secondary_bg_color || '#0d121a');
@@ -556,6 +562,9 @@
                 root.style.setProperty('--text', themeParams.text_color || '#f5f7fb');
                 root.style.setProperty('--muted', themeParams.hint_color || '#9aa4b2');
                 root.style.setProperty('--accent', '#ffd60a');
+                root.style.setProperty('--header-accent-start', 'rgba(255, 214, 10, 0.12)');
+                root.style.setProperty('--header-accent-end', 'rgba(21, 28, 40, 0.92)');
+                root.style.setProperty('--header-accent-border', 'rgba(255, 214, 10, 0.25)');
             }
         }
 
@@ -885,9 +894,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 23;
+        var TV_APP_VERSION_PATCH = 24;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 16:27';
+        var TV_HTML_LAST_EDITED = '30.01.26 16:37';
 
         init();
     </script>
