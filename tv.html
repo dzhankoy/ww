@@ -916,7 +916,7 @@
             const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
                 ? String(t.stack)
                 : '7000';
-            statAvgStackEl.textContent = stats.avgStack == null ? '—' : `${stats.avgStack} средний стек:`;
+            statAvgStackEl.textContent = stats.avgStack == null ? '—' : `~${stats.avgStack} стек`;
             statAvgStackSubEl.textContent = `начальный стек ${initialStack}`;
 
             statAdminsEl.textContent = adminsCount;
