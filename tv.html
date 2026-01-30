@@ -112,9 +112,26 @@
         }
 
         .header-clock {
-            font-size: 36px;
+            font-size: 140px;
             font-weight: 800;
             color: var(--accent);
+            line-height: 0.9;
+        }
+
+        .clock-sep {
+            display: inline-block;
+            width: 0.6ch;
+            text-align: center;
+            animation: clockBlink 1s steps(1) infinite;
+        }
+
+        @keyframes clockBlink {
+            0%, 49% {
+                opacity: 1;
+            }
+            50%, 100% {
+                opacity: 0.15;
+            }
         }
 
 
@@ -367,6 +384,9 @@
             .tournament-name {
                 font-size: 28px;
             }
+            .header-clock {
+                font-size: 96px;
+            }
             .table-card {
                 min-height: 180px;
             }
@@ -446,9 +466,9 @@
                 <div class="stat-sub" id="statRebuysSub">входов —</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Средний стек</div>
+                <div class="stat-label">Начальный стек</div>
                 <div class="stat-value" id="statAvgStack">—</div>
-                <div class="stat-sub" id="statAvgStackSub">средний стек</div>
+                <div class="stat-sub" id="statAvgStackSub">на старте</div>
             </div>
             <div class="stat-card is-hidden">
                 <div class="stat-label">Контроль</div>
@@ -469,6 +489,8 @@
             REQUEST_TIMEOUT: 10000,
             MAX_REBUYS: 3
         };
+
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
 
         const state = {
             fullData: null,
@@ -500,21 +522,60 @@
         const statAdminsSubEl = document.getElementById('statAdminsSub');
         const tablesGridEl = document.getElementById('tablesGrid');
 
+        function applyTelegramTheme() {
+            const root = document.documentElement;
+            const themeParams = tg?.themeParams || {};
+            const colorScheme = tg?.colorScheme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+            if (colorScheme === 'light') {
+                root.style.setProperty('--bg-1', themeParams.bg_color || '#f7f7fb');
+                root.style.setProperty('--bg-2', themeParams.secondary_bg_color || '#e9edf5');
+                root.style.setProperty('--panel', themeParams.secondary_bg_color || '#ffffff');
+                root.style.setProperty('--panel-strong', themeParams.secondary_bg_color || '#f4f6fb');
+                root.style.setProperty('--card', themeParams.secondary_bg_color || '#ffffff');
+                root.style.setProperty('--card-border', '#d6dbe6');
+                root.style.setProperty('--text', themeParams.text_color || '#0c1118');
+                root.style.setProperty('--muted', themeParams.hint_color || '#6c7684');
+                root.style.setProperty('--accent', themeParams.button_color || '#c79a00');
+            } else {
+                root.style.setProperty('--bg-1', themeParams.bg_color || '#05070b');
+                root.style.setProperty('--bg-2', themeParams.secondary_bg_color || '#0d121a');
+                root.style.setProperty('--panel', themeParams.secondary_bg_color || '#111723');
+                root.style.setProperty('--panel-strong', '#171f2e');
+                root.style.setProperty('--card', '#151c28');
+                root.style.setProperty('--card-border', '#222c3d');
+                root.style.setProperty('--text', themeParams.text_color || '#f5f7fb');
+                root.style.setProperty('--muted', themeParams.hint_color || '#9aa4b2');
+                root.style.setProperty('--accent', '#ffd60a');
+            }
+        }
+
         function getTournament() {
             return state.fullData?.tournament || {};
         }
 
-        function formatDDHHMMSS(ms) {
+        function pad2(value) {
+            return String(value).padStart(2, '0');
+        }
+
+        function formatClockHtml(parts) {
+            return parts.map((part, index) => {
+                const chunk = pad2(part);
+                return index === 0 ? chunk : `<span class="clock-sep">:</span>${chunk}`;
+            }).join('');
+        }
+
+        function formatDDHHMMSSParts(ms) {
             const totalSeconds = Math.max(0, Math.floor(ms / 1000));
             const days = Math.floor(totalSeconds / 86400);
             const hours = Math.floor((totalSeconds % 86400) / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
             const seconds = totalSeconds % 60;
-            return `${String(days).padStart(2, '0')}:${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            return [days, hours, minutes, seconds];
         }
 
-        function formatTimeHM(date) {
-            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        function formatTimeHMSParts(date) {
+            return [date.getHours(), date.getMinutes(), date.getSeconds()];
         }
 
         function getPlayerPhotoUrl(id) {
@@ -702,9 +763,11 @@
             statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
 
             statAvgStackEl.textContent = stats.avgStack ?? '—';
-            statAvgStackSubEl.textContent = stats.avgStack
-                ? `стек ${t.stack || '—'}`
-                : `стек ${t.stack || '—'}`;
+            const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
+                ? String(t.stack)
+                : '7000';
+            statAvgStackEl.textContent = initialStack;
+            statAvgStackSubEl.textContent = 'Начальный стек';
 
             statAdminsEl.textContent = adminsCount;
             statAdminsSubEl.textContent = `админов ${adminsCount}, вызовов ${adminCallsCount}`;
@@ -719,14 +782,14 @@
 
         function updateClock() {
             const now = new Date();
-            currentTimeEl.textContent = formatTimeHM(now);
+            currentTimeEl.innerHTML = formatClockHtml(formatTimeHMSParts(now));
 
             if (state.startDate) {
                 const diffMs = now - state.startDate;
                 if (diffMs >= 0) {
-                    tournamentClockEl.textContent = formatDDHHMMSS(diffMs);
+                    tournamentClockEl.innerHTML = formatClockHtml(formatDDHHMMSSParts(diffMs));
                 } else {
-                    tournamentClockEl.textContent = formatDDHHMMSS(-diffMs);
+                    tournamentClockEl.innerHTML = formatClockHtml(formatDDHHMMSSParts(-diffMs));
                 }
             } else {
                 tournamentClockEl.textContent = '—';
@@ -735,7 +798,7 @@
             if (state.nextBlindAt) {
                 const diffMs = state.nextBlindAt - now;
                 statNextBlindSubEl.textContent = diffMs >= 0
-                    ? `следующий уровень через ${formatDDHHMMSS(diffMs)}`
+                    ? `следующий уровень через ${formatClockHtml(formatDDHHMMSSParts(diffMs)).replace(/<[^>]+>/g, '')}`
                     : statNextBlindSubEl.textContent;
             }
         }
@@ -787,6 +850,10 @@
         }
 
         function init() {
+            applyTelegramTheme();
+            if (tg && typeof tg.onEvent === 'function') {
+                tg.onEvent('themeChanged', applyTelegramTheme);
+            }
             if (appVersionEl) {
                 appVersionEl.textContent = `TV v${TV_APP_VERSION_TOTAL} • ${TV_HTML_LAST_EDITED}`;
             }
@@ -799,9 +866,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 21;
+        var TV_APP_VERSION_PATCH = 22;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 15:36';
+        var TV_HTML_LAST_EDITED = '30.01.26 16:07';
 
         init();
     </script>
