@@ -73,7 +73,7 @@
         }
 
         .tournament-name {
-            font-size: 36px;
+            font-size: 32px;
             font-weight: 800;
         }
 
@@ -83,12 +83,13 @@
         }
 
         .current-time {
-            font-size: 28px;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: 600;
         }
 
         .tournament-clock {
-            font-size: 18px;
+            font-size: 36px;
+            font-weight: 800;
             color: var(--accent);
             margin-top: 4px;
         }
@@ -97,6 +98,13 @@
             font-size: 14px;
             color: var(--muted);
             margin-top: 6px;
+        }
+
+        .app-version {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 6px;
+            letter-spacing: 0.08em;
         }
 
         .stats-grid {
@@ -212,8 +220,8 @@
 
         .role-badge {
             position: absolute;
-            right: -4px;
-            bottom: -4px;
+            right: 4px;
+            bottom: 4px;
             width: 22px;
             height: 22px;
             border-radius: 50%;
@@ -224,6 +232,7 @@
             font-weight: 700;
             color: #fff;
             border: 2px solid var(--card);
+            z-index: 2;
         }
 
         .role-badge.dealer {
@@ -233,10 +242,11 @@
         .role-badge.admin {
             background: var(--accent);
             color: #1b1b1b;
-        }
-
-        .role-badge.admin + .role-badge.dealer {
-            right: 18px;
+            top: -4px;
+            left: 50%;
+            right: auto;
+            bottom: auto;
+            transform: translateX(-50%);
         }
 
         .empty-state {
@@ -264,7 +274,7 @@
             <div class="logo-block">
                 <img src="logo.png" alt="WW" class="club-logo">
                 <div>
-                    <div class="club-name">WW Poker Club</div>
+                    <div class="club-name">Wild West Poker</div>
                     <div class="tournament-name" id="tournamentName">Турнир</div>
                 </div>
             </div>
@@ -272,6 +282,7 @@
                 <div class="current-time" id="currentTime">--:--</div>
                 <div class="tournament-clock" id="tournamentClock">—</div>
                 <div class="tournament-status" id="tournamentStatus">Статус: —</div>
+                <div class="app-version" id="appVersion"></div>
             </div>
         </header>
 
@@ -296,6 +307,21 @@
                 <div class="stat-value" id="statNextBlind">—</div>
                 <div class="stat-sub" id="statNextBlindSub">следующий уровень</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-label">Ребаи</div>
+                <div class="stat-value" id="statRebuys">—</div>
+                <div class="stat-sub" id="statRebuysSub">входов —</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Стек</div>
+                <div class="stat-value" id="statAvgStack">—</div>
+                <div class="stat-sub" id="statAvgStackSub">средний стек</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Контроль</div>
+                <div class="stat-value" id="statAdmins">—</div>
+                <div class="stat-sub" id="statAdminsSub">админов —, вызовов —</div>
+            </div>
         </section>
 
         <section class="tables-grid" id="tablesGrid"></section>
@@ -307,7 +333,8 @@
             PHOTOS_BASE_URL: 'https://5970995-zo35356.twc1.net/pictures',
             PHOTOS_VERSION: 4,
             REFRESH_INTERVAL: 30000,
-            REQUEST_TIMEOUT: 10000
+            REQUEST_TIMEOUT: 10000,
+            MAX_REBUYS: 3
         };
 
         const state = {
@@ -320,6 +347,7 @@
         const currentTimeEl = document.getElementById('currentTime');
         const tournamentClockEl = document.getElementById('tournamentClock');
         const tournamentStatusEl = document.getElementById('tournamentStatus');
+        const appVersionEl = document.getElementById('appVersion');
         const statPlayersEl = document.getElementById('statPlayers');
         const statPlayersSubEl = document.getElementById('statPlayersSub');
         const statTablesEl = document.getElementById('statTables');
@@ -328,6 +356,12 @@
         const statBlindsSubEl = document.getElementById('statBlindsSub');
         const statNextBlindEl = document.getElementById('statNextBlind');
         const statNextBlindSubEl = document.getElementById('statNextBlindSub');
+        const statRebuysEl = document.getElementById('statRebuys');
+        const statRebuysSubEl = document.getElementById('statRebuysSub');
+        const statAvgStackEl = document.getElementById('statAvgStack');
+        const statAvgStackSubEl = document.getElementById('statAvgStackSub');
+        const statAdminsEl = document.getElementById('statAdmins');
+        const statAdminsSubEl = document.getElementById('statAdminsSub');
         const tablesGridEl = document.getElementById('tablesGrid');
 
         function getTournament() {
@@ -412,7 +446,7 @@
             return '—';
         }
 
-        function computeStats(tables) {
+        function computeStats(tables, t) {
             let totalPlayers = 0;
             let activePlayers = 0;
             let outPlayers = 0;
@@ -425,13 +459,21 @@
                 outPlayers += players.filter(p => p && !!p.outTime).length;
                 players.forEach(p => {
                     if (typeof p.rebuysLeft === 'number') {
-                        const used = 3 - p.rebuysLeft;
+                        const used = CONFIG.MAX_REBUYS - p.rebuysLeft;
                         if (used > 0) totalRebuys += used;
                     }
                 });
             });
 
-            return { totalPlayers, activePlayers, outPlayers, totalRebuys };
+            const stackNumber = (t && t.stack !== undefined && t.stack !== null && String(t.stack).trim() !== '')
+                ? Number(t.stack)
+                : NaN;
+            const totalEntries = totalPlayers + totalRebuys;
+            const avgStack = (Number.isFinite(stackNumber) && activePlayers > 0)
+                ? Math.round((totalEntries * stackNumber) / activePlayers)
+                : null;
+
+            return { totalPlayers, activePlayers, outPlayers, totalRebuys, totalEntries, avgStack };
         }
 
         function renderTables(tables, adminsList) {
@@ -479,8 +521,10 @@
         function updateStats() {
             const t = getTournament();
             const tables = Array.isArray(t.tables) ? t.tables : [];
-            const stats = computeStats(tables);
+            const stats = computeStats(tables, t);
             const activeTables = tables.filter(table => (Array.isArray(table.players) ? table.players : []).some(p => p && !p.outTime)).length;
+            const adminCallsCount = Array.isArray(t.adminCalls) ? t.adminCalls.length : 0;
+            const adminsCount = Array.isArray(t.admins) ? t.admins.length : 0;
 
             tournamentNameEl.textContent = t.title || t.name || 'Турнир';
             tournamentStatusEl.textContent = `Статус: ${String(t.status || '—').toUpperCase()}`;
@@ -494,6 +538,17 @@
             const blindsText = getBlindsText(t);
             statBlindsEl.textContent = blindsText;
             statBlindsSubEl.textContent = t.level ? `уровень ${t.level}` : 'уровень —';
+
+            statRebuysEl.textContent = stats.totalRebuys;
+            statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
+
+            statAvgStackEl.textContent = stats.avgStack ?? '—';
+            statAvgStackSubEl.textContent = stats.avgStack
+                ? `стек ${t.stack || '—'}`
+                : `стек ${t.stack || '—'}`;
+
+            statAdminsEl.textContent = adminsCount;
+            statAdminsSubEl.textContent = `админов ${adminsCount}, вызовов ${adminCallsCount}`;
 
             if (!state.startDate) {
                 state.startDate = parseDateFromTournament(t);
@@ -573,6 +628,9 @@
         }
 
         function init() {
+            if (appVersionEl) {
+                appVersionEl.textContent = `TV v${TV_APP_VERSION_TOTAL} • ${TV_HTML_LAST_EDITED}`;
+            }
             loadTournamentData();
             updateClock();
             setInterval(updateClock, 1000);
@@ -582,9 +640,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 1;
+        var TV_APP_VERSION_PATCH = 2;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 05:59';
+        var TV_HTML_LAST_EDITED = '30.01.26 06:15';
 
         init();
     </script>
