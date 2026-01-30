@@ -6691,6 +6691,240 @@
         let cameFromBirthdays = false;
         let currentDbPlayer = null; // Текущий игрок из БД для кнопки "Написать"
 
+        function renderPlayerHeader(player, badges = []) {
+            if (!player) return;
+            selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
+            const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
+            selectedPlayerName.textContent = baseName;
+
+            if (selectedPlayerRoleBadge) {
+                if (badges.length > 0) {
+                    selectedPlayerRoleBadge.innerHTML = badges.join(' ');
+                    selectedPlayerRoleBadge.style.display = 'inline-flex';
+                } else {
+                    selectedPlayerRoleBadge.innerHTML = '';
+                    selectedPlayerRoleBadge.style.display = 'none';
+                }
+            }
+
+            if (selectedPlayerRating) {
+                selectedPlayerRating.textContent = '';
+                selectedPlayerRating.style.display = 'none';
+            }
+
+            if (selectedPlayerDates) {
+                selectedPlayerDates.style.display = 'none';
+            }
+        }
+
+        function renderDbProfileTableInfo(player) {
+            if (!selectedPlayerTableInfo) return;
+            const tournamentPlayer = getAllTournamentPlayers()
+                .find(p => p && String(p.id) === String(player.id) && p.tableId != null && p.box != null);
+
+            if (tournamentPlayer) {
+                selectedPlayerTableInfo.style.display = '';
+                selectedPlayerTableInfo.innerHTML = `
+                    <span class="table-label">Стол</span>
+                    <span class="table-badge">${tournamentPlayer.tableId}</span>
+                    <span class="table-label">Бокс</span>
+                    <span class="table-badge">${tournamentPlayer.box}</span>
+                `;
+            } else {
+                selectedPlayerTableInfo.innerHTML = '';
+                selectedPlayerTableInfo.style.display = 'none';
+            }
+        }
+
+        function renderTournamentProfileTableInfo(player, box) {
+            const selectedTable = getSelectedTable();
+            if (!selectedPlayerTableInfo || !selectedTable) return;
+
+            if (!player.outTime) {
+                const allPlayersForKnockedActive = getAllTournamentPlayers();
+                const knockedByActivePlayer = Array.isArray(allPlayersForKnockedActive)
+                    ? allPlayersForKnockedActive.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
+                    : [];
+                const knockedBadgesActive = knockedByActivePlayer
+                    .map(p => {
+                        const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
+                        return `<span class="table-badge">${escapeHtml(knockedNick)}</span>`;
+                    })
+                    .join('');
+
+                selectedPlayerTableInfo.classList.remove('out-info-compact');
+                let tableInfoHtml = `
+                    <span class="table-label">Стол</span>
+                    <span class="table-badge">${selectedTable.id || '1'}</span>
+                    <span class="table-label">Бокс</span>
+                    <span class="table-badge">${box}</span>
+                `;
+                if (knockedByActivePlayer.length > 0) {
+                    selectedPlayerTableInfo.classList.add('out-info-compact');
+                    tableInfoHtml = `
+                        <div class="out-info-line">
+                            <span class="table-label">Стол</span>
+                            <span class="table-badge">${selectedTable.id || '1'}</span>
+                            <span class="table-label">Бокс</span>
+                            <span class="table-badge">${box}</span>
+                        </div>
+                        <div class="out-info-line">
+                            <span class="table-label">Игрок выбил</span>
+                            <span class="out-knocked-list">${knockedBadgesActive}</span>
+                        </div>
+                    `;
+                }
+                selectedPlayerTableInfo.innerHTML = tableInfoHtml;
+            } else {
+                const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
+                const place = globalOutPlaces.get(player.id) || '?';
+                const outByNickLabel = player.outByNick ? `${escapeHtml(player.outByNick)}` : '—';
+
+                const allPlayersForKnocked = getAllTournamentPlayers();
+                const knockedPlayers = Array.isArray(allPlayersForKnocked)
+                    ? allPlayersForKnocked.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
+                    : [];
+                const knockedBadges = knockedPlayers
+                    .map(p => {
+                        const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
+                        return `<span class="table-badge">${escapeHtml(knockedNick)}</span>`;
+                    })
+                    .join('');
+
+                selectedPlayerTableInfo.classList.add('out-info-compact');
+                selectedPlayerTableInfo.innerHTML = `
+                    <div class="out-info-line">
+                        <span class="table-label">Закончил</span>
+                        <span class="table-badge">${outTimeLabel}</span>
+                        <span class="table-label">Место</span>
+                        <span class="table-badge">${place}</span>
+                        <span class="table-label">Кто выбил</span>
+                        <span class="table-badge">${outByNickLabel}</span>
+                    </div>
+                    <div class="out-info-line">
+                        <span class="table-label">Игрок выбил</span>
+                        <span class="out-knocked-list">${knockedBadges}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function renderProfileInfoBoxes(dbPlayer, fallbackPlayer, options = {}) {
+            if (!playerInfoBoxes) return;
+            const sourcePlayer = dbPlayer || fallbackPlayer || {};
+            const useZodiacGlyphSpan = options.useZodiacGlyphSpan === true;
+
+            const getDayWord = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
+
+            if (birthdayValue && birthdayLabel) {
+                if (sourcePlayer.birthday) {
+                    const daysUntil = getDaysUntilDate(sourcePlayer.birthday, false);
+                    const md = parseBirthdayMonthDay(sourcePlayer.birthday);
+                    const zodiacGlyph = md ? getZodiacSign(md.day, md.month, false) : '';
+                    const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
+                    const zodiacSymbol = zodiacGlyph && useZodiacGlyphSpan
+                        ? `<span class="zodiac-glyph">${zodiacGlyph}</span>`
+                        : zodiacGlyph;
+                    const zodiacFull = zodiacGlyph && zodiacText ? `${zodiacSymbol} ${zodiacText}` : '';
+
+                    birthdayValue.textContent = sourcePlayer.birthday;
+
+                    if (daysUntil === 0) {
+                        birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                    } else if (daysUntil !== null && daysUntil < 0) {
+                        const daysAgo = Math.abs(daysUntil);
+                        birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                    } else if (daysUntil !== null && daysUntil <= 7) {
+                        birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                    } else if (daysUntil !== null) {
+                        birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacFull ? `<br>${zodiacFull}` : ''}`;
+                    } else {
+                        birthdayLabel.innerHTML = zodiacFull ? zodiacFull : 'День рождения';
+                    }
+                } else {
+                    birthdayValue.textContent = '—';
+                    birthdayLabel.textContent = 'Не указан';
+                }
+            }
+
+            if (registrationValue && registrationLabel) {
+                if (sourcePlayer.reg_date) {
+                    const membershipDuration = getMembershipDuration(sourcePlayer.reg_date);
+                    const daysUntilAnniversary = getDaysUntilDate(sourcePlayer.reg_date, true);
+
+                    registrationValue.textContent = sourcePlayer.reg_date;
+
+                    if (daysUntilAnniversary === 0) {
+                        registrationLabel.innerHTML = `<span class="info-box-success">Годовщина! 🎉</span>`;
+                    } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
+                        registrationLabel.innerHTML = `<span class="info-box-warning">${membershipDuration || ''}</span>`;
+                    } else {
+                        registrationLabel.textContent = membershipDuration || 'В клубе';
+                    }
+                } else {
+                    registrationValue.textContent = '—';
+                    registrationLabel.textContent = 'Не указана';
+                }
+            }
+
+            if (ratingBoxValue && ratingBoxLabel) {
+                const rating = (dbPlayer && typeof dbPlayer.rating === 'number')
+                    ? dbPlayer.rating
+                    : (fallbackPlayer?.rating || 0);
+                const ratingPlace = globalRatingPlaces.get(fallbackPlayer?.id || dbPlayer?.id);
+
+                if (rating > 0) {
+                    ratingBoxValue.textContent = rating;
+                    ratingBoxLabel.textContent = ratingPlace ? `#${ratingPlace} в рейтинге` : 'Рейтинг';
+                } else {
+                    ratingBoxValue.textContent = '0';
+                    ratingBoxLabel.textContent = 'Без рейтинга';
+                }
+            }
+
+            if (gamesBoxValue && gamesBoxLabel) {
+                const gamesPlayed = (dbPlayer && typeof dbPlayer.games_played === 'number') ? dbPlayer.games_played : 0;
+                gamesBoxValue.textContent = gamesPlayed;
+                gamesBoxLabel.textContent = 'Игр сыграно';
+            }
+
+            if (achievementsBoxValue && achievementsBoxLabel) {
+                const achievements = (dbPlayer && typeof dbPlayer.achievements === 'number') ? dbPlayer.achievements : 0;
+                achievementsBoxValue.textContent = achievements;
+                achievementsBoxLabel.textContent = 'Достижения';
+            }
+
+            if (ticketsBoxValue && ticketsBoxLabel) {
+                const tickets = (dbPlayer && typeof dbPlayer.tickets === 'number') ? dbPlayer.tickets : 0;
+                ticketsBoxValue.textContent = tickets;
+                ticketsBoxLabel.textContent = 'Билеты';
+            }
+
+            playerInfoBoxes.style.display = 'grid';
+        }
+
+        function renderPlayerPhotoById(playerId) {
+            const now = new Date();
+            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${playerId}.jpg?v=${cacheBuster}`;
+            if (playerPhotoImage) {
+                let fallbackApplied = false;
+                playerPhotoImage.style.display = 'none';
+                playerPhotoImage.onload = () => {
+                    playerPhotoImage.style.display = 'block';
+                };
+                playerPhotoImage.onerror = () => {
+                    if (fallbackApplied) {
+                        playerPhotoImage.style.display = 'block';
+                        return;
+                    }
+                    fallbackApplied = true;
+                    playerPhotoImage.src = 'avatar.png';
+                };
+                playerPhotoImage.src = playerPhotoUrl;
+            }
+        }
+
         // Унифицированный показ карточки игрока
         // options.isOwnProfile - если true, скрываем кнопку "Назад" и "Написать"
         // options.source - 'db' | 'birthdays' | 'month' | 'self'
@@ -6723,172 +6957,18 @@
             hideAllScreens();
             actionScreen.classList.remove('hidden');
             
-            // Заполняем карточку данными игрока
-            selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
-            const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-            selectedPlayerName.textContent = baseName;
-            
-            // Бейдж роли игрока
-            if (selectedPlayerRoleBadge) {
-                const badges = [];
-                const isPlayerAdmin = (getTournament().admins || []).some(
-                    adminId => String(adminId) === String(player.id)
-                );
-                if (isPlayerAdmin) {
-                    badges.push('<span class="player-role-badge admin">👑</span>');
-                }
-                if (badges.length > 0) {
-                    selectedPlayerRoleBadge.innerHTML = badges.join(' ');
-                    selectedPlayerRoleBadge.style.display = 'inline-flex';
-                } else {
-                    selectedPlayerRoleBadge.innerHTML = '';
-                    selectedPlayerRoleBadge.style.display = 'none';
-                }
+            const badges = [];
+            const isPlayerAdmin = (getTournament().admins || []).some(
+                adminId => String(adminId) === String(player.id)
+            );
+            if (isPlayerAdmin) {
+                badges.push('<span class="player-role-badge admin">👑</span>');
             }
-            
-            // Скрываем рейтинг из шапки
-            if (selectedPlayerRating) {
-                selectedPlayerRating.textContent = '';
-                selectedPlayerRating.style.display = 'none';
-            }
-            
-            // Информация о столе/боксе (если игрок сейчас в турнире)
-            if (selectedPlayerTableInfo) {
-                const tournamentPlayer = getAllTournamentPlayers()
-                    .find(p => p && String(p.id) === String(player.id) && p.tableId != null && p.box != null);
 
-                if (tournamentPlayer) {
-                    selectedPlayerTableInfo.style.display = '';
-                    selectedPlayerTableInfo.innerHTML = `
-                        <span class="table-label">Стол</span>
-                        <span class="table-badge">${tournamentPlayer.tableId}</span>
-                        <span class="table-label">Бокс</span>
-                        <span class="table-badge">${tournamentPlayer.box}</span>
-                    `;
-                } else {
-                    selectedPlayerTableInfo.innerHTML = '';
-                    selectedPlayerTableInfo.style.display = 'none';
-                }
-            }
-            
-            // Скрываем старый блок дат
-            if (selectedPlayerDates) {
-                selectedPlayerDates.style.display = 'none';
-            }
-            
-            // Функция для склонения слова "день"
-            const getDayWord = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
-            
-            // Info boxes
-            if (playerInfoBoxes) {
-                // День рождения
-                if (birthdayValue && birthdayLabel) {
-                    if (player.birthday) {
-                        const daysUntil = getDaysUntilDate(player.birthday, false);
-                        const md = parseBirthdayMonthDay(player.birthday);
-                        const zodiacGlyph = md ? getZodiacSign(md.day, md.month, false) : '';
-                        const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
-                        const zodiacFull = zodiacGlyph && zodiacText ? `<span class="zodiac-glyph">${zodiacGlyph}</span> ${zodiacText}` : '';
-
-                        birthdayValue.textContent = player.birthday;
-
-                        if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null && daysUntil < 0) {
-                            const daysAgo = Math.abs(daysUntil);
-                            birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null) {
-                            birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else {
-                            birthdayLabel.innerHTML = zodiacFull ? zodiacFull : 'День рождения';
-                        }
-                    } else {
-                        birthdayValue.textContent = '—';
-                        birthdayLabel.textContent = 'Не указан';
-                    }
-                }
-                
-                // Дата регистрации
-                if (registrationValue && registrationLabel) {
-                    if (player.reg_date) {
-                        const membershipDuration = getMembershipDuration(player.reg_date);
-                        const daysUntilAnniversary = getDaysUntilDate(player.reg_date, true);
-                        
-                        registrationValue.textContent = player.reg_date;
-                        
-                        if (daysUntilAnniversary === 0) {
-                            registrationLabel.innerHTML = `<span class="info-box-success">Годовщина! 🎉</span>`;
-                        } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
-                            registrationLabel.innerHTML = `<span class="info-box-warning">${membershipDuration || ''}</span>`;
-                        } else {
-                            registrationLabel.textContent = membershipDuration || 'В клубе';
-                        }
-                    } else {
-                        registrationValue.textContent = '—';
-                        registrationLabel.textContent = 'Не указана';
-                    }
-                }
-                
-                // Рейтинг
-                if (ratingBoxValue && ratingBoxLabel) {
-                    const rating = player.rating || 0;
-                    const ratingPlace = globalRatingPlaces.get(player.id);
-                    
-                    if (rating > 0) {
-                        ratingBoxValue.textContent = rating;
-                        ratingBoxLabel.textContent = ratingPlace ? `#${ratingPlace} в рейтинге` : 'Рейтинг';
-                    } else {
-                        ratingBoxValue.textContent = '0';
-                        ratingBoxLabel.textContent = 'Без рейтинга';
-                    }
-                }
-                
-                // Количество игр
-                if (gamesBoxValue && gamesBoxLabel) {
-                    const gamesPlayed = player.games_played || 0;
-                    gamesBoxValue.textContent = gamesPlayed;
-                    gamesBoxLabel.textContent = 'Игр сыграно';
-                }
-                
-                // Достижения
-                if (achievementsBoxValue && achievementsBoxLabel) {
-                    const achievements = player.achievements || 0;
-                    achievementsBoxValue.textContent = achievements;
-                    achievementsBoxLabel.textContent = 'Достижения';
-                }
-                
-                // Билеты
-                if (ticketsBoxValue && ticketsBoxLabel) {
-                    const tickets = player.tickets || 0;
-                    ticketsBoxValue.textContent = tickets;
-                    ticketsBoxLabel.textContent = 'Билеты';
-                }
-                
-                playerInfoBoxes.style.display = 'grid';
-            }
-            
-            // Фото игрока
-            const now = new Date();
-            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
-            if (playerPhotoImage) {
-                let fallbackApplied = false;
-                playerPhotoImage.style.display = 'none';
-                playerPhotoImage.onload = () => {
-                    playerPhotoImage.style.display = 'block';
-                };
-                playerPhotoImage.onerror = () => {
-                    if (fallbackApplied) {
-                        playerPhotoImage.style.display = 'block';
-                        return;
-                    }
-                    fallbackApplied = true;
-                    playerPhotoImage.src = 'avatar.png';
-                };
-                playerPhotoImage.src = playerPhotoUrl;
-            }
+            renderPlayerHeader(player, badges);
+            renderDbProfileTableInfo(player);
+            renderProfileInfoBoxes(player, player, { useZodiacGlyphSpan: true });
+            renderPlayerPhotoById(player.id);
             
             // Скрываем кнопки ребай и финиш (игрок из БД, не в турнире)
             rebuyButton.style.display = 'none';
@@ -7454,248 +7534,29 @@
                 clearAdminCall(player.id);
             }
 
-            selectedPlayerNickname.textContent = player.nickname || 'Неизвестно';
-            const baseName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Неизвестно';
-            const ratingText = player.rating ? `${player.rating}` : '';
-            const isOut = !!player.outTime;
-            
-            // Проверяем роли через snapshot
             const isViewerDealerCheck = isViewerDealer();
             const isViewerAdminCheck = isViewerAdmin();
 
-            // Бейдж роли игрока (дилер / админ / вызов админа)
-            if (selectedPlayerRoleBadge) {
-                const badges = [];
-
-                // Проверяем, является ли этот игрок админом через tournament.admins
-                const isPlayerAdmin = (getTournament().admins || []).some(
-                    adminId => String(adminId) === String(player.id)
-                );
-
-                if (isPlayerAdmin) {
-                    badges.push('<span class="player-role-badge admin">👑<\/span>');
-                }
-
-                if (player.dealer) {
-                    badges.push('<span class="player-role-badge dealer">D<\/span>');
-                }
-                
-                // Индикация вызова админа
-                if (player.adminCall) {
-                    badges.push('<span class="player-role-badge" style="background-color: rgba(181, 137, 0, 0.8);">🔔<\/span>');
-                }
-
-                if (badges.length > 0) {
-                    selectedPlayerRoleBadge.innerHTML = badges.join(' ');
-                    selectedPlayerRoleBadge.style.display = 'inline-flex';
-                } else {
-                    selectedPlayerRoleBadge.innerHTML = '';
-                    selectedPlayerRoleBadge.style.display = 'none';
-                }
+            const badges = [];
+            const isPlayerAdmin = (getTournament().admins || []).some(
+                adminId => String(adminId) === String(player.id)
+            );
+            if (isPlayerAdmin) {
+                badges.push('<span class="player-role-badge admin">👑</span>');
+            }
+            if (player.dealer) {
+                badges.push('<span class="player-role-badge dealer">D</span>');
+            }
+            if (player.adminCall) {
+                badges.push('<span class="player-role-badge" style="background-color: rgba(181, 137, 0, 0.8);">🔔</span>');
             }
 
-            selectedPlayerName.textContent = baseName;
+            renderPlayerHeader(player, badges);
+            renderTournamentProfileTableInfo(player, box);
 
-            // Информация о столе/боксе или финише
-            const selectedTable = getSelectedTable();
-            if (selectedPlayerTableInfo && selectedTable) {
-                if (!isOut) {
-                    // Кого выбил активный игрок
-                    const allPlayersForKnockedActive = getAllTournamentPlayers();
-                    const knockedByActivePlayer = Array.isArray(allPlayersForKnockedActive)
-                        ? allPlayersForKnockedActive.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
-                        : [];
-                    const knockedBadgesActive = knockedByActivePlayer
-                        .map(p => {
-                            const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
-                            return `<span class="table-badge">${escapeHtml(knockedNick)}<\/span>`;
-                        })
-                        .join('');
-                    
-                    selectedPlayerTableInfo.classList.remove('out-info-compact');
-                    let tableInfoHtml = `
-                        <span class="table-label">Стол<\/span>
-                        <span class="table-badge">${selectedTable.id || '1'}<\/span>
-                        <span class="table-label">Бокс<\/span>
-                        <span class="table-badge">${box}<\/span>
-                    `;
-                    if (knockedByActivePlayer.length > 0) {
-                        selectedPlayerTableInfo.classList.add('out-info-compact');
-                        tableInfoHtml = `
-                            <div class="out-info-line">
-                                <span class="table-label">Стол<\/span>
-                                <span class="table-badge">${selectedTable.id || '1'}<\/span>
-                                <span class="table-label">Бокс<\/span>
-                                <span class="table-badge">${box}<\/span>
-                            <\/div>
-                            <div class="out-info-line">
-                                <span class="table-label">Игрок выбил<\/span>
-                                <span class="out-knocked-list">${knockedBadgesActive}<\/span>
-                            <\/div>
-                        `;
-                    }
-                    selectedPlayerTableInfo.innerHTML = tableInfoHtml;
-                } else {
-                    const outTimeLabel = player.outTime ? formatOutTime(new Date(player.outTime)) : '—';
-                    const place = globalOutPlaces.get(player.id) || '?';
-                    const outByNickLabel = player.outByNick ? `${escapeHtml(player.outByNick)}` : '—';
-
-                    const allPlayersForKnocked = getAllTournamentPlayers();
-                    const knockedPlayers = Array.isArray(allPlayersForKnocked)
-                        ? allPlayersForKnocked.filter(p => p && p.outByChatId != null && String(p.outByChatId) === String(player.id))
-                        : [];
-                    const knockedBadges = knockedPlayers
-                        .map(p => {
-                            const knockedNick = p.nickname || `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Игрок';
-                            return `<span class="table-badge">${escapeHtml(knockedNick)}<\/span>`;
-                        })
-                        .join('');
-
-                    selectedPlayerTableInfo.classList.add('out-info-compact');
-                    selectedPlayerTableInfo.innerHTML = `
-                        <div class="out-info-line">
-                            <span class="table-label">Закончил</span>
-                            <span class="table-badge">${outTimeLabel}</span>
-                            <span class="table-label">Место</span>
-                            <span class="table-badge">${place}</span>
-                            <span class="table-label">Кто выбил</span>
-                            <span class="table-badge">${outByNickLabel}</span>
-                        <\/div>
-                        <div class="out-info-line">
-                            <span class="table-label">Игрок выбил</span>
-                            <span class="out-knocked-list">${knockedBadges}<\/span>
-                        <\/div>
-                    `;
-                }
-            }
-
-            // Скрываем рейтинг из шапки (перенесён в info box)
-            if (selectedPlayerRating) {
-                selectedPlayerRating.textContent = '';
-                selectedPlayerRating.style.display = 'none';
-            }
-
-            // Даты: день рождения и регистрация (скрываем старый блок)
-            if (selectedPlayerDates) {
-                selectedPlayerDates.style.display = 'none';
-            }
-            
-            // Функция для склонения слова "день"
-            const getDayWord = (n) => n === 1 ? 'день' : (n >= 2 && n <= 4) ? 'дня' : 'дней';
-            
-            // Info boxes: день рождения, стаж в клубе, рейтинг
-            if (playerInfoBoxes) {
-                const dbPlayer = getDbPlayerById(player.id);
-                
-                // День рождения
-                if (birthdayValue && birthdayLabel) {
-                    if (dbPlayer?.birthday) {
-                        const daysUntil = getDaysUntilDate(dbPlayer.birthday, false);
-                        const md = parseBirthdayMonthDay(dbPlayer.birthday);
-                        const zodiacGlyph = md ? getZodiacSign(md.day, md.month, false) : '';
-                        const zodiacText = md ? getZodiacSign(md.day, md.month, true) : '';
-                        const zodiacFull = zodiacGlyph && zodiacText ? `${zodiacGlyph} ${zodiacText}` : '';
-                        birthdayValue.textContent = dbPlayer.birthday;
-                        
-                        if (daysUntil === 0) {
-                            birthdayLabel.innerHTML = `<span class="info-box-success">Сегодня</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null && daysUntil < 0) {
-                            const daysAgo = Math.abs(daysUntil);
-                            birthdayLabel.innerHTML = `${daysAgo} ${getDayWord(daysAgo)} назад${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null && daysUntil <= 7) {
-                            birthdayLabel.innerHTML = `<span class="info-box-warning">Через ${daysUntil} ${getDayWord(daysUntil)}</span>${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else if (daysUntil !== null) {
-                            birthdayLabel.innerHTML = `Через ${daysUntil} ${getDayWord(daysUntil)}${zodiacFull ? `<br>${zodiacFull}` : ''}`;
-                        } else {
-                            birthdayLabel.textContent = zodiacFull ? zodiacFull : 'День рождения';
-                        }
-                    } else {
-                        birthdayValue.textContent = '—';
-                        birthdayLabel.textContent = 'Не указан';
-                    }
-                }
-                
-                // Дата регистрации (дата как основное, стаж как второстепенное)
-                if (registrationValue && registrationLabel) {
-                    if (dbPlayer?.reg_date) {
-                        const membershipDuration = getMembershipDuration(dbPlayer.reg_date);
-                        const daysUntilAnniversary = getDaysUntilDate(dbPlayer.reg_date, true);
-                        
-                        registrationValue.textContent = dbPlayer.reg_date;
-                        
-                        if (daysUntilAnniversary === 0) {
-                            registrationLabel.innerHTML = `<span class="info-box-success">Годовщина! 🎉</span>`;
-                        } else if (daysUntilAnniversary !== null && daysUntilAnniversary <= 7) {
-                            registrationLabel.innerHTML = `<span class="info-box-warning">${membershipDuration || ''}</span>`;
-                        } else {
-                            registrationLabel.textContent = membershipDuration || 'В клубе';
-                        }
-                    } else {
-                        registrationValue.textContent = '—';
-                        registrationLabel.textContent = 'Не указана';
-                    }
-                }
-                
-                // Рейтинг
-                if (ratingBoxValue && ratingBoxLabel) {
-                    const rating = dbPlayer?.rating || player.rating || 0;
-                    const ratingPlace = globalRatingPlaces.get(player.id);
-                    
-                    if (rating > 0) {
-                        ratingBoxValue.textContent = rating;
-                        ratingBoxLabel.textContent = ratingPlace ? `#${ratingPlace} в рейтинге` : 'Рейтинг';
-                    } else {
-                        ratingBoxValue.textContent = '0';
-                        ratingBoxLabel.textContent = 'Без рейтинга';
-                    }
-                }
-                
-                // Количество игр
-                if (gamesBoxValue && gamesBoxLabel) {
-                    const gamesPlayed = dbPlayer?.games_played || 0;
-                    gamesBoxValue.textContent = gamesPlayed;
-                    gamesBoxLabel.textContent = 'Игр сыграно';
-                }
-                
-                // Достижения
-                if (achievementsBoxValue && achievementsBoxLabel) {
-                    const achievements = dbPlayer?.achievements || 0;
-                    achievementsBoxValue.textContent = achievements;
-                    achievementsBoxLabel.textContent = 'Достижения';
-                }
-                
-                // Билеты
-                if (ticketsBoxValue && ticketsBoxLabel) {
-                    const tickets = dbPlayer?.tickets || 0;
-                    ticketsBoxValue.textContent = tickets;
-                    ticketsBoxLabel.textContent = 'Билеты';
-                }
-                
-                // Всегда показываем блок с информацией
-                playerInfoBoxes.style.display = 'grid';
-            }
-            
-            // Фото игрока
-            const now = new Date();
-            const cacheBuster = `${CONFIG.PHOTOS_VERSION}-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            const playerPhotoUrl = `${CONFIG.PHOTOS_BASE_URL}/${player.id}.jpg?v=${cacheBuster}`;
-            if (playerPhotoImage) {
-                let fallbackApplied = false;
-                playerPhotoImage.style.display = 'none';
-                playerPhotoImage.onload = () => {
-                    playerPhotoImage.style.display = 'block';
-                };
-                playerPhotoImage.onerror = () => {
-                    if (fallbackApplied) {
-                        playerPhotoImage.style.display = 'block';
-                        return;
-                    }
-                    fallbackApplied = true;
-                    playerPhotoImage.src = 'avatar.png';
-                    playerPhotoImage.style.display = 'block';
-                };
-                playerPhotoImage.src = playerPhotoUrl;
-            }
+            const dbPlayer = getDbPlayerById(player.id);
+            renderProfileInfoBoxes(dbPlayer, player, { useZodiacGlyphSpan: false });
+            renderPlayerPhotoById(player.id);
             
             updateRebuyButtonStateForPlayer(player);
             updateOutButtonStateForPlayer(player);
@@ -8922,9 +8783,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 360;
+var APP_VERSION_PATCH = 361;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 02:34';
+var INDEX_HTML_LAST_EDITED = '30.01.26 03:05';
 
 init();
 </script>
