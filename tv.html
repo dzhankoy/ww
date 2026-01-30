@@ -13,6 +13,7 @@
             --panel-strong: #171f2e;
             --card: #151c28;
             --card-border: #222c3d;
+            --avatar-border: rgba(255, 255, 255, 0.06);
             --accent: #ffd60a;
             --green: #32d74b;
             --red: #ff453a;
@@ -112,10 +113,10 @@
         }
 
         .header-clock {
-            font-size: 140px;
+            font-size: 64px;
             font-weight: 800;
             color: var(--accent);
-            line-height: 0.9;
+            line-height: 1;
         }
 
         .clock-sep {
@@ -125,12 +126,18 @@
             animation: clockBlink 1s steps(1) infinite;
         }
 
+        .clock-sep-static {
+            display: inline-block;
+            width: 0.6ch;
+            text-align: center;
+        }
+
         @keyframes clockBlink {
             0%, 49% {
                 opacity: 1;
             }
             50%, 100% {
-                opacity: 0.15;
+                opacity: 0;
             }
         }
 
@@ -288,7 +295,7 @@
             width: 64px;
             height: 64px;
             border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.12);
+            border: 1px solid var(--avatar-border);
             background: #0b0f14;
         }
 
@@ -385,7 +392,7 @@
                 font-size: 28px;
             }
             .header-clock {
-                font-size: 96px;
+                font-size: 44px;
             }
             .table-card {
                 min-height: 180px;
@@ -466,9 +473,9 @@
                 <div class="stat-sub" id="statRebuysSub">входов —</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Начальный стек</div>
+                <div class="stat-label">Средний стек</div>
                 <div class="stat-value" id="statAvgStack">—</div>
-                <div class="stat-sub" id="statAvgStackSub">на старте</div>
+                <div class="stat-sub" id="statAvgStackSub">начальный стек —</div>
             </div>
             <div class="stat-card is-hidden">
                 <div class="stat-label">Контроль</div>
@@ -534,6 +541,7 @@
                 root.style.setProperty('--panel-strong', themeParams.secondary_bg_color || '#f4f6fb');
                 root.style.setProperty('--card', themeParams.secondary_bg_color || '#ffffff');
                 root.style.setProperty('--card-border', '#d6dbe6');
+                root.style.setProperty('--avatar-border', 'rgba(0, 0, 0, 0.08)');
                 root.style.setProperty('--text', themeParams.text_color || '#0c1118');
                 root.style.setProperty('--muted', themeParams.hint_color || '#6c7684');
                 root.style.setProperty('--accent', themeParams.button_color || '#c79a00');
@@ -544,6 +552,7 @@
                 root.style.setProperty('--panel-strong', '#171f2e');
                 root.style.setProperty('--card', '#151c28');
                 root.style.setProperty('--card-border', '#222c3d');
+                root.style.setProperty('--avatar-border', 'rgba(255, 255, 255, 0.06)');
                 root.style.setProperty('--text', themeParams.text_color || '#f5f7fb');
                 root.style.setProperty('--muted', themeParams.hint_color || '#9aa4b2');
                 root.style.setProperty('--accent', '#ffd60a');
@@ -565,6 +574,17 @@
             }).join('');
         }
 
+        function formatClockHtmlStatic(parts) {
+            return parts.map((part, index) => {
+                const chunk = pad2(part);
+                return index === 0 ? chunk : `<span class="clock-sep-static">:</span>${chunk}`;
+            }).join('');
+        }
+
+        function formatClockText(parts) {
+            return parts.map(pad2).join(':');
+        }
+
         function formatDDHHMMSSParts(ms) {
             const totalSeconds = Math.max(0, Math.floor(ms / 1000));
             const days = Math.floor(totalSeconds / 86400);
@@ -574,8 +594,8 @@
             return [days, hours, minutes, seconds];
         }
 
-        function formatTimeHMSParts(date) {
-            return [date.getHours(), date.getMinutes(), date.getSeconds()];
+        function formatTimeHMParts(date) {
+            return [date.getHours(), date.getMinutes()];
         }
 
         function getPlayerPhotoUrl(id) {
@@ -762,12 +782,11 @@
             statRebuysEl.textContent = stats.totalRebuys;
             statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
 
-            statAvgStackEl.textContent = stats.avgStack ?? '—';
             const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
                 ? String(t.stack)
                 : '7000';
-            statAvgStackEl.textContent = initialStack;
-            statAvgStackSubEl.textContent = 'Начальный стек';
+            statAvgStackEl.textContent = stats.avgStack ?? '—';
+            statAvgStackSubEl.textContent = `начальный стек ${initialStack}`;
 
             statAdminsEl.textContent = adminsCount;
             statAdminsSubEl.textContent = `админов ${adminsCount}, вызовов ${adminCallsCount}`;
@@ -782,14 +801,14 @@
 
         function updateClock() {
             const now = new Date();
-            currentTimeEl.innerHTML = formatClockHtml(formatTimeHMSParts(now));
+            currentTimeEl.innerHTML = formatClockHtml(formatTimeHMParts(now));
 
             if (state.startDate) {
                 const diffMs = now - state.startDate;
                 if (diffMs >= 0) {
-                    tournamentClockEl.innerHTML = formatClockHtml(formatDDHHMMSSParts(diffMs));
+                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatDDHHMMSSParts(diffMs));
                 } else {
-                    tournamentClockEl.innerHTML = formatClockHtml(formatDDHHMMSSParts(-diffMs));
+                    tournamentClockEl.innerHTML = formatClockHtmlStatic(formatDDHHMMSSParts(-diffMs));
                 }
             } else {
                 tournamentClockEl.textContent = '—';
@@ -798,7 +817,7 @@
             if (state.nextBlindAt) {
                 const diffMs = state.nextBlindAt - now;
                 statNextBlindSubEl.textContent = diffMs >= 0
-                    ? `следующий уровень через ${formatClockHtml(formatDDHHMMSSParts(diffMs)).replace(/<[^>]+>/g, '')}`
+                    ? `следующий уровень через ${formatClockText(formatDDHHMMSSParts(diffMs))}`
                     : statNextBlindSubEl.textContent;
             }
         }
@@ -866,9 +885,9 @@
         // Запускаем приложение
         var TV_APP_VERSION_MAJOR = 0;
         var TV_APP_VERSION_MINOR = 1;
-        var TV_APP_VERSION_PATCH = 22;
+        var TV_APP_VERSION_PATCH = 23;
         var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
-        var TV_HTML_LAST_EDITED = '30.01.26 16:07';
+        var TV_HTML_LAST_EDITED = '30.01.26 16:27';
 
         init();
     </script>
