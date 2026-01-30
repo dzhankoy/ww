@@ -723,20 +723,19 @@
             position: absolute;
             top: -8px;
             right: -8px;
-            min-width: 20px;
-            height: 20px;
-            padding: 0 6px;
-            border-radius: 999px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             line-height: 1;
             background-color: var(--red);
             color: #fff;
-            border: 2px solid var(--bg-color);
             pointer-events: none;
+            z-index: 3;
         }
 
         .table-indicator.emoji {
@@ -4754,7 +4753,7 @@
                 const dealerExists = players.some(p => p.dealer);
                 const indicatorWarningClass = !dealerExists ? ' warning' : '';
                 const activePlayersBadge = activePlayers.length > 0
-                    ? `<span class="table-indicator-badge">${activePlayers.length}</span>`
+                    ? `<span class="table-indicator-badge">${activePlayers.length > 9 ? '9+' : activePlayers.length}</span>`
                     : '';
 
                 button.innerHTML = `
@@ -8770,9 +8769,9 @@
 // Запускаем приложение
 var APP_VERSION_MAJOR = 0;
 var APP_VERSION_MINOR = 3;
-var APP_VERSION_PATCH = 365;
+var APP_VERSION_PATCH = 366;
 var APP_VERSION_TOTAL = `${APP_VERSION_MAJOR}.${APP_VERSION_MINOR}.${APP_VERSION_PATCH}`;
-var INDEX_HTML_LAST_EDITED = '30.01.26 05:14';
+var INDEX_HTML_LAST_EDITED = '30.01.26 05:25';
 
 init();
 </script>
