@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WW Poker TV</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-1: #05070b;
+            --bg-2: #0d121a;
+            --panel: #111723;
+            --panel-strong: #171f2e;
+            --card: #151c28;
+            --card-border: #222c3d;
+            --accent: #ffd60a;
+            --green: #32d74b;
+            --red: #ff453a;
+            --blue: #0a84ff;
+            --text: #f5f7fb;
+            --muted: #9aa4b2;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 20%, rgba(10, 132, 255, 0.18), transparent 50%),
+                radial-gradient(circle at 80% 10%, rgba(255, 214, 10, 0.2), transparent 40%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
+            font-family: 'Manrope', system-ui, sans-serif;
+            color: var(--text);
+        }
+
+        .tv-app {
+            padding: 36px 52px 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .tv-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .logo-block {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .club-logo {
+            width: 68px;
+            height: 68px;
+            border-radius: 16px;
+            object-fit: cover;
+            box-shadow: var(--shadow);
+            background: #0b0f14;
+        }
+
+        .club-name {
+            font-size: 22px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--muted);
+        }
+
+        .tournament-name {
+            font-size: 36px;
+            font-weight: 800;
+        }
+
+        .header-meta {
+            text-align: right;
+            min-width: 240px;
+        }
+
+        .current-time {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .tournament-clock {
+            font-size: 18px;
+            color: var(--accent);
+            margin-top: 4px;
+        }
+
+        .tournament-status {
+            font-size: 14px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .stat-card {
+            background: var(--panel);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .stat-value {
+            margin-top: 10px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-sub {
+            margin-top: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px;
+        }
+
+        .table-card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 220px;
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .table-number {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .table-count {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .players-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .player-chip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 76px;
+        }
+
+        .player-avatar {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: #0b0f14;
+        }
+
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .player-name {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            max-width: 80px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-chip.out .player-avatar {
+            filter: grayscale(1);
+            opacity: 0.45;
+        }
+
+        .role-badge {
+            position: absolute;
+            right: -4px;
+            bottom: -4px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #fff;
+            border: 2px solid var(--card);
+        }
+
+        .role-badge.dealer {
+            background: var(--blue);
+        }
+
+        .role-badge.admin {
+            background: var(--accent);
+            color: #1b1b1b;
+        }
+
+        .role-badge.admin + .role-badge.dealer {
+            right: 18px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+        }
+
+        @media (max-width: 1200px) {
+            .tv-app {
+                padding: 28px 24px 36px;
+            }
+            .tournament-name {
+                font-size: 28px;
+            }
+            .table-card {
+                min-height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="tv-app">
+        <header class="tv-header">
+            <div class="logo-block">
+                <img src="logo.png" alt="WW" class="club-logo">
+                <div>
+                    <div class="club-name">WW Poker Club</div>
+                    <div class="tournament-name" id="tournamentName">Турнир</div>
+                </div>
+            </div>
+            <div class="header-meta">
+                <div class="current-time" id="currentTime">--:--</div>
+                <div class="tournament-clock" id="tournamentClock">—</div>
+                <div class="tournament-status" id="tournamentStatus">Статус: —</div>
+            </div>
+        </header>
+
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Игроки</div>
+                <div class="stat-value" id="statPlayers">—</div>
+                <div class="stat-sub" id="statPlayersSub">активных —, вылетело —</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Столы</div>
+                <div class="stat-value" id="statTables">—</div>
+                <div class="stat-sub" id="statTablesSub">активные —</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Блайнды</div>
+                <div class="stat-value" id="statBlinds">—</div>
+                <div class="stat-sub" id="statBlindsSub">уровень —</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Повышение</div>
+                <div class="stat-value" id="statNextBlind">—</div>
+                <div class="stat-sub" id="statNextBlindSub">следующий уровень</div>
+            </div>
+        </section>
+
+        <section class="tables-grid" id="tablesGrid"></section>
+    </div>
+
+    <script>
+        const CONFIG = {
+            TOURNAMENT_API_URL: 'https://5970995-zo35356.twc1.net/webhook/tournament',
+            PHOTOS_BASE_URL: 'https://5970995-zo35356.twc1.net/pictures',
+            PHOTOS_VERSION: 4,
+            REFRESH_INTERVAL: 30000,
+            REQUEST_TIMEOUT: 10000
+        };
+
+        const state = {
+            fullData: null,
+            startDate: null,
+            nextBlindAt: null
+        };
+
+        const tournamentNameEl = document.getElementById('tournamentName');
+        const currentTimeEl = document.getElementById('currentTime');
+        const tournamentClockEl = document.getElementById('tournamentClock');
+        const tournamentStatusEl = document.getElementById('tournamentStatus');
+        const statPlayersEl = document.getElementById('statPlayers');
+        const statPlayersSubEl = document.getElementById('statPlayersSub');
+        const statTablesEl = document.getElementById('statTables');
+        const statTablesSubEl = document.getElementById('statTablesSub');
+        const statBlindsEl = document.getElementById('statBlinds');
+        const statBlindsSubEl = document.getElementById('statBlindsSub');
+        const statNextBlindEl = document.getElementById('statNextBlind');
+        const statNextBlindSubEl = document.getElementById('statNextBlindSub');
+        const tablesGridEl = document.getElementById('tablesGrid');
+
+        function getTournament() {
+            return state.fullData?.tournament || {};
+        }
+
+        function formatHHMMSS(ms) {
+            const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }
+
+        function formatTimeHM(date) {
+            return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function getPlayerPhotoUrl(id) {
+            if (!id) return 'avatar.png';
+            return `${CONFIG.PHOTOS_BASE_URL}/${id}.jpg?v=${CONFIG.PHOTOS_VERSION}`;
+        }
+
+        function parseDateFromTournament(t) {
+            if (!t?.date || !t?.time) return null;
+            try {
+                const [day, month, year] = String(t.date).split('.');
+                const [hours, minutes] = String(t.time).split(':');
+                const dt = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
+                return isNaN(dt.getTime()) ? null : dt;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function parseDateTimeValue(value, t) {
+            if (!value) return null;
+            if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+            if (typeof value === 'number') {
+                const dt = new Date(value);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+            const str = String(value).trim();
+            if (!str) return null;
+            const direct = new Date(str);
+            if (!isNaN(direct.getTime())) return direct;
+            if (t?.date && /^\d{1,2}:\d{2}$/.test(str)) {
+                const [hours, minutes] = str.split(':');
+                const [day, month, year] = String(t.date).split('.');
+                const dt = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes), 0, 0);
+                return isNaN(dt.getTime()) ? null : dt;
+            }
+            return null;
+        }
+
+        function getNextBlindDate(t) {
+            const candidates = [
+                t.blinds_next_at,
+                t.next_blind_time,
+                t.nextBlindTime,
+                t.blindUpAt,
+                t.blindsUpAt,
+                t.level_end_time,
+                t.levelEndTime,
+                t.next_level_time,
+                t.nextLevelTime
+            ];
+            for (const candidate of candidates) {
+                const dt = parseDateTimeValue(candidate, t);
+                if (dt) return dt;
+            }
+            return null;
+        }
+
+        function getBlindsText(t) {
+            if (t.small_blind && t.big_blind) {
+                const ante = t.ante ? ` (${t.ante})` : '';
+                return `${t.small_blind}/${t.big_blind}${ante}`;
+            }
+            if (t.blinds) return String(t.blinds);
+            if (t.blind) return String(t.blind);
+            return '—';
+        }
+
+        function computeStats(tables) {
+            let totalPlayers = 0;
+            let activePlayers = 0;
+            let outPlayers = 0;
+            let totalRebuys = 0;
+
+            tables.forEach(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                totalPlayers += players.length;
+                activePlayers += players.filter(p => p && !p.outTime).length;
+                outPlayers += players.filter(p => p && !!p.outTime).length;
+                players.forEach(p => {
+                    if (typeof p.rebuysLeft === 'number') {
+                        const used = 3 - p.rebuysLeft;
+                        if (used > 0) totalRebuys += used;
+                    }
+                });
+            });
+
+            return { totalPlayers, activePlayers, outPlayers, totalRebuys };
+        }
+
+        function renderTables(tables, adminsList) {
+            if (!tablesGridEl) return;
+            if (!tables.length) {
+                tablesGridEl.innerHTML = '<div class="empty-state">Нет активных столов</div>';
+                return;
+            }
+
+            tablesGridEl.innerHTML = tables.map(table => {
+                const players = Array.isArray(table.players) ? table.players : [];
+                const activeCount = players.filter(p => p && !p.outTime).length;
+                const maxCount = players.length || 0;
+
+                const playersHtml = players.map(p => {
+                    const nickname = String(p?.nickname || p?.firstName || 'Игрок').trim();
+                    const isOut = !!p?.outTime;
+                    const isDealer = p?.dealer === true;
+                    const isAdmin = p?.isAdmin === true || p?.is_admin === true || (adminsList || []).some(id => String(id) === String(p?.id));
+
+                    return `
+                        <div class="player-chip${isOut ? ' out' : ''}">
+                            <div class="player-avatar">
+                                <img src="${getPlayerPhotoUrl(p?.id)}" alt="" onerror="this.onerror=null;this.src='avatar.png';">
+                                ${isAdmin ? '<span class="role-badge admin">A</span>' : ''}
+                                ${isDealer ? '<span class="role-badge dealer">D</span>' : ''}
+                            </div>
+                            <div class="player-name">${nickname}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="table-card">
+                        <div class="table-header">
+                            <div class="table-number">Стол ${table.id || '—'}</div>
+                            <div class="table-count">${activeCount} в игре / ${maxCount}</div>
+                        </div>
+                        <div class="players-row">${playersHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            const t = getTournament();
+            const tables = Array.isArray(t.tables) ? t.tables : [];
+            const stats = computeStats(tables);
+            const activeTables = tables.filter(table => (Array.isArray(table.players) ? table.players : []).some(p => p && !p.outTime)).length;
+
+            tournamentNameEl.textContent = t.title || t.name || 'Турнир';
+            tournamentStatusEl.textContent = `Статус: ${String(t.status || '—').toUpperCase()}`;
+
+            statPlayersEl.textContent = stats.totalPlayers;
+            statPlayersSubEl.textContent = `активных ${stats.activePlayers}, вылетело ${stats.outPlayers}`;
+
+            statTablesEl.textContent = tables.length;
+            statTablesSubEl.textContent = `активных ${activeTables}`;
+
+            const blindsText = getBlindsText(t);
+            statBlindsEl.textContent = blindsText;
+            statBlindsSubEl.textContent = t.level ? `уровень ${t.level}` : 'уровень —';
+
+            if (!state.startDate) {
+                state.startDate = parseDateFromTournament(t);
+            }
+            state.nextBlindAt = getNextBlindDate(t);
+
+            renderTables(tables, t.admins || []);
+        }
+
+        function updateClock() {
+            const now = new Date();
+            currentTimeEl.textContent = formatTimeHM(now);
+
+            if (state.startDate) {
+                const diffMs = now - state.startDate;
+                if (diffMs >= 0) {
+                    tournamentClockEl.textContent = `Идёт ${formatHHMMSS(diffMs)}`;
+                } else {
+                    tournamentClockEl.textContent = `До старта ${formatHHMMSS(-diffMs)}`;
+                }
+            } else {
+                tournamentClockEl.textContent = '—';
+            }
+
+            if (state.nextBlindAt) {
+                const diffMs = state.nextBlindAt - now;
+                statNextBlindEl.textContent = diffMs >= 0 ? formatHHMMSS(diffMs) : '—';
+            } else {
+                statNextBlindEl.textContent = '—';
+            }
+        }
+
+        async function fetchTournamentData() {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
+
+            const response = await fetch(CONFIG.TOURNAMENT_API_URL, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+
+            const responseData = await response.json();
+            const fullData = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
+            if (!fullData || typeof fullData !== 'object') return { tournament: { tables: [] } };
+
+            if (!fullData.tournament || typeof fullData.tournament !== 'object') {
+                fullData.tournament = { tables: [] };
+            }
+            if (!Array.isArray(fullData.tournament.tables)) {
+                fullData.tournament.tables = [];
+            }
+            if (!Array.isArray(fullData.tournament.admins)) {
+                fullData.tournament.admins = [];
+            }
+
+            return fullData;
+        }
+
+        async function loadTournamentData() {
+            try {
+                state.fullData = await fetchTournamentData();
+                updateStats();
+                updateClock();
+            } catch (error) {
+                tournamentStatusEl.textContent = 'Статус: ошибка загрузки';
+            }
+        }
+
+        function init() {
+            loadTournamentData();
+            updateClock();
+            setInterval(updateClock, 1000);
+            setInterval(loadTournamentData, CONFIG.REFRESH_INTERVAL);
+        }
+
+        // Запускаем приложение
+        var TV_APP_VERSION_MAJOR = 0;
+        var TV_APP_VERSION_MINOR = 1;
+        var TV_APP_VERSION_PATCH = 1;
+        var TV_APP_VERSION_TOTAL = `${TV_APP_VERSION_MAJOR}.${TV_APP_VERSION_MINOR}.${TV_APP_VERSION_PATCH}`;
+        var TV_HTML_LAST_EDITED = '30.01.26 05:59';
+
+        init();
+    </script>
+</body>
+</html>
