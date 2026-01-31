@@ -243,8 +243,8 @@
         }
 
         .stat-value {
-            margin-top: 10px;
-            font-size: 32px;
+            margin-top: 0;
+            font-size: 42px;
             font-weight: 800;
         }
 
@@ -530,24 +530,16 @@
 
         <section class="stats-grid">
             <div class="stat-card has-progress" id="statPlayersCard">
-                <div class="stat-label">Игроки</div>
                 <div class="stat-value" id="statPlayers">—</div>
-                <div class="stat-sub" id="statPlayersSub">активных —, вылетело —</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Столы</div>
                 <div class="stat-value" id="statTables">—</div>
-                <div class="stat-sub" id="statTablesSub">активные —</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Ребаи</div>
                 <div class="stat-value" id="statRebuys">—</div>
-                <div class="stat-sub" id="statRebuysSub">входов —</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Средний стек</div>
                 <div class="stat-value" id="statAvgStack">—</div>
-                <div class="stat-sub" id="statAvgStackSub">начальный стек —</div>
             </div>
             <div class="stat-card is-hidden">
                 <div class="stat-label">Контроль</div>
@@ -877,11 +869,15 @@
 
             tournamentNameEl.textContent = t.title || t.name || 'Турнир';
             tournamentStatusEl.textContent = `Статус: ${String(t.status || '—').toUpperCase()}`;
+            const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
+                ? String(t.stack)
+                : '7000';
             if (tournamentStartEl) {
                 const startDate = t.date ? String(t.date).trim() : '';
                 const startTime = t.time ? String(t.time).trim() : '';
-                tournamentStartEl.textContent = startDate || startTime
-                    ? `${startDate} ${startTime}`.trim()
+                const startText = `${startDate} ${startTime}`.trim();
+                tournamentStartEl.textContent = startText
+                    ? `${startText}, стартовый стек ${initialStack}`
                     : 'дата и время старта —';
             }
             if (breakCommentEl) {
@@ -889,7 +885,9 @@
             }
 
             statPlayersEl.textContent = `${stats.activePlayers} ${pluralRu(stats.activePlayers, 'игрок', 'игрока', 'игроков')}`;
-            statPlayersSubEl.textContent = `активных ${stats.activePlayers}, вылетело ${stats.outPlayers}`;
+            if (statPlayersSubEl) {
+                statPlayersSubEl.textContent = `активных ${stats.activePlayers}, вылетело ${stats.outPlayers}`;
+            }
             if (statPlayersCardEl) {
                 const ratio = stats.totalPlayers > 0 ? (stats.activePlayers / stats.totalPlayers) : 0;
                 const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
@@ -897,7 +895,9 @@
             }
 
             statTablesEl.textContent = `${activeTables} ${pluralRu(activeTables, 'стол', 'стола', 'столов')}`;
-            statTablesSubEl.textContent = `активных ${activeTables}`;
+            if (statTablesSubEl) {
+                statTablesSubEl.textContent = `активных ${activeTables}`;
+            }
 
             const blindsText = getBlindsText(t);
             statBlindsEl.textContent = blindsText !== '—' ? blindsText : '20/50';
@@ -911,13 +911,13 @@
                 : 'следующий уровень 3';
 
             statRebuysEl.textContent = `${stats.totalRebuys} ${pluralRu(stats.totalRebuys, 'ребай', 'ребая', 'ребаев')}`;
-            statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
-
-            const initialStack = (t.stack !== null && t.stack !== undefined && String(t.stack).trim() !== '')
-                ? String(t.stack)
-                : '7000';
+            if (statRebuysSubEl) {
+                statRebuysSubEl.textContent = `входов ${stats.totalEntries}`;
+            }
             statAvgStackEl.textContent = stats.avgStack == null ? '—' : `~${stats.avgStack} стек`;
-            statAvgStackSubEl.textContent = `начальный стек ${initialStack}`;
+            if (statAvgStackSubEl) {
+                statAvgStackSubEl.textContent = `начальный стек ${initialStack}`;
+            }
 
             statAdminsEl.textContent = adminsCount;
             statAdminsSubEl.textContent = `админов ${adminsCount}, вызовов ${adminCallsCount}`;
