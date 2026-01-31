@@ -509,31 +509,14 @@
                     <div class="tournament-status" id="tournamentStatus">Статус: —</div>
                 </div>
             </div>
-            <div class="header-bottom">
-                <div class="header-block align-left">
-                    <div class="header-label">Блайнды</div>
-                    <div class="header-clock" id="statBlinds">20/50</div>
-                    <div class="header-comment" id="statBlindsSub">уровень 2</div>
-                </div>
-                <div class="header-block">
-                    <div class="header-label">Время турнира</div>
-                    <div class="header-clock" id="tournamentClock">—</div>
-                    <div class="header-comment is-alert" id="breakComment">до перерыва —</div>
-                </div>
-                <div class="header-block align-right">
-                    <div class="header-label">Повышение</div>
-                    <div class="header-clock" id="statNextBlind">50/100</div>
-                    <div class="header-comment" id="statNextBlindSub">следующий уровень 3</div>
-                </div>
-            </div>
         </header>
 
         <section class="stats-grid">
-            <div class="stat-card has-progress" id="statPlayersCard">
-                <div class="stat-value" id="statPlayers">—</div>
-            </div>
             <div class="stat-card">
                 <div class="stat-value" id="statTables">—</div>
+            </div>
+            <div class="stat-card has-progress" id="statPlayersCard">
+                <div class="stat-value" id="statPlayers">—</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="statRebuys">—</div>
@@ -547,6 +530,24 @@
                 <div class="stat-sub" id="statAdminsSub">админов —, вызовов —</div>
             </div>
         </section>
+
+        <div class="header-bottom">
+            <div class="header-block align-left">
+                <div class="header-label">Блайнды</div>
+                <div class="header-clock" id="statBlinds">20/50</div>
+                <div class="header-comment" id="statBlindsSub">уровень 2</div>
+            </div>
+            <div class="header-block">
+                <div class="header-label">Время турнира</div>
+                <div class="header-clock" id="tournamentClock">—</div>
+                <div class="header-comment is-alert" id="breakComment">до перерыва —</div>
+            </div>
+            <div class="header-block align-right">
+                <div class="header-label">Повышение</div>
+                <div class="header-clock" id="statNextBlind">50/100</div>
+                <div class="header-comment" id="statNextBlindSub">следующий уровень 3</div>
+            </div>
+        </div>
 
         <section class="tables-grid" id="tablesGrid"></section>
     </div>
@@ -1005,7 +1006,7 @@
                 tg.onEvent('themeChanged', applyTelegramTheme);
             }
             if (appVersionEl) {
-                appVersionEl.textContent = `TV v${TV_APP_VERSION_TOTAL} • ${TV_HTML_LAST_EDITED}`;
+                appVersionEl.textContent = `TV ${TV_APP_VERSION_TOTAL} • ${TV_HTML_LAST_EDITED}`;
             }
             loadTournamentData();
             updateClock();
