@@ -533,19 +533,16 @@
 
         <div class="header-bottom">
             <div class="header-block align-left">
-                <div class="header-label">Блайнды</div>
+                <div class="header-label" id="statBlindsLabel">Блайнды, уровень 2</div>
                 <div class="header-clock" id="statBlinds">20/50</div>
-                <div class="header-comment" id="statBlindsSub">уровень 2</div>
             </div>
             <div class="header-block">
                 <div class="header-label">Время турнира</div>
                 <div class="header-clock" id="tournamentClock">—</div>
-                <div class="header-comment is-alert" id="breakComment">до перерыва —</div>
             </div>
             <div class="header-block align-right">
-                <div class="header-label">Повышение</div>
+                <div class="header-label" id="statNextBlindLabel">Повышение, следующий уровень 3</div>
                 <div class="header-clock" id="statNextBlind">50/100</div>
-                <div class="header-comment" id="statNextBlindSub">следующий уровень 3</div>
             </div>
         </div>
 
@@ -577,16 +574,15 @@
         const tournamentStatusEl = document.getElementById('tournamentStatus');
         const appVersionEl = document.getElementById('appVersion');
         const tournamentStartEl = document.getElementById('tournamentStart');
-        const breakCommentEl = document.getElementById('breakComment');
+        const statBlindsLabelEl = document.getElementById('statBlindsLabel');
         const statPlayersEl = document.getElementById('statPlayers');
         const statPlayersSubEl = document.getElementById('statPlayersSub');
         const statPlayersCardEl = document.getElementById('statPlayersCard');
         const statTablesEl = document.getElementById('statTables');
         const statTablesSubEl = document.getElementById('statTablesSub');
         const statBlindsEl = document.getElementById('statBlinds');
-        const statBlindsSubEl = document.getElementById('statBlindsSub');
         const statNextBlindEl = document.getElementById('statNextBlind');
-        const statNextBlindSubEl = document.getElementById('statNextBlindSub');
+        const statNextBlindLabelEl = document.getElementById('statNextBlindLabel');
         const statRebuysEl = document.getElementById('statRebuys');
         const statRebuysSubEl = document.getElementById('statRebuysSub');
         const statAvgStackEl = document.getElementById('statAvgStack');
@@ -881,9 +877,6 @@
                     ? `${startText}, стартовый стек ${initialStack}`
                     : 'дата и время старта —';
             }
-            if (breakCommentEl) {
-                breakCommentEl.textContent = 'до перерыва 01:30:00';
-            }
 
             statPlayersEl.textContent = `${stats.activePlayers} ${pluralRu(stats.activePlayers, 'игрок', 'игрока', 'игроков')}`;
             if (statPlayersSubEl) {
@@ -902,14 +895,18 @@
 
             const blindsText = getBlindsText(t);
             statBlindsEl.textContent = blindsText !== '—' ? blindsText : '20/50';
-            statBlindsSubEl.textContent = t.level ? `уровень ${t.level}` : 'уровень 2';
+            if (statBlindsLabelEl) {
+                statBlindsLabelEl.textContent = t.level ? `Блайнды, уровень ${t.level}` : 'Блайнды, уровень 2';
+            }
 
             statNextBlindEl.textContent = t.next_blinds
                 ? String(t.next_blinds)
                 : '50/100';
-            statNextBlindSubEl.textContent = t.next_level
-                ? `следующий уровень ${t.next_level}`
-                : 'следующий уровень 3';
+            if (statNextBlindLabelEl) {
+                statNextBlindLabelEl.textContent = t.next_level
+                    ? `Повышение, следующий уровень ${t.next_level}`
+                    : 'Повышение, следующий уровень 3';
+            }
 
             statRebuysEl.textContent = `${stats.totalRebuys} ${pluralRu(stats.totalRebuys, 'ребай', 'ребая', 'ребаев')}`;
             if (statRebuysSubEl) {
@@ -946,11 +943,11 @@
                 tournamentClockEl.textContent = '—';
             }
 
-            if (state.nextBlindAt) {
+            if (state.nextBlindAt && statNextBlindLabelEl) {
                 const diffMs = state.nextBlindAt - now;
-                statNextBlindSubEl.textContent = diffMs >= 0
-                    ? `следующий уровень через ${formatClockText(formatHHMMSSParts(diffMs))}`
-                    : statNextBlindSubEl.textContent;
+                if (diffMs >= 0) {
+                    statNextBlindLabelEl.textContent = `Повышение, следующий уровень через ${formatClockText(formatHHMMSSParts(diffMs))}`;
+                }
             }
         }
 
